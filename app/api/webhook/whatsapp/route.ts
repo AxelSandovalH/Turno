@@ -5,50 +5,64 @@ import { sendMessage } from '@/lib/ultramsg'
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
+  console.log('[webhook] raw body:', JSON.stringify(body))
+
   if (!body) return NextResponse.json({ ok: false }, { status: 400 })
 
   const { data } = body
+  console.log('[webhook] data:', JSON.stringify(data))
+  console.log('[webhook] type:', data?.type, '| fromMe:', data?.fromMe, '| body:', data?.body)
 
   // Only process incoming text messages
   if (!data || data.type !== 'chat' || !data.body || data.fromMe) {
+    console.log('[webhook] skipped — not a chat message')
     return NextResponse.json({ ok: true })
   }
 
-  const from: string = data.from    // e.g. "521XXXXXXXXXX@c.us"
+  const from: string = data.from
   const text: string = data.body
   const msgId: string = data.id
-
-  // Normalize phone — strip @c.us suffix
   const phone = from.replace('@c.us', '')
+
+  console.log('[webhook] from:', from, '| phone:', phone, '| msgId:', msgId)
 
   const db = createServiceClient()
 
-  // Dedup — ignore if we already processed this message
+  // Dedup
   const { data: existing } = await db
     .from('messages')
     .select('id')
     .eq('ultramsg_id', msgId)
     .maybeSingle()
 
-  if (existing) return NextResponse.json({ ok: true })
+  if (existing) {
+    console.log('[webhook] duplicate message, skipping')
+    return NextResponse.json({ ok: true })
+  }
 
-  // Find tenant by WhatsApp number
-  const { data: org } = await db
-    .from('organizations')
-    .select('id, subscription_status')
-    .eq('whatsapp_number', phone.replace(/^521/, '52'))  // normalize MX numbers
-    .maybeSingle()
+  // Find tenant — try multiple number formats
+  const candidates = [
+    phone,
+    phone.replace(/^521/, '52'),
+    phone.replace(/^52/, '521'),
+    phone.replace(/^1/, ''),
+  ]
+  console.log('[webhook] looking up org for candidates:', candidates)
 
-  // Try exact match if normalize didn't work
-  const organization = org ?? (await db
-    .from('organizations')
-    .select('id, subscription_status')
-    .eq('whatsapp_number', phone)
-    .maybeSingle()
-  ).data
+  let organization = null
+  for (const candidate of candidates) {
+    const { data: found } = await db
+      .from('organizations')
+      .select('id, subscription_status, whatsapp_number')
+      .eq('whatsapp_number', candidate)
+      .maybeSingle()
+    if (found) { organization = found; break }
+  }
+
+  console.log('[webhook] organization found:', JSON.stringify(organization))
 
   if (!organization) {
-    // No tenant found for this number — silently ignore
+    console.log('[webhook] no org found for phone:', phone)
     return NextResponse.json({ ok: true })
   }
 
