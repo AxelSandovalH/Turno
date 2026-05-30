@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Turno
 
-## Getting Started
+Recepcionista digital para negocios basados en citas. Opera 24/7 por WhatsApp — agenda, confirma, reagenda y cancela citas de forma automática usando IA.
 
-First, run the development server:
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | Next.js 15, TypeScript, TailwindCSS, shadcn/ui |
+| Backend | Next.js API Routes |
+| Base de datos | Supabase (PostgreSQL + RLS) |
+| Auth | Supabase Auth |
+| IA | Anthropic Claude API |
+| WhatsApp | UltraMsg |
+| Pagos | Stripe |
+| Deploy | Vercel |
+
+## Estructura del proyecto
+
+```
+turno/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── register/
+│   ├── (dashboard)/
+│   │   ├── appointments/     # vista de citas del día
+│   │   ├── staff/            # gestión de barberos
+│   │   ├── services/         # servicios y precios
+│   │   ├── schedule/         # horarios y bloqueos
+│   │   └── settings/         # configuración del negocio
+│   └── api/
+│       ├── onboarding/       # creación de organización en registro
+│       ├── webhook/
+│       │   ├── whatsapp/     # entrada de mensajes UltraMsg
+│       │   └── stripe/       # eventos de suscripción
+│       ├── appointments/     # CRUD de citas
+│       └── availability/     # slots disponibles
+├── lib/
+│   ├── agent/                # Claude booking agent
+│   │   ├── agent.ts
+│   │   ├── tools.ts
+│   │   └── prompts.ts
+│   └── supabase/
+│       ├── client.ts         # browser client
+│       ├── server.ts         # server component client
+│       └── service.ts        # service role (API routes only)
+├── components/
+│   ├── ui/                   # shadcn/ui
+│   └── dashboard/            # componentes del panel
+├── types/
+│   └── database.ts           # tipos TypeScript del schema
+├── supabase/
+│   └── migrations/
+│       └── 001_initial_schema.sql
+└── middleware.ts             # auth guard
+```
+
+## Setup local
+
+### 1. Requisitos
+
+- Node.js 20+
+- Cuenta en [Supabase](https://supabase.com)
+- Cuenta en [UltraMsg](https://ultramsg.com)
+- Cuenta en [Stripe](https://stripe.com)
+- API key de [Anthropic](https://console.anthropic.com)
+
+### 2. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 3. Variables de entorno
+
+```bash
+cp .env.example .env.local
+# Rellena los valores en .env.local
+```
+
+### 4. Base de datos
+
+En el SQL Editor de tu proyecto Supabase, ejecuta:
+
+```
+supabase/migrations/001_initial_schema.sql
+```
+
+### 5. Correr en desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 6. Webhook local para WhatsApp
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx ngrok http 3000
+# Configura https://xxxx.ngrok.io/api/webhook/whatsapp en UltraMsg
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Cómo funciona el agente
 
-## Learn More
+```
+Cliente WhatsApp → UltraMsg webhook → /api/webhook/whatsapp
+                                              │
+                                     Identifica tenant
+                                     por número de WhatsApp
+                                              │
+                                     Carga contexto + historial
+                                              │
+                                     Claude API con tools
+                                              │
+                         ┌────────────────────┼───────────────────┐
+                         │                    │                   │
+                  get_available_slots  create_appointment  cancel_appointment
+                                              │
+                                     Respuesta por UltraMsg
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Pricing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Plan | Precio |
+|---|---|
+| Setup | $800 MXN (one-time) |
+| Starter | $399 MXN/mes — hasta 3 barberos |
+| Pro | $699 MXN/mes — ilimitado |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Trial: 14 días gratis, sin tarjeta.
 
-## Deploy on Vercel
+## Roadmap
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [x] Schema de base de datos
+- [x] Auth + onboarding
+- [x] Dashboard shell (citas del día)
+- [ ] Gestión de staff, servicios y horarios
+- [ ] Agente Claude + webhook UltraMsg
+- [ ] Recordatorios automáticos
+- [ ] Stripe subscriptions + trial
+- [ ] Suspensión automática por falta de pago
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Licencia
+
+Privado. Todos los derechos reservados.
