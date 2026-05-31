@@ -16,7 +16,7 @@ export default async function Home() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0a0010]/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Turno" width={32} height={32} className="invert" />
+            <Image src="/logo.png" alt="Turno" width={32} height={32} style={{ filter: 'brightness(0) invert(1)' }} />
             <span className="font-bold text-lg tracking-tight">Turno</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm text-white/50">
