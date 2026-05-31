@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { CalendarDays, Users, Scissors, Clock, Settings, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -42,7 +41,8 @@ export function AppSidebar({ organization }: { organization: Organization }) {
     <Sidebar>
       <SidebarHeader className="px-4 py-5">
         <div className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="Turno" width={22} height={22} priority />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Turno" style={{ height: 22, width: 'auto', flexShrink: 0 }} />
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[#ebebeb] truncate leading-tight">{organization.name}</p>
             <p className="text-[11px] text-[#3d3d3d] truncate mt-0.5">{organization.whatsapp_number}</p>

@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowRight, Check } from 'lucide-react'
 
 export default async function Home() {
@@ -16,8 +15,8 @@ export default async function Home() {
       <header className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-[#0c0c0c]/90 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-6 flex items-center justify-between" style={{ height: '60px' }}>
           <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="Turno" width={28} height={28} priority />
-            <span className="font-semibold text-[15px] text-[#ebebeb]">Turno</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Turno" style={{ height: 28, width: 'auto' }} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px] text-[#6b6b6b]">
             <a href="#features" className="hover:text-[#ebebeb] transition-colors">Funciones</a>
@@ -277,9 +276,9 @@ export default async function Home() {
       {/* Footer */}
       <footer className="border-t border-[#1f1f1f]">
         <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Turno" width={22} height={22} priority />
-            <span className="text-[14px] font-semibold text-[#ebebeb]">Turno</span>
+          <Link href="/" className="flex items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Turno" style={{ height: 22, width: 'auto' }} />
           </Link>
           <p className="text-[13px] text-[#3d3d3d]">© 2026 Turno · Hecho en México</p>
           <div className="flex gap-6">
