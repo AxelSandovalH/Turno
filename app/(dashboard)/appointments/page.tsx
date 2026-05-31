@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { AppointmentActions } from './appointment-actions'
 import type { Appointment } from '@/types/database'
 
 const statusLabel: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -96,6 +97,7 @@ export default async function AppointmentsPage() {
                   <TableHead>Servicio</TableHead>
                   <TableHead>Barbero</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -116,6 +118,9 @@ export default async function AppointmentsPage() {
                       <TableCell>{appointment.staff?.name}</TableCell>
                       <TableCell>
                         <Badge variant={variant}>{label}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <AppointmentActions appointmentId={appointment.id} status={appointment.status} />
                       </TableCell>
                     </TableRow>
                   )
