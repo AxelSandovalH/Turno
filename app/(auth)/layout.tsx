@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="w-full max-w-[400px]">
         <Link href="/" className="flex items-center gap-2 mb-12">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Turno" style={{ height: 28, width: 'auto' }} />
+          <img src="/logotrans.png" alt="Turno" style={{ height: 28, width: 'auto' }} />
         </Link>
         {children}
       </div>
