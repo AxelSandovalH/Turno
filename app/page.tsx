@@ -33,7 +33,7 @@ export default async function Home() {
           <p className="text-[13px] text-neutral-400 tracking-widest uppercase mb-8 font-medium">
             Recepcionista de WhatsApp con IA
           </p>
-          <h1 className="text-[56px] sm:text-[72px] font-semibold leading-[1.05] tracking-tight mb-8 text-[#1a1a1a]">
+          <h1 className="text-[56px] sm:text-[72px] leading-[1.05] mb-8 text-[#1a1a1a]" style={{ fontFamily: 'var(--font-serif)' }}>
             Tu barbería,<br />
             siempre disponible.
           </h1>
@@ -151,7 +151,7 @@ export default async function Home() {
         <div className="grid md:grid-cols-2 gap-16 items-center">
           <div>
             <p className="text-[11px] text-neutral-400 tracking-widest uppercase mb-6">Precio</p>
-            <h2 className="text-[40px] font-semibold tracking-tight leading-tight mb-4">
+            <h2 className="text-[40px] leading-tight mb-4" style={{ fontFamily: 'var(--font-serif)' }}>
               $499 MXN<br />al mes.
             </h2>
             <p className="text-[15px] text-neutral-500 leading-relaxed">
@@ -217,7 +217,7 @@ export default async function Home() {
 
       {/* ── CTA final ───────────────────────────────────────── */}
       <section className="border-t border-neutral-100 px-6 py-32 max-w-5xl mx-auto text-center">
-        <h2 className="text-[48px] sm:text-[64px] font-semibold tracking-tight leading-tight mb-6">
+        <h2 className="text-[48px] sm:text-[64px] leading-tight mb-6" style={{ fontFamily: 'var(--font-serif)' }}>
           Empieza hoy,<br />gratis.
         </h2>
         <p className="text-[16px] text-neutral-500 mb-10">
