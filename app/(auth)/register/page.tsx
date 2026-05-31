@@ -68,8 +68,8 @@ export default function RegisterPage() {
       return
     }
 
-    toast.success('¡Cuenta creada! Redirigiendo...')
-    router.push('/appointments')
+    toast.success('¡Cuenta creada! Configuremos tu negocio...')
+    router.push('/onboarding')
     router.refresh()
   }
 
