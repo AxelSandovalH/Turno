@@ -1,16 +1,17 @@
-import { NextResponse } from 'next/server'
+import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
 
-export async function POST(request: Request) {
-  const { userId, name, slug, whatsappNumber, email } = await request.json()
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const { userId, name, slug, whatsappNumber, email } = req.body
 
   if (!userId || !name || !slug || !whatsappNumber) {
-    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    return res.status(400).json({ error: 'Faltan campos requeridos' })
   }
 
   const service = createServiceClient()
 
-  // 1. Create organization
   const trialEndsAt = new Date()
   trialEndsAt.setDate(trialEndsAt.getDate() + 14)
 
@@ -29,27 +30,19 @@ export async function POST(request: Request) {
 
   if (orgError) {
     if (orgError.code === '23505') {
-      return NextResponse.json({ error: 'El número de WhatsApp ya está registrado' }, { status: 409 })
+      return res.status(409).json({ error: 'El número de WhatsApp ya está registrado' })
     }
-    return NextResponse.json({ error: orgError.message }, { status: 500 })
+    return res.status(500).json({ error: orgError.message })
   }
 
-  // 2. Create default branch
-  await service.from('branches').insert({
-    organization_id: org.id,
-    name,
-  })
+  await service.from('branches').insert({ organization_id: org.id, name })
 
-  // 3. Update user metadata with organization_id
   const { error: metaError } = await service.auth.admin.updateUserById(userId, {
     user_metadata: { organization_id: org.id },
   })
 
-  if (metaError) {
-    return NextResponse.json({ error: metaError.message }, { status: 500 })
-  }
+  if (metaError) return res.status(500).json({ error: metaError.message })
 
-  // 4. Create owner staff record
   await service.from('staff').insert({
     organization_id: org.id,
     user_id: userId,
@@ -57,5 +50,5 @@ export async function POST(request: Request) {
     role: 'owner',
   })
 
-  return NextResponse.json({ organizationId: org.id })
+  return res.status(200).json({ organizationId: org.id })
 }

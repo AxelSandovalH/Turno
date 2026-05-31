@@ -1,33 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
 
 export const maxDuration = 60
 
-export async function GET() {
-  return NextResponse.json({ ok: true, service: 'turno-whatsapp-webhook' })
-}
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === 'GET') {
+    return res.status(200).json({ ok: true, service: 'turno-whatsapp-webhook' })
+  }
 
-export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null)
-  if (!body) return NextResponse.json({ ok: true })
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
 
-  const msg = body.data
+  const body = req.body
+  const msg = body?.data
   console.log('[whatsapp] incoming:', JSON.stringify(msg))
 
   if (!msg || msg.type !== 'chat' || msg.fromMe) {
-    return NextResponse.json({ ok: true })
+    return res.status(200).json({ ok: true })
   }
 
   const from: string = msg.from ?? ''
   const text: string = msg.body?.trim() ?? ''
   const msgId: string = msg.id ?? ''
 
-  if (!from || !text) return NextResponse.json({ ok: true })
+  if (!from || !text) return res.status(200).json({ ok: true })
 
   const phone = from.replace('@c.us', '').replace(/\D/g, '')
-  console.log('[whatsapp] phone:', phone, '| text:', text)
+  console.log('[whatsapp] phone:', phone, 'text:', text)
 
   const db = createServiceClient()
 
@@ -38,15 +40,10 @@ export async function POST(req: NextRequest) {
     .eq('ultramsg_id', msgId)
     .maybeSingle()
 
-  if (existing) {
-    console.log('[whatsapp] duplicate, skipping')
-    return NextResponse.json({ ok: true })
-  }
+  if (existing) return res.status(200).json({ ok: true })
 
-  // Find tenant — try multiple number formats
+  // Find tenant
   const candidates = [phone, `52${phone.slice(-10)}`, `521${phone.slice(-10)}`]
-  console.log('[whatsapp] looking for org with candidates:', candidates)
-
   let organization = null
   for (const candidate of candidates) {
     const { data } = await db
@@ -57,13 +54,11 @@ export async function POST(req: NextRequest) {
     if (data) { organization = data; console.log('[whatsapp] org found:', candidate); break }
   }
 
-  if (!organization) {
-    console.log('[whatsapp] no org found')
-    return NextResponse.json({ ok: true })
-  }
+  console.log('[whatsapp] org:', JSON.stringify(organization))
 
+  if (!organization) return res.status(200).json({ ok: true })
   if (['suspended', 'canceled'].includes(organization.subscription_status)) {
-    return NextResponse.json({ ok: true })
+    return res.status(200).json({ ok: true })
   }
 
   const reply = await runAgent({
@@ -73,5 +68,5 @@ export async function POST(req: NextRequest) {
   })
 
   await sendMessage(from, reply)
-  return NextResponse.json({ ok: true })
+  return res.status(200).json({ ok: true })
 }

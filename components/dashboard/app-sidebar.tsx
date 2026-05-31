@@ -66,7 +66,7 @@ export function AppSidebar({ organization }: AppSidebarProps) {
                 <SidebarMenuItem key={href}>
                   <SidebarMenuButton
                     render={<Link href={href} />}
-                    isActive={pathname.startsWith(href)}
+                    isActive={pathname?.startsWith(href) ?? false}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{label}</span>
