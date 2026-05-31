@@ -16,7 +16,7 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto px-6 flex items-center justify-between" style={{ height: '60px' }}>
           <Link href="/" className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+            <img src="/logotrans.png" alt="Turno" style={{ height: 40, width: 'auto', filter: 'brightness(0) invert(1)' }} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px] text-[#6b6b6b]">
             <a href="#features" className="hover:text-[#ebebeb] transition-colors">Funciones</a>
@@ -278,7 +278,7 @@ export default async function Home() {
         <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 22, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+            <img src="/logotrans.png" alt="Turno" style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }} />
           </Link>
           <p className="text-[13px] text-[#3d3d3d]">© 2026 Turno · Hecho en México</p>
           <div className="flex gap-6">
