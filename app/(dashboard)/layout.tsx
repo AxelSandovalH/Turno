@@ -24,7 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <SidebarProvider>
       {organization && <AppSidebar organization={organization} />}
       <main className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 px-4 py-3 border-b">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5">
           <SidebarTrigger />
         </div>
         <div className="p-6">

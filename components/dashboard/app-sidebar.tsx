@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { CalendarDays, Users, Scissors, Clock, Settings, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -16,7 +17,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import type { Organization } from '@/types/database'
 
 const navItems = [
@@ -44,16 +44,15 @@ export function AppSidebar({ organization }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4 border-b">
+      <SidebarHeader className="p-4 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs font-bold bg-primary text-primary-foreground">
-              {organization.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'linear-gradient(135deg, #570A57, #A91079)' }}>
+            <Image src="/logo.png" alt="Turno" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />
+          </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">{organization.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{organization.whatsapp_number}</p>
+            <p className="text-xs truncate text-muted-foreground">{organization.whatsapp_number}</p>
           </div>
         </div>
       </SidebarHeader>
@@ -78,7 +77,7 @@ export function AppSidebar({ organization }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t">
+      <SidebarFooter className="p-2 border-t border-white/5">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout} className="text-muted-foreground">
