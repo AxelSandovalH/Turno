@@ -42,7 +42,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
       <SidebarHeader className="px-4 py-5">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logotrans.png" alt="Turno" style={{ height: 22, width: 'auto', flexShrink: 0 }} />
+          <img src="/logotrans.png" alt="Turno" style={{ height: 22, width: 'auto', flexShrink: 0, filter: 'brightness(0) invert(1)' }} />
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[#ebebeb] truncate leading-tight">{organization.name}</p>
             <p className="text-[11px] text-[#3d3d3d] truncate mt-0.5">{organization.whatsapp_number}</p>
