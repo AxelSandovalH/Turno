@@ -13,7 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Link href="/" className="inline-flex items-center gap-3 justify-center mb-4">
             <div className="h-10 w-10 rounded-xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #570A57, #A91079)' }}>
-              <Image src="/logo.png" alt="Turno" width={22} height={22} style={{ filter: 'brightness(0) invert(1)' }} />
+              <Image src="/logo.png" alt="Turno" width={22} height={22} priority style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
             <span className="text-xl font-bold">Turno</span>
           </Link>

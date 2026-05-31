@@ -48,7 +48,7 @@ export function AppSidebar({ organization }: AppSidebarProps) {
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
             style={{ background: 'linear-gradient(135deg, #570A57, #A91079)' }}>
-            <Image src="/logo.png" alt="Turno" width={18} height={18} style={{ filter: 'brightness(0) invert(1)' }} />
+            <Image src="/logo.png" alt="Turno" width={18} height={18} priority style={{ filter: 'brightness(0) invert(1)' }} />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">{organization.name}</p>
