@@ -8,6 +8,29 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  height: 44,
+  padding: '0 14px',
+  borderRadius: 8,
+  background: '#141414',
+  border: '1px solid #252525',
+  color: '#ebebeb',
+  fontSize: 14,
+  outline: 'none',
+  fontFamily: 'inherit',
+  transition: 'border-color 0.15s',
+}
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 400,
+  color: '#888888',
+  marginBottom: 8,
+  letterSpacing: '-0.01em',
+}
+
 export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -21,6 +44,13 @@ export default function RegisterPage() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  function focusStyle(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderColor = '#7c3aed'
+  }
+  function blurStyle(e: React.FocusEvent<HTMLInputElement>) {
+    e.currentTarget.style.borderColor = '#252525'
   }
 
   async function handleRegister(e: React.FormEvent) {
@@ -62,52 +92,77 @@ export default function RegisterPage() {
       return
     }
 
-    toast.success('¡Cuenta creada! Configuremos tu negocio...')
+    toast.success('¡Cuenta creada!')
     router.push('/onboarding')
     router.refresh()
   }
 
-  const field = (
-    id: string,
-    label: string,
-    type: string,
-    placeholder: string,
-    hint?: string,
-  ) => (
-    <div>
-      <label htmlFor={id} className="block text-[13px] font-medium text-[#ebebeb] mb-2">
-        {label}
-      </label>
-      <input
-        id={id}
-        name={id}
-        type={type}
-        placeholder={placeholder}
-        value={form[id as keyof typeof form]}
-        onChange={handleChange}
-        required
-        className="w-full h-10 px-3 rounded-md bg-[#161616] border border-[#2a2a2a] text-[#ebebeb] text-[14px] placeholder:text-[#3d3d3d] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
-      />
-      {hint && <p className="text-[12px] text-[#3d3d3d] mt-1.5">{hint}</p>}
-    </div>
-  )
-
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-[22px] font-semibold text-[#ebebeb] mb-1">Crea tu cuenta gratis</h1>
-        <p className="text-[14px] text-[#6b6b6b]">14 días de prueba · Sin tarjeta de crédito</p>
+    <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
+      <div style={{ marginBottom: 36 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 500, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 6 }}>
+          Crea tu cuenta
+        </h1>
+        <p style={{ fontSize: 14, color: '#555555', letterSpacing: '-0.01em' }}>
+          14 días gratis · Sin tarjeta de crédito
+        </p>
       </div>
 
-      <form onSubmit={handleRegister} className="space-y-4">
-        {field('businessName', 'Nombre del negocio', 'text', 'Barbería El Estilo')}
-        {field('whatsappNumber', 'WhatsApp del negocio', 'tel', '521XXXXXXXXXX', 'Formato internacional sin +. Ej: 521XXXXXXXXXX')}
-        {field('email', 'Correo electrónico', 'email', 'tu@negocio.com')}
+      <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div>
+          <label htmlFor="businessName" style={labelStyle}>Nombre del negocio</label>
+          <input
+            id="businessName"
+            name="businessName"
+            type="text"
+            placeholder="Barbería El Estilo"
+            value={form.businessName}
+            onChange={handleChange}
+            required
+            autoFocus
+            style={inputStyle}
+            onFocus={focusStyle}
+            onBlur={blurStyle}
+          />
+        </div>
 
         <div>
-          <label htmlFor="password" className="block text-[13px] font-medium text-[#ebebeb] mb-2">
-            Contraseña
-          </label>
+          <label htmlFor="whatsappNumber" style={labelStyle}>WhatsApp del negocio</label>
+          <input
+            id="whatsappNumber"
+            name="whatsappNumber"
+            type="tel"
+            placeholder="521XXXXXXXXXX"
+            value={form.whatsappNumber}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+            onFocus={focusStyle}
+            onBlur={blurStyle}
+          />
+          <p style={{ fontSize: 12, color: '#3d3d3d', marginTop: 6, letterSpacing: '-0.01em' }}>
+            Formato internacional sin +. Ej: 521XXXXXXXXXX
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="email" style={labelStyle}>Correo electrónico</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="tu@negocio.com"
+            value={form.email}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+            onFocus={focusStyle}
+            onBlur={blurStyle}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" style={labelStyle}>Contraseña</label>
           <input
             id="password"
             name="password"
@@ -117,22 +172,39 @@ export default function RegisterPage() {
             onChange={handleChange}
             required
             minLength={8}
-            className="w-full h-10 px-3 rounded-md bg-[#161616] border border-[#2a2a2a] text-[#ebebeb] text-[14px] placeholder:text-[#3d3d3d] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
+            style={inputStyle}
+            onFocus={focusStyle}
+            onBlur={blurStyle}
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-10 rounded-md bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white font-medium text-[14px] transition-colors mt-2"
+          style={{
+            width: '100%',
+            height: 44,
+            borderRadius: 8,
+            background: '#7c3aed',
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 500,
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontFamily: 'inherit',
+            letterSpacing: '-0.01em',
+            opacity: loading ? 0.7 : 1,
+            transition: 'background 0.15s, opacity 0.15s',
+            marginTop: 4,
+          }}
         >
           {loading ? 'Creando cuenta...' : 'Comenzar prueba gratis'}
         </button>
       </form>
 
-      <p className="text-[13px] text-[#6b6b6b] text-center mt-6">
+      <p style={{ fontSize: 13, color: '#555555', textAlign: 'center', marginTop: 28, letterSpacing: '-0.01em' }}>
         ¿Ya tienes cuenta?{' '}
-        <Link href="/login" className="text-[#ebebeb] hover:text-white transition-colors">
+        <Link href="/login" style={{ color: '#ebebeb', textDecoration: 'none' }}>
           Inicia sesión
         </Link>
       </p>
