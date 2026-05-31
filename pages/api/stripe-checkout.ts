@@ -1,12 +1,29 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { stripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const supabase = await createClient()
+  // Use SSR client compatible with Pages Router
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return Object.entries(req.cookies).map(([name, value]) => ({ name, value: value ?? '' }))
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            res.setHeader('Set-Cookie', `${name}=${value}`)
+          })
+        },
+      },
+    }
+  )
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return res.status(401).json({ error: 'No autorizado' })
 
@@ -22,7 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!org) return res.status(404).json({ error: 'Organización no encontrada' })
 
-  // Get or create Stripe customer
   let customerId = org.stripe_customer_id
   if (!customerId) {
     const customer = await stripe.customers.create({
@@ -31,10 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       metadata: { organization_id: org.id },
     })
     customerId = customer.id
-    await service
-      .from('organizations')
-      .update({ stripe_customer_id: customerId })
-      .eq('id', org.id)
+    await service.from('organizations').update({ stripe_customer_id: customerId }).eq('id', org.id)
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!
@@ -47,9 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     success_url: `${appUrl}/settings?success=1`,
     cancel_url: `${appUrl}/settings?cancelled=1`,
     metadata: { organization_id: org.id },
-    subscription_data: {
-      metadata: { organization_id: org.id },
-    },
+    subscription_data: { metadata: { organization_id: org.id } },
   })
 
   return res.status(200).json({ url: session.url })
