@@ -6,8 +6,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes — never redirect
-  const publicPaths = ['/login', '/register', '/api/', '/_next/', '/favicon']
-  if (publicPaths.some(p => pathname.startsWith(p))) {
+  const publicPaths = ['/', '/login', '/register', '/api/', '/_next/', '/favicon']
+  if (publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)))) {
     return NextResponse.next()
   }
 
