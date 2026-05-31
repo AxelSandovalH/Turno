@@ -134,6 +134,35 @@
 @keyframes tb-w1 { 0%,100% { transform:translateY(0%) scale(1);opacity:1; } 50% { transform:translateY(-66%) scale(.65);opacity:.8; } }
 @keyframes tb-w2 { 0%,100% { transform:translateY(0%) scale(1);opacity:1; } 50% { transform:translateY(66%) scale(.65);opacity:.8; } }
 
+/* ── PressPattern ──────────────────────────────────── */
+.press * { border:0;box-sizing:border-box;margin:0;padding:0; }
+.press { background:#0f1117;position:relative;width:100%;height:420px;overflow:hidden;font-size:16px;color:#17181c;line-height:1.5; }
+.press .sheet { overflow:hidden; }
+.press .sheet,.press .sheet:before,.press .roll { position:absolute; }
+.press .sheet,.press .roll { top:50%;left:50%; }
+.press .sheet { width:4em;height:6em;transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg); }
+.press .sheet:before { animation:press-print .5s ease-in-out infinite;background:linear-gradient(#0000 5.2em,currentColor 5.2em 5.3em,#0000 5.3em 5.5em) .4em 0/3.2em 6em,linear-gradient(#0000 5.5em,currentColor 5.5em 5.7em,#0000 5.7em) .6em 0/2.8em 6em,linear-gradient(90deg,#1e2029 .4em,#0000 .4em 1.9em,#1e2029 1.9em 2.1em,#0000 2.1em 3.6em,#1e2029 3.6em) 0 0/4em 6em,repeating-linear-gradient(#1e2029 0 .4em,#0000 .4em 5em,#1e2029 5em 6em,#0000 6em) 0 0/4em 6em,linear-gradient(#0000 3.4em,currentColor 3.4em) 100% 0/50% 6em,repeating-linear-gradient(currentColor 0 .2em,#1e2029 .2em .4em) 0 0/4em 6em;background-repeat:repeat-y;color:#7c3aed;content:"";display:block;top:-6em;left:0;width:100%;height:calc(100% + 6em); }
+.press .sheet:nth-child(1):before,.press .sheet:nth-child(5):before { color:#3d3d5c; }
+.press .sheet:nth-child(n+7):nth-child(-n+9) { height:.4em; }
+.press .sheet:nth-child(1) { height:42em;transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-17.4em,9.4em) rotateX(-90deg); }
+.press .sheet:nth-child(3) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-2.5em,-2.5em); }
+.press .sheet:nth-child(5) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-.5em,-.7em) rotateX(-75deg); }
+.press .sheet:nth-child(7) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(1.7em,-1.85em) rotateX(-15deg); }
+.press .sheet:nth-child(7):before { background-position-y:5.2em; }
+.press .sheet:nth-child(8) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(1.7em,-1.5em) rotateX(15deg); }
+.press .sheet:nth-child(8):before { background-position-y:4.8em; }
+.press .sheet:nth-child(9) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(1.6em,-1.05em) rotateX(45deg); }
+.press .sheet:nth-child(9):before { background-position-y:4.4em; }
+.press .sheet:nth-child(10):before,.press .sheet:nth-child(11):before { background-position-y:4em; }
+.press .sheet:nth-child(10) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-.5em,1.95em) rotateX(75deg); }
+.press .sheet:nth-child(11) { height:29em;transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-2.5em,19.25em); }
+.press .roll { background-color:#1a1d27;background-image:radial-gradient(1em 2em at .5em 50%,#0c0d10 49%,#0c0d1000 50%);border-radius:.5em .5em .5em .5em/.5em .5em .5em .5em;width:8em;height:2em; }
+.press .roll:nth-child(2) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-3em,-4.5em) skewX(-22.5deg); }
+.press .roll:nth-child(4) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-2em,-.5em) skewX(-22.5deg); }
+.press .roll:nth-child(6) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(1em,-1em) skewX(-22.5deg); }
+.press .roll:nth-child(12) { transform:translate(-50%,-50%) rotateX(-45deg) rotateZ(-45deg) translate(-2em,4.45em) skewX(-22.5deg); }
+@keyframes press-print { from { transform:translateY(0); } to { transform:translateY(6em); } }
+
 /* ── CardLoader ────────────────────────────────────── */
 .cl-wrap { position:relative;width:160px;height:100px; }
 .cl-card { position:absolute;top:50%;left:50%;border-radius:5px;background:#1e3f57;animation:cl-1 3s cubic-bezier(.55,.3,.24,.99) infinite; }
