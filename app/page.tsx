@@ -2,11 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  CalendarCheck, MessageCircle, Clock, BarChart3,
-  CheckCircle, ArrowRight, Zap, Shield, Star,
-} from 'lucide-react'
+import { ArrowRight, CheckCircle } from 'lucide-react'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -14,130 +10,106 @@ export default async function Home() {
   if (user?.user_metadata?.organization_id) redirect('/appointments')
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900">
+    <div className="min-h-screen bg-[#FAFAF8] text-[#1a1a1a] antialiased">
 
       {/* ── Nav ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-neutral-100 bg-white/95 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-neutral-900 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">Turno</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-neutral-500">
-            <a href="#features" className="hover:text-neutral-900 transition-colors">Funciones</a>
-            <a href="#pricing" className="hover:text-neutral-900 transition-colors">Precio</a>
-            <a href="#faq" className="hover:text-neutral-900 transition-colors">FAQ</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-neutral-600 hover:text-neutral-900">
-                Iniciar sesión
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg px-4">
-                Empezar gratis
-              </Button>
-            </Link>
-          </div>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-5">
+        <span className="text-[15px] font-semibold tracking-tight">Turno</span>
+        <div className="flex items-center gap-6">
+          <Link href="/login" className="text-[13px] text-neutral-500 hover:text-neutral-800 transition-colors">
+            Iniciar sesión
+          </Link>
+          <Link href="/register">
+            <button className="text-[13px] bg-[#1a1a1a] text-white px-4 py-2 rounded-full hover:bg-neutral-800 transition-colors">
+              Empezar gratis
+            </button>
+          </Link>
         </div>
       </header>
 
       {/* ── Hero ────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-24 text-center">
-        <Badge variant="secondary" className="mb-6 bg-neutral-100 text-neutral-700 border-0 px-4 py-1.5 text-xs font-medium rounded-full">
-          ✦ 14 días gratis · Sin tarjeta de crédito
-        </Badge>
-
-        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6 text-neutral-900">
-          Tu barbería agenda<br />
-          <span className="text-neutral-400">citas sola.</span>
-        </h1>
-
-        <p className="text-xl text-neutral-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Un asistente de IA responde WhatsApp 24/7, agenda citas sin errores
-          y te muestra todo en un dashboard limpio. Tú solo cortas.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-          <Link href="/register">
-            <Button size="lg" className="bg-neutral-900 hover:bg-neutral-800 text-white h-12 px-8 rounded-xl text-base font-medium gap-2">
-              Crear cuenta gratis
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/login">
-            <Button size="lg" variant="outline" className="h-12 px-8 rounded-xl text-base border-neutral-200 text-neutral-600 hover:border-neutral-300">
-              Ya tengo cuenta
-            </Button>
-          </Link>
-        </div>
-
-        {/* Social proof */}
-        <div className="mt-12 flex items-center justify-center gap-6 text-sm text-neutral-400">
-          <div className="flex items-center gap-1.5">
-            <div className="flex -space-x-2">
-              {['A','B','C','D'].map(l => (
-                <div key={l} className="h-7 w-7 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-xs font-bold text-neutral-600">
-                  {l}
-                </div>
-              ))}
-            </div>
-            <span>+40 barberías</span>
-          </div>
-          <div className="h-4 w-px bg-neutral-200" />
-          <div className="flex items-center gap-1">
-            {[1,2,3,4,5].map(i => <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />)}
-            <span className="ml-1">5.0</span>
+      <section className="pt-40 pb-32 px-6 max-w-5xl mx-auto">
+        <div className="max-w-3xl">
+          <p className="text-[13px] text-neutral-400 tracking-widest uppercase mb-8 font-medium">
+            Recepcionista de WhatsApp con IA
+          </p>
+          <h1 className="text-[56px] sm:text-[72px] font-semibold leading-[1.05] tracking-tight mb-8 text-[#1a1a1a]">
+            Tu barbería,<br />
+            siempre disponible.
+          </h1>
+          <p className="text-[18px] text-neutral-500 leading-relaxed max-w-xl mb-12">
+            Turno responde tus WhatsApps, agenda citas y manda recordatorios —
+            todo solo, las 24 horas. Tú solo cortas.
+          </p>
+          <div className="flex items-center gap-4">
+            <Link href="/register">
+              <button className="flex items-center gap-2 bg-[#1a1a1a] text-white text-[14px] font-medium px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors">
+                Prueba 14 días gratis
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </Link>
+            <Link href="/login" className="text-[14px] text-neutral-500 hover:text-neutral-800 transition-colors">
+              Ya tengo cuenta →
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── Dashboard preview ───────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 overflow-hidden shadow-sm">
-          {/* Fake browser bar */}
-          <div className="border-b border-neutral-200 bg-white px-4 py-3 flex items-center gap-2">
+      {/* ── Dashboard mockup ────────────────────────────────── */}
+      <section className="px-6 max-w-5xl mx-auto pb-32">
+        <div className="rounded-2xl border border-neutral-200 bg-white shadow-[0_2px_40px_rgba(0,0,0,0.06)] overflow-hidden">
+          {/* Top bar */}
+          <div className="border-b border-neutral-100 px-6 py-4 flex items-center gap-3">
             <div className="flex gap-1.5">
-              <div className="h-3 w-3 rounded-full bg-neutral-200" />
-              <div className="h-3 w-3 rounded-full bg-neutral-200" />
-              <div className="h-3 w-3 rounded-full bg-neutral-200" />
+              <div className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
+              <div className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
+              <div className="h-2.5 w-2.5 rounded-full bg-neutral-200" />
             </div>
-            <div className="flex-1 mx-4 h-6 rounded bg-neutral-100 max-w-xs flex items-center px-3">
-              <span className="text-xs text-neutral-400">turno.app/appointments</span>
+            <div className="h-5 rounded-md bg-neutral-100 w-48 text-[11px] text-neutral-400 flex items-center px-3">
+              turno.app/appointments
             </div>
           </div>
-          {/* Fake dashboard */}
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-3 gap-3">
+
+          {/* Content */}
+          <div className="p-6">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
               {[
-                { label: 'Citas hoy', value: '8', color: 'bg-white' },
-                { label: 'Completadas', value: '5', color: 'bg-white' },
-                { label: 'Ingresos', value: '$800', color: 'bg-white' },
-              ].map(c => (
-                <div key={c.label} className={`${c.color} rounded-xl border border-neutral-200 p-4`}>
-                  <p className="text-xs text-neutral-500 mb-1">{c.label}</p>
-                  <p className="text-2xl font-bold text-neutral-900">{c.value}</p>
+                { label: 'Citas hoy', value: '8' },
+                { label: 'Completadas', value: '5' },
+                { label: 'Ingresos', value: '$800' },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl border border-neutral-100 bg-[#FAFAF8] p-5">
+                  <p className="text-[11px] text-neutral-400 uppercase tracking-wider mb-2">{s.label}</p>
+                  <p className="text-[28px] font-semibold text-[#1a1a1a] tracking-tight">{s.value}</p>
                 </div>
               ))}
             </div>
-            <div className="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
+
+            {/* Table */}
+            <div className="rounded-xl border border-neutral-100 overflow-hidden">
+              <div className="grid grid-cols-[80px_1fr_140px_100px] gap-0 border-b border-neutral-100 px-5 py-3">
+                {['Hora', 'Cliente', 'Servicio', 'Estado'].map(h => (
+                  <span key={h} className="text-[11px] text-neutral-400 uppercase tracking-wider">{h}</span>
+                ))}
+              </div>
               {[
-                { time: '10:00', name: 'Carlos M.', service: 'Corte + Barba', status: 'Confirmada' },
-                { time: '10:30', name: 'Luis R.', service: 'Corte', status: 'Confirmada' },
-                { time: '11:00', name: 'Miguel A.', service: 'Corte + Barba', status: 'Completada' },
-              ].map(a => (
-                <div key={a.time} className="flex items-center gap-4 py-2 border-b border-neutral-100 last:border-0">
-                  <span className="font-mono text-sm text-neutral-500 w-12">{a.time}</span>
-                  <span className="font-medium text-sm flex-1">{a.name}</span>
-                  <span className="text-sm text-neutral-400">{a.service}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    a.status === 'Completada'
+                { time: '10:00', name: 'Carlos M.', service: 'Corte + Barba', done: false },
+                { time: '10:30', name: 'Luis R.', service: 'Corte', done: false },
+                { time: '11:00', name: 'Miguel A.', service: 'Fade', done: true },
+                { time: '11:30', name: 'Andrés V.', service: 'Corte + Barba', done: true },
+              ].map((r, i) => (
+                <div key={i} className="grid grid-cols-[80px_1fr_140px_100px] gap-0 px-5 py-3.5 border-b border-neutral-50 last:border-0 hover:bg-neutral-50 transition-colors">
+                  <span className="text-[13px] font-mono text-neutral-500">{r.time}</span>
+                  <span className="text-[13px] font-medium text-[#1a1a1a]">{r.name}</span>
+                  <span className="text-[13px] text-neutral-500">{r.service}</span>
+                  <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full w-fit ${
+                    r.done
                       ? 'bg-neutral-100 text-neutral-500'
                       : 'bg-emerald-50 text-emerald-700'
-                  }`}>{a.status}</span>
+                  }`}>
+                    {r.done ? 'Completada' : 'Confirmada'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -146,203 +118,129 @@ export default async function Home() {
       </section>
 
       {/* ── Features ────────────────────────────────────────── */}
-      <section id="features" className="border-t border-neutral-100 bg-neutral-50">
-        <div className="max-w-6xl mx-auto px-6 py-24">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-              Todo lo que necesitas, nada de lo que no
-            </h2>
-            <p className="text-neutral-500 text-lg max-w-xl mx-auto">
-              Diseñado específicamente para barberías. Sin configuraciones complicadas.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: MessageCircle,
-                title: 'Bot de WhatsApp con IA',
-                desc: 'Responde mensajes, agenda, cancela y reagenda citas automáticamente. Sin que tú tengas que tocar el teléfono.',
-              },
-              {
-                icon: CalendarCheck,
-                title: 'Cero doble booking',
-                desc: 'Verifica disponibilidad en tiempo real antes de confirmar. Nunca dos clientes a la misma hora.',
-              },
-              {
-                icon: Clock,
-                title: 'Recordatorios automáticos',
-                desc: 'Manda recordatorio por WhatsApp 1 hora antes. Reduce los no-shows hasta un 60%.',
-              },
-              {
-                icon: BarChart3,
-                title: 'Dashboard en tiempo real',
-                desc: 'Ve tus citas del día, actualiza estados y gestiona tu equipo desde el celular o la compu.',
-              },
-              {
-                icon: Shield,
-                title: 'Sin instalar apps',
-                desc: 'Tus clientes usan el WhatsApp que ya tienen. Sin descargas, sin registros, sin fricción.',
-              },
-              {
-                icon: Zap,
-                title: 'Lista en 5 minutos',
-                desc: 'Crea tu cuenta, agrega tus servicios y horario. En 5 minutos tu recepcionista está activa.',
-              },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-3">
-                <div className="h-10 w-10 bg-neutral-900 rounded-xl flex items-center justify-center">
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="font-semibold text-neutral-900">{title}</h3>
-                <p className="text-sm text-neutral-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 py-24">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Así de simple funciona
-          </h2>
-        </div>
-        <div className="grid sm:grid-cols-3 gap-8">
+      <section className="border-t border-neutral-100 px-6 py-32 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-16">
           {[
             {
-              step: '01',
-              title: 'Crea tu cuenta',
-              desc: 'Registra tu barbería, agrega tus servicios y configura tu horario en minutos.',
+              num: '01',
+              title: 'Bot que trabaja solo',
+              desc: 'Responde WhatsApps, agenda citas y cancela — sin que tú hagas nada. Funciona de noche, fines de semana, cuando estés ocupado cortando.',
             },
             {
-              step: '02',
-              title: 'Conecta WhatsApp',
-              desc: 'Vinculamos tu número de WhatsApp Business. El bot empieza a responder al instante.',
+              num: '02',
+              title: 'Sin doble booking',
+              desc: 'Revisa disponibilidad en tiempo real antes de confirmar cada cita. Tus clientes nunca se van a topar con otro.',
             },
             {
-              step: '03',
-              title: 'Listo, a cobrar',
-              desc: 'Tus clientes agendan solos. Tú ves todo en el dashboard y te concentras en trabajar.',
+              num: '03',
+              title: 'Recordatorios automáticos',
+              desc: 'Un WhatsApp 1 hora antes de cada cita. Tus clientes no se olvidan y tú no pierdes tiempo.',
             },
-          ].map(({ step, title, desc }) => (
-            <div key={step} className="text-center space-y-4">
-              <div className="text-5xl font-bold text-neutral-100 tabular-nums">{step}</div>
-              <h3 className="font-semibold text-lg text-neutral-900">{title}</h3>
-              <p className="text-neutral-500 text-sm leading-relaxed">{desc}</p>
+          ].map(f => (
+            <div key={f.num} className="space-y-4">
+              <p className="text-[11px] text-neutral-300 tracking-widest font-medium">{f.num}</p>
+              <h3 className="text-[17px] font-semibold tracking-tight text-[#1a1a1a]">{f.title}</h3>
+              <p className="text-[14px] text-neutral-500 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Pricing ─────────────────────────────────────────── */}
-      <section id="pricing" className="border-t border-neutral-100 bg-neutral-50">
-        <div className="max-w-6xl mx-auto px-6 py-24 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Un precio justo y claro
-          </h2>
-          <p className="text-neutral-500 mb-12 text-lg">Sin comisiones por cita. Sin sorpresas.</p>
-
-          <div className="max-w-sm mx-auto bg-white border border-neutral-200 rounded-2xl p-8 shadow-sm space-y-8 text-left">
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-bold text-neutral-900">$499</span>
-                <span className="text-neutral-400 text-lg">MXN/mes</span>
-              </div>
-              <p className="text-neutral-500 text-sm mt-1">O paga anual y ahorra 2 meses</p>
-            </div>
-
-            <ul className="space-y-3">
+      <section className="border-t border-neutral-100 px-6 py-32 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <p className="text-[11px] text-neutral-400 tracking-widest uppercase mb-6">Precio</p>
+            <h2 className="text-[40px] font-semibold tracking-tight leading-tight mb-4">
+              $499 MXN<br />al mes.
+            </h2>
+            <p className="text-[15px] text-neutral-500 leading-relaxed">
+              Sin comisiones por cita. Sin contratos. Sin letra chica.
+              Cancela cuando quieras.
+            </p>
+          </div>
+          <div className="bg-white rounded-2xl border border-neutral-200 p-8 shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
+            <ul className="space-y-4 mb-8">
               {[
-                'Bot de WhatsApp 24/7 con IA',
+                'Bot de WhatsApp 24/7',
                 'Dashboard web y móvil',
                 'Hasta 5 barberos',
                 'Recordatorios automáticos',
                 'Sin límite de citas',
-                'Soporte por WhatsApp',
+                'Soporte directo',
               ].map(f => (
-                <li key={f} className="flex items-center gap-3 text-sm text-neutral-700">
+                <li key={f} className="flex items-center gap-3">
                   <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
-                  {f}
+                  <span className="text-[14px] text-neutral-700">{f}</span>
                 </li>
               ))}
             </ul>
-
             <Link href="/register" className="block">
-              <Button className="w-full bg-neutral-900 hover:bg-neutral-800 text-white h-12 rounded-xl text-base font-medium">
+              <button className="w-full bg-[#1a1a1a] text-white text-[14px] font-medium py-3.5 rounded-full hover:bg-neutral-800 transition-colors">
                 Empezar — 14 días gratis
-              </Button>
+              </button>
             </Link>
-            <p className="text-xs text-neutral-400 text-center">Sin tarjeta de crédito en la prueba</p>
+            <p className="text-center text-[12px] text-neutral-400 mt-4">Sin tarjeta de crédito en la prueba</p>
           </div>
         </div>
       </section>
 
       {/* ── FAQ ─────────────────────────────────────────────── */}
-      <section id="faq" className="max-w-3xl mx-auto px-6 py-24">
-        <h2 className="text-3xl font-bold tracking-tight text-center mb-12">Preguntas frecuentes</h2>
-        <div className="space-y-6">
+      <section className="border-t border-neutral-100 px-6 py-32 max-w-5xl mx-auto">
+        <p className="text-[11px] text-neutral-400 tracking-widest uppercase mb-12">Preguntas</p>
+        <div className="grid md:grid-cols-2 gap-x-16 gap-y-10 max-w-4xl">
           {[
             {
-              q: '¿Necesito un número de WhatsApp nuevo?',
-              a: 'No. Puedes usar tu número actual de WhatsApp Business o uno dedicado. Te ayudamos a configurarlo.',
-            },
-            {
-              q: '¿Qué pasa cuando terminen los 14 días?',
-              a: 'Te pedimos una tarjeta para continuar. Si decides no seguir, tu cuenta se desactiva sin cargos.',
+              q: '¿Necesito un número nuevo de WhatsApp?',
+              a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo.',
             },
             {
               q: '¿Mis clientes tienen que instalar algo?',
-              a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Cero fricción para ellos.',
+              a: 'Nada. Usan el WhatsApp que ya tienen. Cero fricción.',
+            },
+            {
+              q: '¿Qué pasa al terminar los 14 días?',
+              a: 'Te pedimos una tarjeta para continuar. Si no, tu cuenta se pausa sin cargos.',
             },
             {
               q: '¿Puedo cancelar cuando quiera?',
-              a: 'Sí, sin penalizaciones. Cancelas desde tu cuenta y no se hace ningún cargo adicional.',
+              a: 'Sí, sin penalizaciones. Cancelas desde tu cuenta en un clic.',
             },
           ].map(({ q, a }) => (
-            <div key={q} className="border-b border-neutral-100 pb-6">
-              <h3 className="font-semibold text-neutral-900 mb-2">{q}</h3>
-              <p className="text-neutral-500 text-sm leading-relaxed">{a}</p>
+            <div key={q} className="space-y-2">
+              <h3 className="text-[15px] font-medium text-[#1a1a1a]">{q}</h3>
+              <p className="text-[14px] text-neutral-500 leading-relaxed">{a}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── CTA final ───────────────────────────────────────── */}
-      <section className="border-t border-neutral-100">
-        <div className="max-w-3xl mx-auto px-6 py-24 text-center space-y-6">
-          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            Empieza hoy, gratis.
-          </h2>
-          <p className="text-neutral-500 text-lg">
-            14 días sin tarjeta. Cancela cuando quieras. Sin letra chica.
-          </p>
-          <Link href="/register">
-            <Button size="lg" className="bg-neutral-900 hover:bg-neutral-800 text-white h-13 px-10 rounded-xl text-base font-medium gap-2 mt-2">
-              Crear mi cuenta gratis
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
+      <section className="border-t border-neutral-100 px-6 py-32 max-w-5xl mx-auto text-center">
+        <h2 className="text-[48px] sm:text-[64px] font-semibold tracking-tight leading-tight mb-6">
+          Empieza hoy,<br />gratis.
+        </h2>
+        <p className="text-[16px] text-neutral-500 mb-10">
+          14 días sin tarjeta. Sin compromiso.
+        </p>
+        <Link href="/register">
+          <button className="inline-flex items-center gap-2 bg-[#1a1a1a] text-white text-[15px] font-medium px-8 py-4 rounded-full hover:bg-neutral-800 transition-colors">
+            Crear mi cuenta gratis
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </Link>
       </section>
 
       {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="border-t border-neutral-100 py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-neutral-400">
-          <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-neutral-900 flex items-center justify-center">
-              <Zap className="h-3 w-3 text-white" />
-            </div>
-            <span className="font-medium text-neutral-600">Turno</span>
-          </div>
-          <p>© 2026 Turno · Hecho en México 🇲🇽</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-neutral-600 transition-colors">Privacidad</a>
-            <a href="#" className="hover:text-neutral-600 transition-colors">Términos</a>
-          </div>
+      <footer className="border-t border-neutral-100 px-8 py-8 flex items-center justify-between max-w-5xl mx-auto">
+        <span className="text-[13px] font-semibold">Turno</span>
+        <p className="text-[12px] text-neutral-400">© 2026 · Hecho en México 🇲🇽</p>
+        <div className="flex gap-6">
+          <a href="#" className="text-[12px] text-neutral-400 hover:text-neutral-600 transition-colors">Privacidad</a>
+          <a href="#" className="text-[12px] text-neutral-400 hover:text-neutral-600 transition-colors">Términos</a>
         </div>
       </footer>
+
     </div>
   )
 }
