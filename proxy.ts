@@ -2,6 +2,16 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Skip auth check for API routes and public pages entirely
+  const isPublic = pathname.startsWith('/api/') ||
+    pathname === '/login' ||
+    pathname === '/register'
+
+  if (isPublic) return NextResponse.next()
+
+  // Auth check for dashboard routes
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -9,9 +19,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
@@ -25,21 +33,9 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-
-  // Public routes that don't require auth
-  const publicPaths = ['/login', '/register', '/api/webhook']
-  const isPublic = publicPaths.some(p => pathname.startsWith(p))
-
-  if (!user && !isPublic) {
+  if (!user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  if (user && (pathname === '/login' || pathname === '/register')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/appointments'
     return NextResponse.redirect(url)
   }
 
