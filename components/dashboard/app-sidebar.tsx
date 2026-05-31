@@ -27,11 +27,7 @@ const navItems = [
   { href: '/settings', label: 'Configuración', icon: Settings },
 ]
 
-interface AppSidebarProps {
-  organization: Organization
-}
-
-export function AppSidebar({ organization }: AppSidebarProps) {
+export function AppSidebar({ organization }: { organization: Organization }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -44,20 +40,17 @@ export function AppSidebar({ organization }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg, #570A57, #A91079)' }}>
-            <Image src="/logo.png" alt="Turno" width={18} height={18} priority style={{ filter: 'brightness(0) invert(1)' }} />
-          </div>
+      <SidebarHeader className="px-4 py-4 border-b">
+        <div className="flex items-center gap-2.5">
+          <Image src="/logo.png" alt="Turno" width={28} height={28} priority />
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">{organization.name}</p>
-            <p className="text-xs truncate text-muted-foreground">{organization.whatsapp_number}</p>
+            <p className="text-sm font-semibold truncate leading-tight">{organization.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{organization.whatsapp_number}</p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2 py-3">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -77,10 +70,10 @@ export function AppSidebar({ organization }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-white/5">
+      <SidebarFooter className="px-2 py-3 border-t">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} className="text-muted-foreground">
+            <SidebarMenuButton onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
               <span>Cerrar sesión</span>
             </SidebarMenuButton>
