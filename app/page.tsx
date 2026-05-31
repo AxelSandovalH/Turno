@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Check } from 'lucide-react'
+import { StarField } from '@/components/star-field'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -37,7 +38,9 @@ export default async function Home() {
       </header>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 pt-32 pb-28">
+      <section className="relative px-6 pt-32 pb-28" style={{ background: 'radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%)' }}>
+        <StarField />
+        <div className="relative z-10 max-w-5xl mx-auto">
         <div className="max-w-3xl">
           <p className="text-[13px] font-medium text-[#7c3aed] mb-6 tracking-wide uppercase">
             Asistente de WhatsApp para barberías
@@ -64,6 +67,7 @@ export default async function Home() {
             </Link>
           </div>
           <p className="text-[12px] text-[#3d3d3d] mt-5">Sin tarjeta de crédito · Cancela cuando quieras</p>
+        </div>
         </div>
       </section>
 

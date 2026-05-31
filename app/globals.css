@@ -73,3 +73,8 @@
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground font-sans antialiased; }
 }
+
+@keyframes animStar {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-2000px); }
+}
