@@ -67,9 +67,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     case 'invoice.payment_failed': {
-      const invoice = event.data.object as Stripe.Invoice
+      const invoice = event.data.object as Stripe.Invoice & { subscription?: string }
       const sub = invoice.subscription
-        ? await stripe.subscriptions.retrieve(invoice.subscription as string)
+        ? await stripe.subscriptions.retrieve(invoice.subscription)
         : null
       const orgId = sub?.metadata?.organization_id
       if (orgId) await updateOrg(orgId, { subscription_status: 'past_due' })

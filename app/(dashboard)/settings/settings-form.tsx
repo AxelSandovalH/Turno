@@ -98,7 +98,7 @@ export function SettingsForm({ organization }: Props) {
           </div>
           <div className="space-y-2">
             <Label>Zona horaria</Label>
-            <Select value={form.timezone} onValueChange={v => set('timezone', v)}>
+            <Select value={form.timezone} onValueChange={(v: string | null) => set('timezone', v ?? 'America/Mexico_City')}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
