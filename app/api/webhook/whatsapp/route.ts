@@ -97,5 +97,9 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true })
 }
 
+export async function GET() {
+  return NextResponse.json({ ok: true, service: 'turno-whatsapp-webhook' })
+}
+
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
