@@ -40,17 +40,17 @@ export function AppSidebar({ organization }: { organization: Organization }) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-4 border-b">
+      <SidebarHeader className="px-4 py-5">
         <div className="flex items-center gap-2.5">
-          <Image src="/logo.png" alt="Turno" width={28} height={28} priority />
+          <Image src="/logo.png" alt="Turno" width={22} height={22} priority />
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate leading-tight">{organization.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{organization.whatsapp_number}</p>
+            <p className="text-[13px] font-semibold text-[#ebebeb] truncate leading-tight">{organization.name}</p>
+            <p className="text-[11px] text-[#3d3d3d] truncate mt-0.5">{organization.whatsapp_number}</p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-3">
+      <SidebarContent className="px-2 py-1">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -59,8 +59,9 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                   <SidebarMenuButton
                     render={<Link href={href} />}
                     isActive={pathname?.startsWith(href) ?? false}
+                    className="text-[13px] font-medium"
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4 shrink-0" />
                     <span>{label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -70,11 +71,14 @@ export function AppSidebar({ organization }: { organization: Organization }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-2 py-3 border-t">
+      <SidebarFooter className="px-2 py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
-              <LogOut className="h-4 w-4" />
+            <SidebarMenuButton
+              onClick={handleLogout}
+              className="text-[13px] font-medium text-[#3d3d3d] hover:text-[#ebebeb]"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
               <span>Cerrar sesión</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

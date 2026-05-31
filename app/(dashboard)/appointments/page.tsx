@@ -3,17 +3,14 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AppointmentActions } from './appointment-actions'
 import type { Appointment } from '@/types/database'
 
-const statusLabel: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  confirmed: { label: 'Confirmada', variant: 'default' },
-  completed: { label: 'Completada', variant: 'secondary' },
-  cancelled: { label: 'Cancelada', variant: 'destructive' },
-  no_show: { label: 'No asistió', variant: 'outline' },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  confirmed: { label: 'Confirmada', className: 'text-[#7c3aed] bg-[#7c3aed]/10' },
+  completed: { label: 'Completada', className: 'text-[#3d3d3d] bg-[#161616]' },
+  cancelled: { label: 'Cancelada', className: 'text-[#dc2626] bg-[#dc2626]/10' },
+  no_show: { label: 'No asistió', className: 'text-[#6b6b6b] bg-[#161616]' },
 }
 
 export default async function AppointmentsPage() {
@@ -47,89 +44,75 @@ export default async function AppointmentsPage() {
   const cancelled = list.filter(a => a.status === 'cancelled').length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Citas de hoy</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-[22px] font-semibold text-[#ebebeb] tracking-tight">Citas de hoy</h1>
+        <p className="text-[13px] text-[#6b6b6b] mt-0.5 capitalize">
           {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Confirmadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{confirmed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Completadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{completed}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Canceladas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{cancelled}</p>
-          </CardContent>
-        </Card>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Confirmadas', value: confirmed },
+          { label: 'Completadas', value: completed },
+          { label: 'Canceladas', value: cancelled },
+        ].map(s => (
+          <div key={s.label} className="rounded-lg border border-[#1f1f1f] bg-[#111111] px-5 py-4">
+            <p className="text-[11px] font-medium text-[#3d3d3d] uppercase tracking-widest mb-2">{s.label}</p>
+            <p className="text-[28px] font-semibold text-[#ebebeb]">{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {list.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">
-              No hay citas programadas para hoy
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Hora</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Servicio</TableHead>
-                  <TableHead>Barbero</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-10" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.map(appointment => {
-                  const { label, variant } = statusLabel[appointment.status] ?? statusLabel.confirmed
-                  return (
-                    <TableRow key={appointment.id}>
-                      <TableCell className="font-mono text-sm">
-                        {format(new Date(appointment.starts_at), 'HH:mm')}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{appointment.customer?.name ?? 'Sin nombre'}</p>
-                          <p className="text-xs text-muted-foreground">{appointment.customer?.phone}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{appointment.service?.name}</TableCell>
-                      <TableCell>{appointment.staff?.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={variant}>{label}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <AppointmentActions appointmentId={appointment.id} status={appointment.status} />
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {/* Table */}
+      <div className="rounded-lg border border-[#1f1f1f] overflow-hidden">
+        {list.length === 0 ? (
+          <div className="py-16 text-center text-[13px] text-[#3d3d3d]">
+            No hay citas programadas para hoy
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#1f1f1f] bg-[#111111]">
+                {['Hora', 'Cliente', 'Servicio', 'Barbero', 'Estado', ''].map((h, i) => (
+                  <th key={i} className="px-4 py-3 text-left text-[11px] font-medium text-[#3d3d3d] uppercase tracking-widest">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {list.map(appointment => {
+                const status = statusConfig[appointment.status] ?? statusConfig.confirmed
+                return (
+                  <tr key={appointment.id} className="border-b border-[#1a1a1a] last:border-0 hover:bg-[#111111] transition-colors">
+                    <td className="px-4 py-3.5 font-mono text-[13px] text-[#6b6b6b]">
+                      {format(new Date(appointment.starts_at), 'HH:mm')}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <p className="text-[13px] font-medium text-[#ebebeb]">{appointment.customer?.name ?? 'Sin nombre'}</p>
+                      <p className="text-[11px] text-[#3d3d3d] mt-0.5">{appointment.customer?.phone}</p>
+                    </td>
+                    <td className="px-4 py-3.5 text-[13px] text-[#6b6b6b]">{appointment.service?.name}</td>
+                    <td className="px-4 py-3.5 text-[13px] text-[#6b6b6b]">{appointment.staff?.name}</td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-block text-[11px] font-medium px-2.5 py-1 rounded ${status.className}`}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 w-10">
+                      <AppointmentActions appointmentId={appointment.id} status={appointment.status} />
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   )
 }

@@ -6,10 +6,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 
 export default function LoginPage() {
@@ -22,62 +18,70 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     if (error) {
       toast.error(error.message)
       setLoading(false)
       return
     }
-
     router.push('/appointments')
     router.refresh()
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Iniciar sesión</CardTitle>
-        <CardDescription>Ingresa tus credenciales para acceder al panel</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleLogin}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="tu@negocio.com"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Entrando...' : 'Entrar'}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            ¿No tienes cuenta?{' '}
-            <Link href="/register" className="underline underline-offset-4 hover:text-primary">
-              Regístrate gratis
-            </Link>
-          </p>
-        </CardFooter>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-[22px] font-semibold text-[#ebebeb] mb-1">Iniciar sesión</h1>
+        <p className="text-[14px] text-[#6b6b6b]">Ingresa a tu panel de control</p>
+      </div>
+
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-[13px] font-medium text-[#ebebeb] mb-2">
+            Correo electrónico
+          </label>
+          <input
+            id="email"
+            type="email"
+            placeholder="tu@negocio.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            autoFocus
+            className="w-full h-10 px-3 rounded-md bg-[#161616] border border-[#2a2a2a] text-[#ebebeb] text-[14px] placeholder:text-[#3d3d3d] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="block text-[13px] font-medium text-[#ebebeb] mb-2">
+            Contraseña
+          </label>
+          <input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            className="w-full h-10 px-3 rounded-md bg-[#161616] border border-[#2a2a2a] text-[#ebebeb] text-[14px] placeholder:text-[#3d3d3d] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full h-10 rounded-md bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white font-medium text-[14px] transition-colors mt-2"
+        >
+          {loading ? 'Entrando...' : 'Entrar'}
+        </button>
       </form>
-    </Card>
+
+      <p className="text-[13px] text-[#6b6b6b] text-center mt-6">
+        ¿No tienes cuenta?{' '}
+        <Link href="/register" className="text-[#ebebeb] hover:text-white transition-colors">
+          Regístrate gratis
+        </Link>
+      </p>
+    </div>
   )
 }

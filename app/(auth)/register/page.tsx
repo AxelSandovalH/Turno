@@ -6,10 +6,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 
 export default function RegisterPage() {
@@ -36,7 +32,6 @@ export default function RegisterPage() {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '')
 
-    // 1. Create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -48,7 +43,6 @@ export default function RegisterPage() {
       return
     }
 
-    // 2. Create organization via API route (uses service role)
     const res = await fetch('/api/onboarding', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,78 +67,75 @@ export default function RegisterPage() {
     router.refresh()
   }
 
+  const field = (
+    id: string,
+    label: string,
+    type: string,
+    placeholder: string,
+    hint?: string,
+  ) => (
+    <div>
+      <label htmlFor={id} className="block text-[13px] font-medium text-[#ebebeb] mb-2">
+        {label}
+      </label>
+      <input
+        id={id}
+        name={id}
+        type={type}
+        placeholder={placeholder}
+        value={form[id as keyof typeof form]}
+        onChange={handleChange}
+        required
+        className="w-full h-10 px-3 rounded-md bg-[#161616] border border-[#2a2a2a] text-[#ebebeb] text-[14px] placeholder:text-[#3d3d3d] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
+      />
+      {hint && <p className="text-[12px] text-[#3d3d3d] mt-1.5">{hint}</p>}
+    </div>
+  )
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Crea tu cuenta gratis</CardTitle>
-        <CardDescription>14 días de prueba. Sin tarjeta de crédito.</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleRegister}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="businessName">Nombre del negocio</Label>
-            <Input
-              id="businessName"
-              name="businessName"
-              placeholder="Barbería El Estilo"
-              value={form.businessName}
-              onChange={handleChange}
-              required
-              autoFocus
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="whatsappNumber">Número de WhatsApp del negocio</Label>
-            <Input
-              id="whatsappNumber"
-              name="whatsappNumber"
-              placeholder="521XXXXXXXXXX"
-              value={form.whatsappNumber}
-              onChange={handleChange}
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Formato internacional sin +. Ej: 521XXXXXXXXXX
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="tu@negocio.com"
-              value={form.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="Mínimo 8 caracteres"
-              value={form.password}
-              onChange={handleChange}
-              required
-              minLength={8}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creando cuenta...' : 'Comenzar prueba gratis'}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="underline underline-offset-4 hover:text-primary">
-              Inicia sesión
-            </Link>
-          </p>
-        </CardFooter>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-[22px] font-semibold text-[#ebebeb] mb-1">Crea tu cuenta gratis</h1>
+        <p className="text-[14px] text-[#6b6b6b]">14 días de prueba · Sin tarjeta de crédito</p>
+      </div>
+
+      <form onSubmit={handleRegister} className="space-y-4">
+        {field('businessName', 'Nombre del negocio', 'text', 'Barbería El Estilo')}
+        {field('whatsappNumber', 'WhatsApp del negocio', 'tel', '521XXXXXXXXXX', 'Formato internacional sin +. Ej: 521XXXXXXXXXX')}
+        {field('email', 'Correo electrónico', 'email', 'tu@negocio.com')}
+
+        <div>
+          <label htmlFor="password" className="block text-[13px] font-medium text-[#ebebeb] mb-2">
+            Contraseña
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Mínimo 8 caracteres"
+            value={form.password}
+            onChange={handleChange}
+            required
+            minLength={8}
+            className="w-full h-10 px-3 rounded-md bg-[#161616] border border-[#2a2a2a] text-[#ebebeb] text-[14px] placeholder:text-[#3d3d3d] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] focus:border-[#7c3aed] transition-colors"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full h-10 rounded-md bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white font-medium text-[14px] transition-colors mt-2"
+        >
+          {loading ? 'Creando cuenta...' : 'Comenzar prueba gratis'}
+        </button>
       </form>
-    </Card>
+
+      <p className="text-[13px] text-[#6b6b6b] text-center mt-6">
+        ¿Ya tienes cuenta?{' '}
+        <Link href="/login" className="text-[#ebebeb] hover:text-white transition-colors">
+          Inicia sesión
+        </Link>
+      </p>
+    </div>
   )
 }
