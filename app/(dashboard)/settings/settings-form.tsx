@@ -46,6 +46,14 @@ export function SettingsForm({ organization }: Props) {
     setForm(p => ({ ...p, [field]: value }))
   }
 
+  async function handleSubscribe() {
+    setLoading(true)
+    const res = await fetch('/api/stripe-checkout', { method: 'POST' })
+    const { url, error } = await res.json()
+    if (error) { toast.error(error); setLoading(false); return }
+    window.location.href = url
+  }
+
   async function handleSave() {
     if (!form.name.trim()) return toast.error('El nombre es requerido')
     setLoading(true)
@@ -155,9 +163,16 @@ export function SettingsForm({ organization }: Props) {
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={loading} className="w-full">
-        {loading ? 'Guardando...' : 'Guardar cambios'}
-      </Button>
+      <div className="flex gap-3">
+        <Button onClick={handleSave} disabled={loading} className="flex-1">
+          {loading ? 'Guardando...' : 'Guardar cambios'}
+        </Button>
+        {(organization.subscription_status === 'trialing' || organization.subscription_status === 'suspended') && (
+          <Button variant="outline" onClick={handleSubscribe} disabled={loading}>
+            Suscribirme — $499/mes
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
