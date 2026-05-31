@@ -19,7 +19,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
+import { ToggleSwitch } from '@/components/ui/toggle-switch'
 import type { StaffSchedule, TimeBlock } from '@/types/database'
 
 const DAYS = [
@@ -152,7 +152,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
 
               return (
                 <div key={day.value} className="flex items-center gap-4 px-4 py-3">
-                  <Switch
+                  <ToggleSwitch
                     checked={isWorking}
                     onCheckedChange={c => toggleDay(day.value, c)}
                     disabled={!!isSaving}

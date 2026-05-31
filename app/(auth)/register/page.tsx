@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/spinner'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -198,7 +199,7 @@ export default function RegisterPage() {
             marginTop: 4,
           }}
         >
-          {loading ? 'Creando cuenta...' : 'Comenzar prueba gratis'}
+          {loading ? <Spinner size={18} color="#fff" /> : 'Comenzar prueba gratis'}
         </button>
       </form>
 

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Check } from 'lucide-react'
 import { StarField } from '@/components/star-field'
+import { FancyButton } from '@/components/ui/fancy-button'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -53,15 +54,10 @@ export default async function Home() {
             Un asistente de IA responde WhatsApp 24/7, agenda sin errores
             y te muestra todo en un dashboard limpio. Tú solo cortas.
           </p>
-          <div className="flex items-center gap-3">
-            <Link href="/register">
-              <button className="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium px-6 py-3 rounded-md text-[15px] transition-colors">
-                Prueba 14 días gratis
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </Link>
+          <div className="flex items-center gap-4">
+            <FancyButton href="/register">Prueba 14 días gratis</FancyButton>
             <Link href="/login">
-              <button className="text-[15px] font-medium px-6 py-3 rounded-md border border-[#1f1f1f] text-[#6b6b6b] hover:text-[#ebebeb] hover:border-[#2e2e2e] transition-colors">
+              <button className="text-[15px] font-medium px-6 py-3 rounded-md border border-[#2a2a2a] text-[#6b6b6b] hover:text-[#ebebeb] hover:border-[#3a3a3a] transition-colors">
                 Iniciar sesión
               </button>
             </Link>
@@ -268,12 +264,7 @@ export default async function Home() {
             Empieza hoy.
           </h2>
           <p className="text-[17px] text-[#6b6b6b] mb-10">14 días sin tarjeta. Sin compromiso.</p>
-          <Link href="/register">
-            <button className="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium px-6 py-3 rounded-md text-[15px] transition-colors">
-              Crear cuenta gratis
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </Link>
+          <FancyButton href="/register">Crear cuenta gratis</FancyButton>
         </div>
       </section>
 

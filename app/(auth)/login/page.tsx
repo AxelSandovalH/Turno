@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/spinner'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -114,7 +115,7 @@ export default function LoginPage() {
             marginTop: 4,
           }}
         >
-          {loading ? 'Entrando...' : 'Entrar'}
+          {loading ? <Spinner size={18} color="#fff" /> : 'Entrar'}
         </button>
       </form>
 
