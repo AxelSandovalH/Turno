@@ -16,7 +16,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { ThemeSwitch } from '@/components/ui/theme-switch'
 import type { Organization } from '@/types/database'
 
 const navItems = [
@@ -82,15 +81,8 @@ export function AppSidebar({ organization }: { organization: Organization }) {
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Footer — tema + cerrar sesión */}
-      <SidebarFooter className="px-4 py-4 border-t border-[var(--sidebar-border)] space-y-3">
-        {/* Toggle modo oscuro/claro */}
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] text-[var(--muted-foreground)]">Apariencia</span>
-          <ThemeSwitch />
-        </div>
-
-        {/* Cerrar sesión */}
+      {/* Footer — cerrar sesión */}
+      <SidebarFooter className="px-4 py-4 border-t border-[var(--sidebar-border)]">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
