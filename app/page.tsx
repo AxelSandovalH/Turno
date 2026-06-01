@@ -4,8 +4,8 @@ import { LandingPage } from '@/components/landing-page'
 
 export default async function Home() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (user?.user_metadata?.organization_id) redirect('/appointments')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.user?.user_metadata?.organization_id) redirect('/appointments')
 
   return <LandingPage />
 }
