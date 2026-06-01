@@ -50,7 +50,8 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
   const [selectedStaff, setSelectedStaff] = useState(staff[0]?.id ?? '')
   const [blockOpen, setBlockOpen] = useState(false)
   const [blockForm, setBlockForm] = useState({ staff_id: '', starts_at: '', ends_at: '', reason: '' })
-  const [saving, setSaving] = useState<string | null>(null)
+  // Optimistic overrides: key = `${staffId}-${dayOfWeek}`
+  const [optimistic, setOptimistic] = useState<Record<string, boolean>>({})
 
   const staffSchedules = schedules.filter(s => s.staff_id === selectedStaff)
 
@@ -58,10 +59,18 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
     return staffSchedules.find(s => s.day_of_week === dayOfWeek)
   }
 
-  async function toggleDay(dayOfWeek: number, checked: boolean) {
-    const existing = getSchedule(dayOfWeek)
-    setSaving(`${selectedStaff}-${dayOfWeek}`)
+  function isWorking(dayOfWeek: number): boolean {
+    const key = `${selectedStaff}-${dayOfWeek}`
+    if (key in optimistic) return optimistic[key]
+    return getSchedule(dayOfWeek)?.is_working ?? false
+  }
 
+  async function toggleDay(dayOfWeek: number, checked: boolean) {
+    const key = `${selectedStaff}-${dayOfWeek}`
+    // Optimistic update — instant visual feedback
+    setOptimistic(prev => ({ ...prev, [key]: checked }))
+
+    const existing = getSchedule(dayOfWeek)
     if (existing) {
       await supabase.from('staff_schedules').update({ is_working: checked }).eq('id', existing.id)
     } else {
@@ -74,7 +83,8 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
       })
     }
 
-    setSaving(null)
+    // Remove optimistic override once server confirms
+    setOptimistic(prev => { const n = { ...prev }; delete n[key]; return n })
     router.refresh()
   }
 
@@ -146,21 +156,18 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
         <Card>
           <CardContent className="p-0 divide-y">
             {DAYS.map(day => {
-              const schedule = getSchedule(day.value)
-              const isWorking = schedule?.is_working ?? false
-              const isSaving = saving === `${selectedStaff}-${day.value}`
+              const working = isWorking(day.value)
 
               return (
                 <div key={day.value} className="flex items-center gap-4 px-4 py-3">
                   <ToggleSwitch
-                    checked={isWorking}
+                    checked={working}
                     onCheckedChange={c => toggleDay(day.value, c)}
-                    disabled={!!isSaving}
                   />
-                  <span className={`w-24 text-sm font-medium ${!isWorking ? 'text-muted-foreground' : ''}`}>
+                  <span className={`w-24 text-sm font-medium ${!working ? 'text-muted-foreground' : ''}`}>
                     {day.label}
                   </span>
-                  {isWorking ? (
+                  {working ? (
                     <div className="flex items-center gap-2">
                       <Select
                         value={schedule?.start_time?.slice(0, 5) ?? '09:00'}
@@ -193,6 +200,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
                   ) : (
                     <span className="text-sm text-muted-foreground">No trabaja</span>
                   )}
+
                 </div>
               )
             })}
