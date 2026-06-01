@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { StarField } from '@/components/star-field'
 import { FancyButton } from '@/components/ui/fancy-button'
 
@@ -15,22 +15,22 @@ export default async function Home() {
 
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-[#0c0c0c]/90 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between" style={{ height: '60px' }}>
-          <Link href="/" className="flex items-center gap-2.5">
+        <div className="max-w-5xl mx-auto px-5 flex items-center justify-between" style={{ height: '56px' }}>
+          <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 40, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+            <img src="/logotrans.png" alt="Turno" style={{ height: 36, width: 'auto', filter: 'brightness(0) invert(1)' }} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px] text-[#6b6b6b]">
             <a href="#features" className="hover:text-[#ebebeb] transition-colors">Funciones</a>
             <a href="#pricing" className="hover:text-[#ebebeb] transition-colors">Precio</a>
             <a href="#faq" className="hover:text-[#ebebeb] transition-colors">FAQ</a>
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/login" className="text-[13px] text-[#6b6b6b] hover:text-[#ebebeb] transition-colors">
-              Iniciar sesión
+              Entrar
             </Link>
             <Link href="/register">
-              <button className="text-[13px] font-medium px-4 py-1.5 rounded-md bg-[#7c3aed] text-white hover:bg-[#6d28d9] transition-colors">
+              <button className="text-[13px] font-medium px-3.5 py-1.5 rounded-md bg-[#7c3aed] text-white hover:bg-[#6d28d9] transition-colors">
                 Empezar gratis
               </button>
             </Link>
@@ -39,107 +39,45 @@ export default async function Home() {
       </header>
 
       {/* Hero */}
-      <section className="relative px-6 pt-32 pb-28" style={{ background: 'radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%)' }}>
+      <section className="relative px-5 pt-24 pb-24 sm:pt-32 sm:pb-32" style={{ background: 'radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%)' }}>
         <StarField />
         <div className="relative z-10 max-w-5xl mx-auto">
-        <div className="max-w-3xl">
-          <p className="text-[13px] font-medium text-[#7c3aed] mb-6 tracking-wide uppercase">
-            Asistente de WhatsApp para barberías
-          </p>
-          <h1 className="text-[52px] sm:text-[64px] lg:text-[76px] font-bold leading-[1.04] tracking-[-0.03em] text-[#ebebeb] mb-7">
-            Tu barbería agenda<br />
-            citas sola.
-          </h1>
-          <p className="text-[18px] sm:text-[20px] text-[#6b6b6b] leading-relaxed mb-10 max-w-xl font-normal">
-            Un asistente de IA responde WhatsApp 24/7, agenda sin errores
-            y te muestra todo en un dashboard limpio. Tú solo cortas.
-          </p>
-          <div className="flex items-center gap-4">
-            <FancyButton href="/register">Prueba 14 días gratis</FancyButton>
-            <Link href="/login">
-              <button className="text-[15px] font-medium px-6 py-3 rounded-md border border-[#2a2a2a] text-[#6b6b6b] hover:text-[#ebebeb] hover:border-[#3a3a3a] transition-colors">
-                Iniciar sesión
-              </button>
-            </Link>
-          </div>
-          <p className="text-[12px] text-[#3d3d3d] mt-5">Sin tarjeta de crédito · Cancela cuando quieras</p>
-        </div>
-        </div>
-      </section>
-
-      {/* Dashboard preview */}
-      <section className="max-w-5xl mx-auto px-6 pb-32">
-        <div className="rounded-xl border border-[#1f1f1f] overflow-hidden">
-          {/* Browser chrome */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-[#111111] border-b border-[#1f1f1f]">
-            <div className="flex gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-[#3d3d3d]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#3d3d3d]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#3d3d3d]" />
+          <div className="max-w-3xl">
+            <p className="text-[12px] font-semibold text-[#7c3aed] mb-5 tracking-widest uppercase">
+              Asistente de WhatsApp para barberías
+            </p>
+            <h1 className="text-[40px] sm:text-[58px] lg:text-[72px] font-bold leading-[1.06] tracking-[-0.03em] text-[#ebebeb] mb-6">
+              Tu barbería agenda<br />
+              citas sola.
+            </h1>
+            <p className="text-[16px] sm:text-[19px] text-[#6b6b6b] leading-relaxed mb-9 max-w-xl">
+              Un asistente de IA responde WhatsApp 24/7, agenda sin errores
+              y te muestra todo en un dashboard limpio. Tú solo cortas.
+            </p>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <FancyButton href="/register">Prueba 14 días gratis</FancyButton>
+              <Link href="/login">
+                <button className="text-[14px] font-medium px-5 py-3 rounded-md border border-[#2a2a2a] text-[#6b6b6b] hover:text-[#ebebeb] hover:border-[#3a3a3a] transition-colors w-full sm:w-auto">
+                  Iniciar sesión
+                </button>
+              </Link>
             </div>
-            <div className="flex-1 max-w-xs mx-auto">
-              <div className="h-5 rounded bg-[#1a1a1a] flex items-center justify-center">
-                <span className="text-[11px] text-[#3d3d3d]">turno.app/appointments</span>
-              </div>
-            </div>
-          </div>
-          {/* Dashboard body */}
-          <div className="bg-[#0c0c0c] p-6 space-y-4">
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: 'Citas hoy', value: '8' },
-                { label: 'Completadas', value: '5' },
-                { label: 'Ingresos', value: '$1,600' },
-              ].map(s => (
-                <div key={s.label} className="rounded-lg border border-[#1f1f1f] bg-[#111111] p-4">
-                  <p className="text-[11px] font-medium text-[#3d3d3d] uppercase tracking-widest mb-2">{s.label}</p>
-                  <p className="text-2xl font-semibold text-[#ebebeb]">{s.value}</p>
-                </div>
-              ))}
-            </div>
-            {/* Table */}
-            <div className="rounded-lg border border-[#1f1f1f] overflow-hidden">
-              <div className="grid grid-cols-[72px_1fr_160px_100px] px-4 py-2.5 border-b border-[#1f1f1f] bg-[#111111]">
-                {['Hora', 'Cliente', 'Servicio', 'Estado'].map(h => (
-                  <span key={h} className="text-[11px] font-medium text-[#3d3d3d] uppercase tracking-widest">{h}</span>
-                ))}
-              </div>
-              {[
-                { time: '10:00', name: 'Carlos M.', service: 'Corte + Barba', done: false },
-                { time: '10:30', name: 'Luis R.', service: 'Corte', done: false },
-                { time: '11:00', name: 'Miguel A.', service: 'Fade', done: true },
-                { time: '11:30', name: 'Andrés V.', service: 'Corte + Barba', done: true },
-              ].map((r, i) => (
-                <div key={i} className="grid grid-cols-[72px_1fr_160px_100px] px-4 py-3.5 border-b border-[#1a1a1a] last:border-0 hover:bg-[#111111] transition-colors">
-                  <span className="text-[13px] font-mono text-[#3d3d3d]">{r.time}</span>
-                  <span className="text-[13px] font-medium text-[#ebebeb]">{r.name}</span>
-                  <span className="text-[13px] text-[#6b6b6b]">{r.service}</span>
-                  <span className={`text-[11px] font-medium px-2.5 py-1 rounded w-fit ${
-                    r.done
-                      ? 'text-[#3d3d3d] bg-[#161616]'
-                      : 'text-[#7c3aed] bg-[#7c3aed]/10'
-                  }`}>
-                    {r.done ? 'Completada' : 'Confirmada'}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <p className="text-[12px] text-[#3d3d3d] mt-5">Sin tarjeta de crédito · Cancela cuando quieras</p>
           </div>
         </div>
       </section>
 
       {/* Features */}
       <section id="features" className="border-t border-[#1f1f1f]">
-        <div className="max-w-5xl mx-auto px-6 py-28">
-          <div className="mb-20">
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
+          <div className="mb-14 sm:mb-20">
             <p className="text-[12px] font-semibold text-[#7c3aed] uppercase tracking-widest mb-4">Funciones</p>
-            <h2 className="text-[36px] sm:text-[44px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">
               Todo lo que necesitas.
             </h2>
-            <p className="text-[17px] text-[#6b6b6b] max-w-lg">Diseñado para barberías. Sin configuraciones complicadas.</p>
+            <p className="text-[16px] text-[#6b6b6b] max-w-lg">Diseñado para barberías. Sin configuraciones complicadas.</p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-14">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
             {[
               {
                 title: 'Bot de WhatsApp 24/7',
@@ -151,7 +89,7 @@ export default async function Home() {
               },
               {
                 title: 'Recordatorios automáticos',
-                desc: 'Envía WhatsApp 1 hora antes de cada cita. Reduce no-shows hasta 60%.',
+                desc: 'Envía WhatsApp antes de cada cita para reducir cancelaciones de último momento.',
               },
               {
                 title: 'Dashboard en tiempo real',
@@ -178,18 +116,18 @@ export default async function Home() {
 
       {/* Pricing */}
       <section id="pricing" className="border-t border-[#1f1f1f]">
-        <div className="max-w-5xl mx-auto px-6 py-28">
-          <div className="mb-16">
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
+          <div className="mb-12 sm:mb-16">
             <p className="text-[12px] font-semibold text-[#7c3aed] uppercase tracking-widest mb-4">Precio</p>
-            <h2 className="text-[36px] sm:text-[44px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">
               Un precio. Sin sorpresas.
             </h2>
-            <p className="text-[17px] text-[#6b6b6b]">Sin comisiones por cita. Sin contratos. Sin letra chica.</p>
+            <p className="text-[16px] text-[#6b6b6b]">Sin comisiones por cita. Sin contratos. Sin letra chica.</p>
           </div>
-          <div className="max-w-sm border border-[#1f1f1f] rounded-xl bg-[#111111] p-8">
+          <div className="max-w-sm border border-[#1f1f1f] rounded-xl bg-[#111111] p-7 sm:p-8">
             <div className="mb-8">
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-[52px] font-bold text-[#ebebeb] tracking-tight">$499</span>
+                <span className="text-[48px] sm:text-[52px] font-bold text-[#ebebeb] tracking-tight">$499</span>
                 <span className="text-[16px] text-[#6b6b6b] font-normal">MXN / mes</span>
               </div>
               <p className="text-[13px] text-[#3d3d3d]">14 días gratis, sin tarjeta de crédito</p>
@@ -223,9 +161,9 @@ export default async function Home() {
 
       {/* FAQ */}
       <section id="faq" className="border-t border-[#1f1f1f]">
-        <div className="max-w-5xl mx-auto px-6 py-28">
-          <div className="mb-16">
-            <h2 className="text-[36px] sm:text-[44px] font-bold tracking-[-0.02em] text-[#ebebeb]">
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
+          <div className="mb-12 sm:mb-16">
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] text-[#ebebeb]">
               Preguntas frecuentes.
             </h2>
           </div>
@@ -248,7 +186,7 @@ export default async function Home() {
                 a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.',
               },
             ].map(({ q, a }, i, arr) => (
-              <div key={q} className={`py-7 ${i < arr.length - 1 ? 'border-b border-[#1f1f1f]' : ''}`}>
+              <div key={q} className={`py-6 sm:py-7 ${i < arr.length - 1 ? 'border-b border-[#1f1f1f]' : ''}`}>
                 <p className="font-semibold text-[15px] text-[#ebebeb] mb-2">{q}</p>
                 <p className="text-[14px] text-[#6b6b6b] leading-relaxed">{a}</p>
               </div>
@@ -259,27 +197,23 @@ export default async function Home() {
 
       {/* CTA */}
       <section className="border-t border-[#1f1f1f]">
-        <div className="max-w-5xl mx-auto px-6 py-28">
-          <h2 className="text-[48px] sm:text-[60px] font-bold tracking-[-0.03em] text-[#ebebeb] mb-4">
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
+          <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] text-[#ebebeb] mb-4">
             Empieza hoy.
           </h2>
-          <p className="text-[17px] text-[#6b6b6b] mb-10">14 días sin tarjeta. Sin compromiso.</p>
+          <p className="text-[16px] text-[#6b6b6b] mb-10">14 días sin tarjeta. Sin compromiso.</p>
           <FancyButton href="/register">Crear cuenta gratis</FancyButton>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="border-t border-[#1f1f1f]">
-        <div className="max-w-5xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link href="/" className="flex items-center">
+        <div className="max-w-5xl mx-auto px-5 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+            <img src="/logotrans.png" alt="Turno" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
           </Link>
           <p className="text-[13px] text-[#3d3d3d]">© 2026 Turno · Hecho en México</p>
-          <div className="flex gap-6">
-            <a href="#" className="text-[13px] text-[#3d3d3d] hover:text-[#6b6b6b] transition-colors">Privacidad</a>
-            <a href="#" className="text-[13px] text-[#3d3d3d] hover:text-[#6b6b6b] transition-colors">Términos</a>
-          </div>
         </div>
       </footer>
 
