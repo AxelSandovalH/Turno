@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Geist_Mono, Instrument_Serif } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { SplashScreen } from '@/components/splash-screen'
 import './globals.css'
 
 const geistSans = Inter({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} antialiased`}>
         <TooltipProvider>
+          <SplashScreen />
           {children}
           <Toaster richColors position="top-right" />
         </TooltipProvider>
