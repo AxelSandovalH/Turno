@@ -193,52 +193,110 @@ export function LandingPage() {
         <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
           <div data-section-head className="mb-12 sm:mb-16" style={{ opacity: 0 }}>
             <p className="text-[12px] font-semibold text-[#7c3aed] uppercase tracking-widest mb-4">Precio</p>
-            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">Un precio. Sin sorpresas.</h2>
-            <p className="text-[16px] text-[#6b6b6b] max-w-lg">Sin comisiones por cita. Sin contratos. Sin letra chica.<br className="hidden sm:block" />Lo que ves es lo que pagas, siempre.</p>
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">Elige tu plan.</h2>
+            <p className="text-[16px] text-[#6b6b6b] max-w-lg">Sin comisiones. Sin contratos. Sin letra chica.</p>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
-            {/* Card */}
-            <div data-pricing-card className="w-full max-w-sm border border-[#1f1f1f] rounded-xl bg-[#111111] p-7 sm:p-8 shrink-0" style={{ opacity: 0 }}>
-              <div className="mb-8">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-[48px] sm:text-[52px] font-bold text-[#ebebeb] tracking-tight">$499</span>
-                  <span className="text-[16px] text-[#6b6b6b] font-normal">MXN / mes</span>
+          {/* Individual plans */}
+          <div data-pricing-card style={{ opacity: 0 }}>
+            <p className="text-[11px] font-semibold text-[#3d3d3d] uppercase tracking-widest mb-5">Planes individuales</p>
+            <div className="grid sm:grid-cols-3 gap-4 mb-10">
+              {[
+                {
+                  name: 'Landing',
+                  price: '$899',
+                  desc: 'Presencia digital para tu negocio',
+                  features: ['Página web profesional', 'Formulario de contacto', 'SEO básico', 'Dominio incluido 1 año'],
+                },
+                {
+                  name: 'Turno Sys',
+                  price: '$1,299',
+                  desc: 'Sistema de agenda sin IA',
+                  features: ['Dashboard de citas', 'Hasta 5 barberos', 'Recordatorios automáticos', 'Sin límite de citas'],
+                  highlight: false,
+                },
+                {
+                  name: 'Turno AI',
+                  price: '$2,799',
+                  desc: 'Agenda con bot de WhatsApp 24/7',
+                  features: ['Todo de Turno Sys', 'Bot IA en WhatsApp', 'Agenda automática', 'Soporte prioritario'],
+                  highlight: true,
+                },
+              ].map(({ name, price, desc, features, highlight }) => (
+                <div key={name} className={`rounded-xl border p-6 ${highlight ? 'border-[#7c3aed] bg-[#7c3aed]/5' : 'border-[#1f1f1f] bg-[#111111]'}`}>
+                  {highlight && (
+                    <span className="inline-block text-[10px] font-semibold text-[#7c3aed] uppercase tracking-widest border border-[#7c3aed]/40 rounded-full px-2.5 py-0.5 mb-3">Popular</span>
+                  )}
+                  <p className="text-[13px] font-semibold text-[#ebebeb] mb-1">{name}</p>
+                  <p className="text-[11px] text-[#6b6b6b] mb-4">{desc}</p>
+                  <div className="flex items-baseline gap-1 mb-5">
+                    <span className="text-[32px] font-bold text-[#ebebeb] tracking-tight">{price}</span>
+                    <span className="text-[13px] text-[#6b6b6b]">MXN/mes</span>
+                  </div>
+                  <ul className="space-y-2.5 mb-6">
+                    {features.map(f => (
+                      <li key={f} className="flex items-center gap-2.5">
+                        <Check className="h-3.5 w-3.5 text-[#7c3aed] shrink-0" />
+                        <span className="text-[13px] text-[#6b6b6b]">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/register" className="block">
+                    <button className={`w-full py-2.5 rounded-md text-[13px] font-medium transition-colors ${highlight ? 'bg-[#7c3aed] hover:bg-[#6d28d9] text-white' : 'border border-[#2a2a2a] text-[#6b6b6b] hover:text-[#ebebeb] hover:border-[#3a3a3a]'}`}>
+                      Empezar gratis
+                    </button>
+                  </Link>
                 </div>
-                <p className="text-[13px] text-[#3d3d3d]">14 días gratis, sin tarjeta de crédito</p>
-              </div>
-              <ul className="space-y-3.5 mb-8">
-                {['Bot de WhatsApp 24/7 con IA', 'Dashboard web y móvil', 'Hasta 5 barberos', 'Recordatorios automáticos', 'Sin límite de citas', 'Soporte directo por WhatsApp'].map(f => (
-                  <li key={f} className="flex items-center gap-3">
-                    <Check className="h-4 w-4 text-[#7c3aed] shrink-0" />
-                    <span className="text-[14px] text-[#ebebeb]">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register" className="block">
-                <button className="w-full py-3 rounded-md bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-medium text-[15px] transition-colors">
-                  Empezar — 14 días gratis
-                </button>
-              </Link>
-              <p className="text-center text-[12px] text-[#3d3d3d] mt-4">Sin tarjeta en la prueba · Cancela cuando quieras</p>
+              ))}
             </div>
 
-            {/* Right side — value props */}
-            <div className="space-y-8 pt-2">
+            {/* Bundle plans */}
+            <p className="text-[11px] font-semibold text-[#3d3d3d] uppercase tracking-widest mb-5">Combos (ahorra más)</p>
+            <div className="grid sm:grid-cols-2 gap-4">
               {[
-                { title: 'Sin sorpresas en tu factura', desc: 'Un precio fijo mensual. Sin cobros por cita agendada, sin comisiones ocultas, sin planes confusos.' },
-                { title: 'Cancela cuando quieras', desc: 'Sin contratos de permanencia. Si decides pausar o cancelar, lo haces en un clic desde tu cuenta.' },
-                { title: 'Prueba sin riesgo', desc: '14 días completamente gratis. No pedimos tarjeta hasta que decidas continuar.' },
-              ].map(({ title, desc }) => (
-                <div key={title} className="flex gap-4">
-                  <div className="mt-1 h-2 w-2 rounded-full bg-[#7c3aed] shrink-0" />
-                  <div>
-                    <p className="text-[14px] font-semibold text-[#ebebeb] mb-1">{title}</p>
-                    <p className="text-[13px] text-[#6b6b6b] leading-relaxed">{desc}</p>
+                {
+                  name: 'Landing + Turno Sys',
+                  price: '$1,799',
+                  saving: 'Ahorras $399',
+                  features: ['Página web profesional', 'Dashboard de citas', 'Hasta 5 barberos', 'Recordatorios automáticos'],
+                },
+                {
+                  name: 'Landing + Turno AI',
+                  price: '$3,299',
+                  saving: 'Ahorras $499',
+                  features: ['Página web profesional', 'Bot IA en WhatsApp 24/7', 'Agenda automática', 'Soporte prioritario'],
+                },
+              ].map(({ name, price, saving, features }) => (
+                <div key={name} className="rounded-xl border border-[#1f1f1f] bg-[#111111] p-6 flex flex-col sm:flex-row gap-6 items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[13px] font-semibold text-[#ebebeb]">{name}</p>
+                      <span className="text-[10px] font-medium text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">{saving}</span>
+                    </div>
+                    <ul className="space-y-2 mt-3">
+                      {features.map(f => (
+                        <li key={f} className="flex items-center gap-2">
+                          <Check className="h-3.5 w-3.5 text-[#7c3aed] shrink-0" />
+                          <span className="text-[12px] text-[#6b6b6b]">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="flex items-baseline gap-1 justify-end mb-3">
+                      <span className="text-[28px] font-bold text-[#ebebeb] tracking-tight">{price}</span>
+                      <span className="text-[12px] text-[#6b6b6b]">MXN/mes</span>
+                    </div>
+                    <Link href="/register">
+                      <button className="px-4 py-2 rounded-md bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-[13px] font-medium transition-colors whitespace-nowrap">
+                        Empezar gratis
+                      </button>
+                    </Link>
                   </div>
                 </div>
               ))}
             </div>
+            <p className="text-[12px] text-[#3d3d3d] mt-6 text-center">14 días gratis en todos los planes · Sin tarjeta · Cancela cuando quieras</p>
           </div>
         </div>
       </section>
