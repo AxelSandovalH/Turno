@@ -13,8 +13,8 @@ export function SplashScreen() {
     const el = ref.current
     if (!el) return
 
-    const line = el.querySelector('[data-splash-line]')
     const logo = el.querySelector('[data-splash-logo]')
+    const text = el.querySelector('[data-splash-text]')
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -24,25 +24,23 @@ export function SplashScreen() {
     })
 
     tl
-      // 1. Línea púrpura se expande desde el centro
-      .fromTo(line,
-        { scaleX: 0, opacity: 1 },
-        { scaleX: 1, duration: 0.45, ease: 'power4.inOut' }
-      )
-      // 2. Logo cae y "estampa" con rebote elástico
+      // 1. Logo aparece con escala y rebote
       .fromTo(logo,
-        { y: -48, opacity: 0, scale: 0.9 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)' },
-        '-=0.05'
+        { scale: 0.6, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.7, ease: 'back.out(1.4)' }
       )
-      // 3. Hold
-      .to({}, { duration: 0.6 })
-      // 5. Línea desaparece
-      .to(line, { scaleX: 0, opacity: 0, duration: 0.3, ease: 'power3.in' }, '-=0.1')
-      // 6. Logo sube y se desvanece
-      .to(logo, { y: -32, opacity: 0, duration: 0.45, ease: 'power3.in' }, '-=0.15')
-      // 7. Overlay sube y sale
-      .to(el, { y: '-100%', duration: 0.55, ease: 'power4.in' }, '-=0.1')
+      // 2. Texto desliza desde la izquierda
+      .fromTo(text,
+        { x: -40, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.55, ease: 'power3.out' },
+        '-=0.1'
+      )
+      // 3. Pausa
+      .to({}, { duration: 0.8 })
+      // 4. Logo y texto suben y desaparecen con stagger
+      .to([logo, text], { y: -20, opacity: 0, duration: 0.45, ease: 'power3.in', stagger: 0.06 })
+      // 5. Overlay sube fuera de pantalla
+      .to(el, { yPercent: -100, duration: 0.7, ease: 'power3.inOut' }, '-=0.1')
   }, [])
 
   if (done) return null
@@ -50,45 +48,31 @@ export function SplashScreen() {
   return (
     <div
       ref={ref}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: '#0c0c0c',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: 0,
-        pointerEvents: 'none',
-      }}
+      className="fixed inset-0 z-[9999] bg-[#0c0c0c] flex items-center justify-center"
+      style={{ pointerEvents: 'none' }}
     >
-      {/* Línea */}
-      <div
-        data-splash-line
-        style={{
-          position: 'absolute',
-          width: 180,
-          height: 1.5,
-          background: 'linear-gradient(90deg, transparent, #7c3aed, transparent)',
-          borderRadius: 2,
-          transformOrigin: 'center',
-          transform: 'scaleX(0)',
-        }}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        data-splash-logo
+        src="/logotrans.png"
+        alt="Turno"
+        style={{ height: 72, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0 }}
       />
-
-      {/* Logo + wordmark */}
-      <div data-splash-logo style={{ opacity: 0, position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 18 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/logotrans.png"
-          alt="Turno"
-          style={{ height: 120, width: 'auto', filter: 'brightness(0) invert(1)' }}
-        />
-        <span style={{ fontSize: 52, fontWeight: 700, color: '#ebebeb', letterSpacing: '-0.03em', fontFamily: 'var(--font-geist-sans)', lineHeight: 1 }}>
-          Turno
-        </span>
-      </div>
+      <span
+        data-splash-text
+        style={{
+          fontSize: 48,
+          fontWeight: 700,
+          color: '#ebebeb',
+          letterSpacing: '-0.03em',
+          fontFamily: 'var(--font-geist-sans)',
+          lineHeight: 1,
+          marginLeft: 16,
+          opacity: 0,
+        }}
+      >
+        Turno
+      </span>
     </div>
   )
 }
