@@ -16,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { ThemeSwitch } from '@/components/ui/theme-switch'
 import type { Organization } from '@/types/database'
 
 const navItems = [
@@ -39,27 +40,37 @@ export function AppSidebar({ organization }: { organization: Organization }) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-4 py-5">
-        <div className="flex items-center gap-2.5">
+      {/* Header — logo + negocio */}
+      <SidebarHeader className="px-4 py-5 border-b border-[var(--sidebar-border)]">
+        <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logotrans.png" alt="Turno" style={{ height: 32, width: 'auto', flexShrink: 0, filter: 'brightness(0) invert(1)' }} />
+          <img
+            src="/logotrans.png"
+            alt="Turno"
+            style={{ height: 28, width: 'auto', flexShrink: 0, filter: 'brightness(0) invert(1)' }}
+          />
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-[#ebebeb] truncate leading-tight">{organization.name}</p>
-            <p className="text-[11px] text-[#3d3d3d] truncate mt-0.5">{organization.whatsapp_number}</p>
+            <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
+              {organization.name}
+            </p>
+            <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
+              {organization.whatsapp_number}
+            </p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-1">
+      {/* Nav */}
+      <SidebarContent className="px-2 py-3">
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {navItems.map(({ href, label, icon: Icon }) => (
                 <SidebarMenuItem key={href}>
                   <SidebarMenuButton
                     render={<Link href={href} />}
                     isActive={pathname?.startsWith(href) ?? false}
-                    className="text-[13px] font-medium"
+                    className="text-[13px] font-medium h-9 rounded-lg"
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{label}</span>
@@ -71,12 +82,20 @@ export function AppSidebar({ organization }: { organization: Organization }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-2 py-3">
+      {/* Footer — tema + cerrar sesión */}
+      <SidebarFooter className="px-4 py-4 border-t border-[var(--sidebar-border)] space-y-3">
+        {/* Toggle modo oscuro/claro */}
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-[var(--muted-foreground)]">Apariencia</span>
+          <ThemeSwitch />
+        </div>
+
+        {/* Cerrar sesión */}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleLogout}
-              className="text-[13px] font-medium text-[#3d3d3d] hover:text-[#ebebeb]"
+              className="text-[13px] font-medium text-[var(--muted-foreground)] hover:text-red-400 hover:bg-red-500/10 h-9 rounded-lg transition-colors"
             >
               <LogOut className="h-4 w-4 shrink-0" />
               <span>Cerrar sesión</span>
