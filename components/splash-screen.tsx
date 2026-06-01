@@ -15,7 +15,6 @@ export function SplashScreen() {
 
     const line = el.querySelector('[data-splash-line]')
     const logo = el.querySelector('[data-splash-logo]')
-    const glow = el.querySelector('[data-splash-glow]')
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -36,18 +35,12 @@ export function SplashScreen() {
         { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)' },
         '-=0.05'
       )
-      // 3. Glow pulsa suavemente bajo el logo
-      .fromTo(glow,
-        { opacity: 0, scale: 0.6 },
-        { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' },
-        '-=0.4'
-      )
-      // 4. Hold
+      // 3. Hold
       .to({}, { duration: 0.6 })
       // 5. Línea desaparece
       .to(line, { scaleX: 0, opacity: 0, duration: 0.3, ease: 'power3.in' }, '-=0.1')
-      // 6. Glow y logo suben y se desvanecen
-      .to([logo, glow], { y: -32, opacity: 0, duration: 0.45, ease: 'power3.in' }, '-=0.15')
+      // 6. Logo sube y se desvanece
+      .to(logo, { y: -32, opacity: 0, duration: 0.45, ease: 'power3.in' }, '-=0.15')
       // 7. Overlay sube y sale
       .to(el, { y: '-100%', duration: 0.55, ease: 'power4.in' }, '-=0.1')
   }, [])
@@ -70,21 +63,6 @@ export function SplashScreen() {
         pointerEvents: 'none',
       }}
     >
-      {/* Glow bajo el logo */}
-      <div
-        data-splash-glow
-        style={{
-          position: 'absolute',
-          width: 320,
-          height: 120,
-          borderRadius: '50%',
-          background: 'radial-gradient(ellipse, rgba(124,58,237,0.18) 0%, transparent 70%)',
-          filter: 'blur(24px)',
-          opacity: 0,
-          pointerEvents: 'none',
-        }}
-      />
-
       {/* Línea */}
       <div
         data-splash-line
@@ -105,7 +83,7 @@ export function SplashScreen() {
         <img
           src="/logotrans.png"
           alt="Turno"
-          style={{ height: 88, width: 'auto', filter: 'brightness(0) invert(1)' }}
+          style={{ height: 120, width: 'auto', filter: 'brightness(0) invert(1)' }}
         />
       </div>
     </div>
