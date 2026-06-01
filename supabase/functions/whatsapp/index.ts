@@ -437,7 +437,7 @@ Deno.serve(async (req) => {
   const { data: org } = await orgQuery.limit(1).single()
 
   if (!org) {
-    console.error('No organization found for instance:', instance)
+    console.error('No organization found for phone:', orgPhone)
     return new Response('ok', { status: 200 })
   }
 
