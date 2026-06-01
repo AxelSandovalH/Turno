@@ -157,6 +157,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
           <CardContent className="p-0 divide-y">
             {DAYS.map(day => {
               const working = isWorking(day.value)
+              const schedule = getSchedule(day.value)
 
               return (
                 <div key={day.value} className="flex items-center gap-4 px-4 py-3">
