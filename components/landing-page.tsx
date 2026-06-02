@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { StarField } from '@/components/star-field'
 import { FancyButton } from '@/components/ui/fancy-button'
+import { TurnoLogo } from '@/components/ui/turno-logo'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -119,9 +120,8 @@ export function LandingPage() {
       {/* Nav */}
       <header data-nav className="sticky top-0 z-50 border-b border-[#1f1f1f] bg-[#0c0c0c]/90 backdrop-blur-md" style={{ opacity: 0 }}>
         <div className="max-w-5xl mx-auto px-5 flex items-center justify-between" style={{ height: '56px' }}>
-          <Link href="/">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 36, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+          <Link href="/" style={{ color: '#ffffff' }}>
+            <TurnoLogo height={36} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px] text-[#6b6b6b]">
             <a href="#features" className="hover:text-[#ebebeb] transition-colors">Funciones</a>
@@ -333,9 +333,8 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[#1f1f1f]">
         <div className="max-w-5xl mx-auto px-5 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <Link href="/">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+          <Link href="/" style={{ color: '#ffffff' }}>
+            <TurnoLogo height={28} />
           </Link>
           <p className="text-[13px] text-[#3d3d3d]">© 2026 Turno · Hecho en México</p>
           <a

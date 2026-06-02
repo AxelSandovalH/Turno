@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import { TurnoLogo } from '@/components/ui/turno-logo'
 
 export function SplashScreen() {
   const ref = useRef<HTMLDivElement>(null)
@@ -40,13 +41,9 @@ export function SplashScreen() {
       className="fixed inset-0 z-[9999] bg-[#0c0c0c] flex items-center justify-center"
       style={{ pointerEvents: 'none' }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        data-splash-logo
-        src="/logotrans.png"
-        alt="Turno"
-        style={{ height: 140, width: 'auto', filter: 'brightness(0) invert(1)', opacity: 0 }}
-      />
+      <div data-splash-logo style={{ opacity: 0, color: '#ffffff' }}>
+        <TurnoLogo height={140} />
+      </div>
     </div>
   )
 }

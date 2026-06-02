@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { CalendarDays, Users, Scissors, Clock, Settings, LogOut, FolderHeart, Search } from 'lucide-react'
+import { TurnoLogo } from '@/components/ui/turno-logo'
 import { createClient } from '@/lib/supabase/client'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -61,8 +62,9 @@ export function AppSidebar({ organization }: { organization: Organization }) {
       {/* Header */}
       <SidebarHeader className="px-4 py-4 border-b border-[var(--sidebar-border)] space-y-3">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logotrans.png" alt="Turno" style={{ height: 28, width: 'auto', flexShrink: 0, filter: 'brightness(0) invert(1)' }} />
+          <div style={{ flexShrink: 0, color: 'var(--sidebar-foreground)' }}>
+            <TurnoLogo height={24} />
+          </div>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
               {organization.name}

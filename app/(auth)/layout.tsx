@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { PressPattern } from '@/components/press-pattern'
+import { TurnoLogo } from '@/components/ui/turno-logo'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,9 +14,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <PressPattern />
         </div>
         <div className="relative z-10 p-10 mt-auto">
-          <Link href="/">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 36, width: 'auto', filter: 'brightness(0) invert(1)', marginBottom: 32 }} />
+          <Link href="/" style={{ display: 'inline-block', marginBottom: 32, color: '#ffffff' }}>
+            <TurnoLogo height={36} />
           </Link>
           <p className="text-[26px] font-bold text-[#ebebeb] leading-tight max-w-xs" style={{ letterSpacing: '-0.02em' }}>
             Tu recepcionista<br />trabaja 24/7.
@@ -28,10 +28,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Right panel — form */}
       <div className="flex flex-col flex-1 items-center justify-center px-6 py-16">
-        <div className="lg:hidden mb-10">
+        <div className="lg:hidden mb-10" style={{ color: '#ffffff' }}>
           <Link href="/">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logotrans.png" alt="Turno" style={{ height: 32, width: 'auto', filter: 'brightness(0) invert(1)' }} />
+            <TurnoLogo height={32} />
           </Link>
         </div>
         <div className="w-full max-w-[380px]">
