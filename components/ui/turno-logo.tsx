@@ -9,13 +9,14 @@ interface TurnoLogoProps {
 }
 
 export function TurnoLogo({ height = 32, className = '' }: TurnoLogoProps) {
-  // Viewbox original: 2816 x 1536, recortamos al área del logo (sin el fondo blanco)
+  // viewBox recortado: 1750 × 375 → aspect ratio 4.667
+  const width = Math.round(height * (1750 / 375))
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="1033 280 1750 375"
       height={height}
-      width="auto"
+      width={width}
       aria-label="Turno"
       className={className}
       style={{ display: 'block' }}

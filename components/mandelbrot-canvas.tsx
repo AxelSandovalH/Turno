@@ -112,8 +112,9 @@ export function MandelbrotCanvas({ isDay }: Props) {
     let height = 0
 
     function resize() {
-      width  = canvas!.offsetWidth  * devicePixelRatio
-      height = canvas!.offsetHeight * devicePixelRatio
+      const rect = canvas!.getBoundingClientRect()
+      width  = Math.max(1, Math.round(rect.width  * devicePixelRatio))
+      height = Math.max(1, Math.round(rect.height * devicePixelRatio))
       canvas!.width  = width
       canvas!.height = height
       gl!.viewport(0, 0, width, height)
@@ -152,7 +153,20 @@ export function MandelbrotCanvas({ isDay }: Props) {
       raf = requestAnimationFrame(render)
     }
 
+    // Initial resize — read parent if canvas rect is still 0
     resize()
+    if (width === 0 || height === 0) {
+      const parent = canvas.parentElement
+      if (parent) {
+        const r = parent.getBoundingClientRect()
+        width  = Math.max(1, Math.round(r.width  * devicePixelRatio))
+        height = Math.max(1, Math.round(r.height * devicePixelRatio))
+        canvas.width  = width
+        canvas.height = height
+        gl.viewport(0, 0, width, height)
+      }
+    }
+
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
 
