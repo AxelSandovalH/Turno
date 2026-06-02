@@ -11,17 +11,18 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
 
 const FEATURES = [
-  { title: 'Bot de WhatsApp 24/7', desc: 'Responde mensajes, agenda y cancela citas automáticamente. Tus clientes siempre tienen respuesta.' },
-  { title: 'Cero doble booking', desc: 'Verifica disponibilidad en tiempo real. Nunca dos clientes a la misma hora.' },
-  { title: 'Recordatorios automáticos', desc: 'Envía WhatsApp antes de cada cita para reducir cancelaciones de último momento.' },
-  { title: 'Dashboard en tiempo real', desc: 'Ve tus citas del día y gestiona tu equipo desde el celular o computadora.' },
-  { title: 'Sin instalar apps', desc: 'Tus clientes usan el WhatsApp que ya tienen. Cero fricción, cero confusión.' },
-  { title: 'Lista en 5 minutos', desc: 'Crea cuenta, agrega servicios y horario. Tu recepcionista activa al instante.' },
+  { title: 'Bot de WhatsApp 24/7', desc: 'Responde, agenda y cancela citas automáticamente. Sin importar el giro, tus pacientes o clientes siempre tienen respuesta.' },
+  { title: 'Cero doble booking', desc: 'Verifica disponibilidad en tiempo real. Nunca dos personas a la misma hora con el mismo profesional.' },
+  { title: 'Recordatorios automáticos', desc: 'Envía WhatsApp antes de cada cita. Reduce inasistencias y cancelaciones de último momento.' },
+  { title: 'Multi-especialidad', desc: 'Configura múltiples profesionales, cada uno con su horario, servicios y precios independientes.' },
+  { title: 'Sin instalar apps', desc: 'Tus clientes y pacientes usan el WhatsApp que ya tienen. Cero fricción, cero confusión.' },
+  { title: 'Lista en 5 minutos', desc: 'Crea cuenta, agrega servicios y horario. Tu asistente virtual queda activo al instante.' },
 ]
 
 const FAQ = [
+  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio basado en citas: barberías, consultorios de psicología, clínicas dentales, fisioterapia, spas, estéticas y más. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
-  { q: '¿Mis clientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Cero fricción, cero confusión.' },
+  { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Cero fricción, cero confusión.' },
   { q: '¿Qué pasa al terminar los 14 días?', a: 'Te pedimos una tarjeta para continuar. Si decides no seguir, tu cuenta se pausa sin ningún cargo.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
@@ -144,14 +145,15 @@ export function LandingPage() {
         <div className="relative z-10 max-w-5xl mx-auto">
           <div className="max-w-3xl">
             <p data-hero-badge className="text-[12px] font-semibold text-[#7c3aed] mb-5 tracking-widest uppercase" style={{ opacity: 0 }}>
-              Asistente de WhatsApp para barberías
+              Asistente de WhatsApp con IA · Agenda 24/7
             </p>
             <h1 data-hero-h1 className="text-[40px] sm:text-[58px] lg:text-[72px] font-bold leading-[1.06] tracking-[-0.03em] text-[#ebebeb] mb-6" style={{ opacity: 0 }}>
-              Tu barbería agenda<br />citas sola.
+              Tu consulta agenda<br />citas sola.
             </h1>
             <p data-hero-p className="text-[16px] sm:text-[19px] text-[#6b6b6b] leading-relaxed mb-9 max-w-xl" style={{ opacity: 0 }}>
-              Un asistente de IA responde WhatsApp 24/7, agenda sin errores
-              y te muestra todo en un dashboard limpio. Tú solo cortas.
+              Un asistente de IA responde WhatsApp 24/7, agenda sin errores y
+              muestra todo en un dashboard limpio. Para barberías, consultorios,
+              clínicas dentales y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
               <FancyButton href="/register">Prueba 14 días gratis</FancyButton>
@@ -174,7 +176,7 @@ export function LandingPage() {
           <div data-section-head className="mb-14 sm:mb-20" style={{ opacity: 0 }}>
             <p className="text-[12px] font-semibold text-[#7c3aed] uppercase tracking-widest mb-4">Funciones</p>
             <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] text-[#ebebeb] mb-4">Todo lo que necesitas.</h2>
-            <p className="text-[16px] text-[#6b6b6b] max-w-lg">Diseñado para barberías. Sin configuraciones complicadas.</p>
+            <p className="text-[16px] text-[#6b6b6b] max-w-lg">Diseñado para cualquier negocio de citas. Sin configuraciones complicadas.</p>
           </div>
           <div data-features-grid className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
             {FEATURES.map(({ title, desc }) => (
@@ -322,7 +324,8 @@ export function LandingPage() {
       <section className="border-t border-[#1f1f1f]">
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] text-[#ebebeb] mb-4">Empieza hoy.</h2>
-          <p className="text-[16px] text-[#6b6b6b] mb-10">14 días sin tarjeta. Sin compromiso.</p>
+          <p className="text-[16px] text-[#6b6b6b] mb-3">14 días sin tarjeta. Sin compromiso.</p>
+          <p className="text-[13px] text-[#3d3d3d] mb-10">Barberías · Psicología · Odontología · Fisioterapia · y más</p>
           <FancyButton href="/register">Crear cuenta gratis</FancyButton>
         </div>
       </section>
