@@ -83,8 +83,6 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
       })
     }
 
-    // Remove optimistic override once server confirms
-    setOptimistic(prev => { const n = { ...prev }; delete n[key]; return n })
     router.refresh()
   }
 
@@ -143,7 +141,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId }: Sc
           <Label className="shrink-0">Barbero</Label>
           <Select value={selectedStaff} onValueChange={v => setSelectedStaff(v ?? '')}>
             <SelectTrigger className="w-48">
-              <SelectValue />
+              <SelectValue placeholder={staff.find(s => s.id === selectedStaff)?.name ?? 'Selecciona'} />
             </SelectTrigger>
             <SelectContent>
               {staff.map(s => (

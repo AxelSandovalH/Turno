@@ -18,16 +18,16 @@ import {
 } from '@/components/ui/sidebar'
 import type { Organization } from '@/types/database'
 
-const navItems = [
-  { href: '/appointments', label: 'Citas', icon: CalendarDays },
-  { href: '/patients', label: 'Pacientes', icon: FolderHeart },
-  { href: '/staff', label: 'Equipo', icon: Users },
-  { href: '/services', label: 'Servicios', icon: Scissors },
-  { href: '/schedule', label: 'Horarios', icon: Clock },
-  { href: '/settings', label: 'Configuración', icon: Settings },
-]
-
 export function AppSidebar({ organization }: { organization: Organization }) {
+  const isMedical = organization.business_type && organization.business_type !== 'barbershop'
+  const navItems = [
+    { href: '/appointments', label: 'Citas', icon: CalendarDays },
+    { href: '/patients', label: isMedical ? 'Pacientes' : 'Clientes', icon: FolderHeart },
+    { href: '/staff', label: isMedical ? 'Equipo' : 'Barberos', icon: Users },
+    { href: '/services', label: 'Servicios', icon: Scissors },
+    { href: '/schedule', label: 'Horarios', icon: Clock },
+    { href: '/settings', label: 'Configuración', icon: Settings },
+  ]
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()

@@ -106,7 +106,7 @@
 
 /* ── ThemeSwitch ───────────────────────────────────── */
 .theme-switch {
-  --toggle-size: 24px;
+  --toggle-size: 14px;
   --container-width: 5.625em;
   --container-height: 2.5em;
   --container-radius: 6.25em;

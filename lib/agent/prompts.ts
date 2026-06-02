@@ -1,10 +1,12 @@
-export function buildSystemPrompt(org: {
-  name: string
-  timezone: string
-  welcome_message: string | null
-  away_message: string | null
-}) {
-  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.
+export function buildSystemPrompt(
+  org: { name: string; timezone: string; welcome_message: string | null; away_message: string | null },
+  customer?: { name: string | null; occupation: string | null; notes: string | null }
+) {
+  const customerCtx = customer?.name
+    ? `\nINFORMACIÓN DEL CLIENTE:\n- Nombre: ${customer.name}${customer.occupation ? `\n- Puesto/Ocupación: ${customer.occupation}` : ''}${customer.notes ? `\n- Notas: ${customer.notes}` : ''}\nLlámalo por su nombre cuando sea natural.`
+    : ''
+
+  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}
 
 Tu único trabajo es ayudar a los clientes a:
 1. Agendar citas

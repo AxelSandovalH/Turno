@@ -33,6 +33,14 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage 
     .eq('is_active', true)
     .single()
 
+  // Load customer profile (name, occupation, notes)
+  const { data: customer } = await db
+    .from('customers')
+    .select('name, occupation, notes')
+    .eq('organization_id', organizationId)
+    .eq('phone', customerPhone)
+    .maybeSingle()
+
   // Upsert conversation
   const { data: conversation } = await db
     .from('conversations')
@@ -72,7 +80,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage 
   let response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
-    system: buildSystemPrompt(org),
+    system: buildSystemPrompt(org, customer ?? undefined),
     tools,
     messages,
   })
@@ -93,7 +101,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage 
     response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt(org),
+      system: buildSystemPrompt(org, customer ?? undefined),
       tools,
       messages,
     })
