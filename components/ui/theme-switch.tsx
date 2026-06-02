@@ -20,7 +20,7 @@ export function ThemeSwitch() {
   }
 
   return (
-    <label className="theme-switch" title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
+    <label className="theme-switch">
       <input
         type="checkbox"
         className="theme-switch__checkbox"
