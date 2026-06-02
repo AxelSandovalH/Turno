@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Users, Scissors, Clock, Settings, LogOut } from 'lucide-react'
+import { CalendarDays, Users, Scissors, Clock, Settings, LogOut, FolderHeart } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
@@ -20,7 +20,8 @@ import type { Organization } from '@/types/database'
 
 const navItems = [
   { href: '/appointments', label: 'Citas', icon: CalendarDays },
-  { href: '/staff', label: 'Barberos', icon: Users },
+  { href: '/patients', label: 'Pacientes', icon: FolderHeart },
+  { href: '/staff', label: 'Equipo', icon: Users },
   { href: '/services', label: 'Servicios', icon: Scissors },
   { href: '/schedule', label: 'Horarios', icon: Clock },
   { href: '/settings', label: 'Configuración', icon: Settings },

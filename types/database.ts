@@ -1,4 +1,9 @@
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'suspended'
+export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'insurance' | 'other'
+export type PaymentStatus = 'paid' | 'pending' | 'refunded'
+export type AttachmentCategory = 'xray' | 'mri' | 'lab' | 'prescription' | 'referral' | 'other'
+export type NoteType = 'session' | 'soap' | 'clinical' | 'evolution' | 'intake'
+export type TreatmentPlanStatus = 'active' | 'completed' | 'paused' | 'cancelled'
 export type AppointmentStatus = 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type StaffRole = 'owner' | 'manager' | 'staff'
 export type ActorType = 'user' | 'bot' | 'system'
@@ -90,6 +95,108 @@ export interface Customer {
   name: string | null
   phone: string
   notes: string | null
+  // Phase 1 clinical fields
+  date_of_birth: string | null
+  gender: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null
+  occupation: string | null
+  allergies: string | null
+  medical_notes: string | null
+  emergency_contact: string | null
+  emergency_phone: string | null
+  referred_by: string | null
+  referring_doctor: string | null
+  referring_doctor_specialty: string | null
+  referring_doctor_phone: string | null
+  civil_status: string | null
+  insurance_provider: string | null
+  insurance_policy: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AppointmentNote {
+  id: string
+  appointment_id: string
+  organization_id: string
+  staff_id: string | null
+  note_type: NoteType
+  soap_subjective: string | null
+  soap_objective: string | null
+  soap_assessment: string | null
+  soap_plan: string | null
+  content: string | null
+  pain_level: number | null
+  blood_pressure: string | null
+  heart_rate: number | null
+  weight_kg: number | null
+  rom_cervical: string | null
+  rom_shoulder_l: string | null
+  rom_shoulder_r: string | null
+  rom_lumbar: string | null
+  rom_hip_l: string | null
+  rom_hip_r: string | null
+  rom_knee_l: string | null
+  rom_knee_r: string | null
+  rom_ankle_l: string | null
+  rom_ankle_r: string | null
+  rom_custom: string | null
+  functional_goals: string | null
+  next_session_plan: string | null
+  is_private: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface TreatmentPlan {
+  id: string
+  organization_id: string
+  customer_id: string
+  staff_id: string | null
+  title: string
+  diagnosis: string | null
+  goals: string | null
+  total_sessions: number | null
+  sessions_done: number
+  status: TreatmentPlanStatus
+  starts_at: string | null
+  ends_at: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Attachment {
+  id: string
+  organization_id: string
+  customer_id: string
+  appointment_id: string | null
+  treatment_plan_id: string | null
+  name: string
+  storage_path: string
+  file_url: string
+  mime_type: string | null
+  file_size_bytes: number | null
+  category: AttachmentCategory
+  notes: string | null
+  uploaded_by: string | null
+  created_at: string
+}
+
+export interface Payment {
+  id: string
+  organization_id: string
+  customer_id: string
+  appointment_id: string | null
+  treatment_plan_id: string | null
+  staff_id: string | null
+  amount: number
+  currency: string
+  method: PaymentMethod
+  status: PaymentStatus
+  concept: string | null
+  notes: string | null
+  paid_at: string | null
   created_at: string
   updated_at: string
 }
