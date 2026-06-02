@@ -27,9 +27,14 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { toast.error(error.message); setLoading(false); return }
-    router.push('/appointments')
+    const meta = data.user?.user_metadata ?? {}
+    if (meta.is_platform_admin) {
+      router.push('/admin')
+    } else {
+      router.push('/appointments')
+    }
     router.refresh()
   }
 
