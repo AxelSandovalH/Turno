@@ -15,6 +15,14 @@ const s = {
   input: { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#ebebeb', fontSize: 14, height: '100%', paddingRight: 12, fontFamily: 'inherit' } as React.CSSProperties,
 }
 
+const TYPES = [
+  { value: 'barbershop',     label: '💈 Barbería' },
+  { value: 'psychology',    label: '🧠 Psicología' },
+  { value: 'dentistry',     label: '🦷 Odontología' },
+  { value: 'physiotherapy', label: '🏃 Fisioterapia' },
+  { value: 'other',         label: '✨ Otro' },
+]
+
 const IconBuilding = () => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 21h18M3 7l9-4 9 4M4 11h16v10H4zM9 21v-4h6v4" />
@@ -38,17 +46,9 @@ const IconLock = () => (
 )
 
 interface FieldProps {
-  label: string
-  icon: React.ReactNode
-  type: string
-  placeholder: string
-  value: string
-  onChange: (v: string) => void
-  name: string
-  hint?: string
-  minLength?: number
-  required?: boolean
-  autoFocus?: boolean
+  label: string; icon: React.ReactNode; type: string; placeholder: string
+  value: string; onChange: (v: string) => void; name: string
+  hint?: string; minLength?: number; required?: boolean; autoFocus?: boolean
 }
 
 function Field({ label, icon, type, placeholder, value, onChange, name, hint, minLength, required, autoFocus }: FieldProps) {
@@ -59,16 +59,10 @@ function Field({ label, icon, type, placeholder, value, onChange, name, hint, mi
       <div style={{ ...s.wrap, borderColor: focused ? '#7c3aed' : '#252525' }}>
         {icon}
         <input
-          name={name}
-          type={type}
-          placeholder={placeholder}
-          value={value}
+          name={name} type={type} placeholder={placeholder} value={value}
           onChange={e => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          required={required}
-          autoFocus={autoFocus}
-          minLength={minLength}
+          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          required={required} autoFocus={autoFocus} minLength={minLength}
           style={s.input}
         />
       </div>
@@ -81,7 +75,9 @@ export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ businessName: '', email: '', password: '', whatsappNumber: '' })
+  const [form, setForm] = useState({
+    businessName: '', email: '', password: '', whatsappNumber: '', businessType: 'barbershop',
+  })
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
   async function handleRegister(e: React.FormEvent) {
@@ -89,17 +85,51 @@ export default function RegisterPage() {
     setLoading(true)
 
     const slug = form.businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email: form.email, password: form.password })
-    if (authError || !authData.user) { toast.error(authError?.message ?? 'Error al crear la cuenta'); setLoading(false); return }
 
+    // 1. Crear usuario
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+    })
+    if (authError || !authData.user) {
+      toast.error(authError?.message ?? 'Error al crear la cuenta')
+      setLoading(false)
+      return
+    }
+
+    // 2. Crear organización
     const res = await fetch('/api/onboarding', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: authData.user.id, name: form.businessName, slug, whatsappNumber: form.whatsappNumber, email: form.email }),
+      body: JSON.stringify({
+        userId: authData.user.id,
+        name: form.businessName,
+        slug,
+        whatsappNumber: form.whatsappNumber,
+        email: form.email,
+        businessType: form.businessType,
+      }),
     })
+    if (!res.ok) {
+      const { error } = await res.json()
+      toast.error(error ?? 'Error al configurar el negocio')
+      setLoading(false)
+      return
+    }
 
-    if (!res.ok) { const { error } = await res.json(); toast.error(error ?? 'Error'); setLoading(false); return }
-    toast.success('¡Cuenta creada!')
+    // 3. Asegurar sesión activa (por si Supabase requiere confirmación de email)
+    if (!authData.session) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      })
+      if (signInError) {
+        toast.error('Cuenta creada. Inicia sesión para continuar.')
+        router.push('/login')
+        return
+      }
+    }
+
     router.push('/payment')
     router.refresh()
   }
@@ -113,6 +143,31 @@ export default function RegisterPage() {
 
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Field label="Nombre del negocio" icon={<IconBuilding />} type="text" placeholder="Barbería El Estilo" name="businessName" value={form.businessName} onChange={set('businessName')} required autoFocus />
+
+        {/* Tipo de negocio */}
+        <div>
+          <label style={s.label}>Tipo de negocio</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {TYPES.map(t => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => set('businessType')(t.value)}
+                style={{
+                  padding: '10px 12px', borderRadius: 10,
+                  border: `1.5px solid ${form.businessType === t.value ? '#7c3aed' : '#252525'}`,
+                  background: form.businessType === t.value ? '#7c3aed18' : '#141414',
+                  color: form.businessType === t.value ? '#c4b5fd' : '#888',
+                  fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                  fontFamily: 'inherit', transition: 'all .15s',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" placeholder="521XXXXXXXXXX" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Formato internacional sin +. Ej: 521XXXXXXXXXX" required />
         <Field label="Correo electrónico" icon={<IconMail />} type="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required />
         <Field label="Contraseña" icon={<IconLock />} type="password" placeholder="Mínimo 8 caracteres" name="password" value={form.password} onChange={set('password')} minLength={8} required />
