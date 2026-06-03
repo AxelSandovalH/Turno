@@ -9,7 +9,7 @@ export function PaymentSuccessToast() {
   const router = useRouter()
 
   useEffect(() => {
-    if (params.get('payment') === 'success') {
+    if (params?.get('payment') === 'success') {
       toast.success('¡Suscripción activada! Bienvenido a Turno AI 🎉')
       // Limpiar el query param sin recargar
       router.replace('/appointments')
