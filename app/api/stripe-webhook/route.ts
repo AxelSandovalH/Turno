@@ -20,10 +20,12 @@ export async function POST(req: Request) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session
       const orgId = session.metadata?.organization_id
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subId = (session as any).subscription as string | null
       if (orgId) {
         await db.from('organizations').update({
           subscription_status: 'active',
-          stripe_subscription_id: session.subscription as string,
+          ...(subId ? { stripe_subscription_id: subId } : {}),
         }).eq('id', orgId)
       }
       break

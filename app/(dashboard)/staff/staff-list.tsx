@@ -23,20 +23,21 @@ import {
 } from '@/components/ui/alert-dialog'
 import type { Staff, StaffRole } from '@/types/database'
 
-const roleLabel: Record<StaffRole, string> = {
-  owner: 'Dueño',
-  manager: 'Manager',
-  staff: 'Barbero',
+function getRoleLabel(role: StaffRole, staffLabel: string): string {
+  if (role === 'owner') return 'Dueño'
+  if (role === 'manager') return 'Manager'
+  return staffLabel
 }
 
 interface StaffListProps {
   staff: Staff[]
   organizationId: string
+  staffLabel: string
 }
 
 const empty = { name: '', phone: '', role: 'staff' as StaffRole }
 
-export function StaffList({ staff, organizationId }: StaffListProps) {
+export function StaffList({ staff, organizationId, staffLabel }: StaffListProps) {
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -67,13 +68,13 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
         .update({ name: form.name, phone: form.phone || null, role: form.role })
         .eq('id', editing.id)
       if (error) { toast.error(error.message); setLoading(false); return }
-      toast.success('Barbero actualizado')
+      toast.success(`${staffLabel} actualizado`)
     } else {
       const { error } = await supabase
         .from('staff')
         .insert({ organization_id: organizationId, name: form.name, phone: form.phone || null, role: form.role })
       if (error) { toast.error(error.message); setLoading(false); return }
-      toast.success('Barbero agregado')
+      toast.success(`${staffLabel} agregado`)
     }
 
     setOpen(false)
@@ -85,7 +86,7 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
     if (!deleteId) return
     const { error } = await supabase.from('staff').delete().eq('id', deleteId)
     if (error) { toast.error(error.message); return }
-    toast.success('Barbero eliminado')
+    toast.success(`${staffLabel} eliminado`)
     setDeleteId(null)
     router.refresh()
   }
@@ -95,14 +96,14 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
       <div className="flex justify-end">
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4 mr-2" />
-          Agregar barbero
+          Agregar {staffLabel.toLowerCase()}
         </Button>
       </div>
 
       {staff.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            No hay barberos registrados. Agrega el primero.
+            No hay {staffLabel.toLowerCase()}s registrados. Agrega el primero.
           </CardContent>
         </Card>
       ) : (
@@ -118,7 +119,7 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{s.name}</p>
-                    <Badge variant="outline" className="text-xs">{roleLabel[s.role]}</Badge>
+                    <Badge variant="outline" className="text-xs">{getRoleLabel(s.role, staffLabel)}</Badge>
                     {!s.is_active && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                   </div>
                   {s.phone && <p className="text-sm text-muted-foreground">{s.phone}</p>}
@@ -146,7 +147,7 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Editar barbero' : 'Agregar barbero'}</DialogTitle>
+            <DialogTitle>{editing ? `Editar ${staffLabel.toLowerCase()}` : `Agregar ${staffLabel.toLowerCase()}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -173,7 +174,7 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="staff">Barbero</SelectItem>
+                  <SelectItem value="staff">{staffLabel}</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="owner">Dueño</SelectItem>
                 </SelectContent>
@@ -192,7 +193,7 @@ export function StaffList({ staff, organizationId }: StaffListProps) {
       <AlertDialog open={!!deleteId} onOpenChange={v => !v && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar barbero?</AlertDialogTitle>
+            <AlertDialogTitle>¿Eliminar {staffLabel.toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. Las citas existentes no se eliminarán.
             </AlertDialogDescription>

@@ -4,47 +4,49 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import type { Organization } from '@/types/database'
 
 const TIMEZONES = [
-  { value: 'America/Mexico_City', label: 'Ciudad de México (CST)' },
-  { value: 'America/Monterrey', label: 'Monterrey (CST)' },
-  { value: 'America/Tijuana', label: 'Tijuana (PST)' },
-  { value: 'America/Cancun', label: 'Cancún (EST)' },
-  { value: 'America/Bogota', label: 'Bogotá (COT)' },
-  { value: 'America/Lima', label: 'Lima (PET)' },
-  { value: 'America/Santiago', label: 'Santiago (CLT)' },
+  { value: 'America/Mexico_City',            label: 'Ciudad de México (CST)' },
+  { value: 'America/Monterrey',              label: 'Monterrey (CST)' },
+  { value: 'America/Tijuana',                label: 'Tijuana (PST)' },
+  { value: 'America/Cancun',                 label: 'Cancún (EST)' },
+  { value: 'America/Bogota',                 label: 'Bogotá (COT)' },
+  { value: 'America/Lima',                   label: 'Lima (PET)' },
+  { value: 'America/Santiago',               label: 'Santiago (CLT)' },
   { value: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (ART)' },
 ]
 
-interface Props {
-  organization: Organization
+const s = {
+  section: { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 } as React.CSSProperties,
+  sectionTitle: { fontSize: 13, fontWeight: 600, color: 'var(--foreground)', marginBottom: 4 } as React.CSSProperties,
+  sectionDesc: { fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 4 } as React.CSSProperties,
+  label: { display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--muted-foreground)', marginBottom: 6 } as React.CSSProperties,
+  input: { width: '100%', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 8, height: 38, padding: '0 12px', fontSize: 13, color: 'var(--foreground)', outline: 'none', boxSizing: 'border-box' } as React.CSSProperties,
+  textarea: { width: '100%', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: 'var(--foreground)', outline: 'none', resize: 'vertical', minHeight: 80, boxSizing: 'border-box', fontFamily: 'inherit' } as React.CSSProperties,
+  select: { width: '100%', background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 8, height: 38, padding: '0 12px', fontSize: 13, color: 'var(--foreground)', outline: 'none', appearance: 'none', cursor: 'pointer' } as React.CSSProperties,
+  hint: { fontSize: 11, color: 'var(--muted-foreground)', marginTop: 4 } as React.CSSProperties,
+  btn: { height: 38, padding: '0 18px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 } as React.CSSProperties,
 }
+
+interface Props { organization: Organization }
 
 export function SettingsForm({ organization }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    name: organization.name ?? '',
-    phone: organization.phone ?? '',
-    address: organization.address ?? '',
-    timezone: organization.timezone ?? 'America/Mexico_City',
+    name:            organization.name            ?? '',
+    whatsapp_number: organization.whatsapp_number ?? '',
+    phone:           organization.phone           ?? '',
+    address:         organization.address         ?? '',
+    timezone:        organization.timezone        ?? 'America/Mexico_City',
     welcome_message: organization.welcome_message ?? '',
-    away_message: organization.away_message ?? '',
+    away_message:    organization.away_message    ?? '',
   })
 
-  function set(field: string, value: string) {
-    setForm(p => ({ ...p, [field]: value }))
-  }
+  const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
   async function handleSubscribe() {
     setLoading(true)
@@ -60,12 +62,13 @@ export function SettingsForm({ organization }: Props) {
     const { error } = await supabase
       .from('organizations')
       .update({
-        name: form.name,
-        phone: form.phone || null,
-        address: form.address || null,
-        timezone: form.timezone,
+        name:            form.name,
+        whatsapp_number: form.whatsapp_number || null,
+        phone:           form.phone           || null,
+        address:         form.address         || null,
+        timezone:        form.timezone,
         welcome_message: form.welcome_message || null,
-        away_message: form.away_message || null,
+        away_message:    form.away_message    || null,
       })
       .eq('id', organization.id)
 
@@ -75,102 +78,108 @@ export function SettingsForm({ organization }: Props) {
     router.refresh()
   }
 
+  const status = organization.subscription_status
+
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
       {/* Datos del negocio */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Datos del negocio</CardTitle>
-          <CardDescription>Información general que aparece en los mensajes del bot</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nombre del negocio</Label>
-            <Input value={form.name} onChange={e => set('name', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Teléfono de contacto (opcional)</Label>
-            <Input placeholder="+52 312 226 5985" value={form.phone} onChange={e => set('phone', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Dirección (opcional)</Label>
-            <Input placeholder="Calle, Colonia, Ciudad" value={form.address} onChange={e => set('address', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Zona horaria</Label>
-            <Select value={form.timezone} onValueChange={(v: string | null) => set('timezone', v ?? 'America/Mexico_City')}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIMEZONES.map(tz => (
-                  <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <div style={s.section}>
+        <div>
+          <p style={s.sectionTitle}>Datos del negocio</p>
+          <p style={s.sectionDesc}>Información general que usa el bot de WhatsApp</p>
+        </div>
+        <div>
+          <label style={s.label}>Nombre del negocio</label>
+          <input style={s.input} value={form.name} onChange={e => set('name')(e.target.value)} />
+        </div>
+        <div>
+          <label style={s.label}>WhatsApp del negocio</label>
+          <input style={s.input} placeholder="521XXXXXXXXXX" value={form.whatsapp_number} onChange={e => set('whatsapp_number')(e.target.value)} />
+          <p style={s.hint}>Formato internacional sin +. Ej: 521XXXXXXXXXX</p>
+        </div>
+        <div>
+          <label style={s.label}>Teléfono de contacto (opcional)</label>
+          <input style={s.input} placeholder="+52 312 000 0000" value={form.phone} onChange={e => set('phone')(e.target.value)} />
+        </div>
+        <div>
+          <label style={s.label}>Dirección (opcional)</label>
+          <input style={s.input} placeholder="Calle, Colonia, Ciudad" value={form.address} onChange={e => set('address')(e.target.value)} />
+        </div>
+        <div>
+          <label style={s.label}>Zona horaria</label>
+          <select style={s.select} value={form.timezone} onChange={e => set('timezone')(e.target.value)}>
+            {TIMEZONES.map(tz => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {/* Mensajes del bot */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mensajes del bot</CardTitle>
-          <CardDescription>Personaliza cómo responde el asistente de WhatsApp</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Mensaje de bienvenida (opcional)</Label>
-            <Textarea
-              placeholder="Ej: ¡Bienvenido a Barber Shop Leo! ¿En qué te puedo ayudar?"
-              rows={3}
-              value={form.welcome_message}
-              onChange={e => set('welcome_message', e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">Si lo dejas vacío, el bot usa un saludo estándar</p>
-          </div>
-          <div className="space-y-2">
-            <Label>Mensaje fuera de horario (opcional)</Label>
-            <Textarea
-              placeholder="Ej: Estamos cerrados. Nuestro horario es Lun-Sáb 9am-7pm."
-              rows={3}
-              value={form.away_message}
-              onChange={e => set('away_message', e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div style={s.section}>
+        <div>
+          <p style={s.sectionTitle}>Mensajes del bot</p>
+          <p style={s.sectionDesc}>Personaliza cómo responde el asistente de WhatsApp</p>
+        </div>
+        <div>
+          <label style={s.label}>Mensaje de bienvenida (opcional)</label>
+          <textarea
+            style={s.textarea}
+            placeholder="Ej: ¡Bienvenido! ¿En qué te puedo ayudar?"
+            value={form.welcome_message}
+            onChange={e => set('welcome_message')(e.target.value)}
+          />
+          <p style={s.hint}>Si lo dejas vacío, el bot usa un saludo estándar</p>
+        </div>
+        <div>
+          <label style={s.label}>Mensaje fuera de horario (opcional)</label>
+          <textarea
+            style={s.textarea}
+            placeholder="Ej: Estamos cerrados. Nuestro horario es Lun-Sáb 9am-7pm."
+            value={form.away_message}
+            onChange={e => set('away_message')(e.target.value)}
+          />
+        </div>
+      </div>
 
-      {/* Info de suscripción */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Plan</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium capitalize">{organization.subscription_status === 'trialing' ? 'Prueba gratuita' : organization.subscription_status}</p>
-              {organization.trial_ends_at && (
-                <p className="text-sm text-muted-foreground">
-                  Vence el {new Date(organization.trial_ends_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              )}
-            </div>
-            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-              {organization.subscription_status === 'trialing' ? '14 días gratis' : 'Activo'}
-            </span>
+      {/* Plan */}
+      <div style={s.section}>
+        <p style={s.sectionTitle}>Plan</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>Turno AI</p>
+            <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>$2,799 MXN / mes</p>
           </div>
-        </CardContent>
-      </Card>
+          {status === 'active' && (
+            <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 10px', borderRadius: 99 }}>Activo</span>
+          )}
+          {status === 'suspended' && (
+            <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 10px', borderRadius: 99 }}>Suspendido</span>
+          )}
+          {status !== 'active' && status !== 'suspended' && (
+            <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(234,179,8,0.1)', color: '#eab308', padding: '3px 10px', borderRadius: 99, textTransform: 'capitalize' }}>{status}</span>
+          )}
+        </div>
+      </div>
 
-      <div className="flex gap-3">
-        <Button onClick={handleSave} disabled={loading} className="flex-1">
-          {loading ? 'Guardando...' : 'Guardar cambios'}
-        </Button>
-        {(organization.subscription_status === 'trialing' || organization.subscription_status === 'suspended') && (
-          <Button variant="outline" onClick={handleSubscribe} disabled={loading}>
-            Suscribirme — $499/mes
-          </Button>
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          style={{ ...s.btn, flex: 1, background: 'var(--primary)', color: '#fff', justifyContent: 'center', opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+        >
+          {loading ? <Spinner size={16} color="#fff" /> : 'Guardar cambios'}
+        </button>
+        {status === 'suspended' && (
+          <button
+            onClick={handleSubscribe}
+            disabled={loading}
+            style={{ ...s.btn, background: 'transparent', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+          >
+            Reactivar suscripción
+          </button>
         )}
       </div>
     </div>

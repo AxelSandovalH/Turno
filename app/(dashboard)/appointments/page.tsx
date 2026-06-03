@@ -3,10 +3,12 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { Suspense } from 'react'
 import { AppointmentActions } from './appointment-actions'
 import { NewAppointmentDialog } from './new-appointment-dialog'
 import { CalendarView } from './calendar-view'
 import { DayView } from './day-view'
+import { PaymentSuccessToast } from './payment-success-toast'
 import type { Appointment } from '@/types/database'
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -73,6 +75,9 @@ export default async function AppointmentsPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <PaymentSuccessToast />
+      </Suspense>
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>

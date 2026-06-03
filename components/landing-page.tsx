@@ -66,7 +66,7 @@ const FAQ = [
   { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio basado en citas: barberías, consultorios de psicología, clínicas dentales, fisioterapia, spas, estéticas y más. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Cero fricción, cero confusión.' },
-  { q: '¿Qué pasa al terminar los 14 días?', a: 'Te pedimos una tarjeta para continuar. Si decides no seguir, tu cuenta se pausa sin ningún cargo.' },
+  { q: '¿Cuánto cuesta?', a: '$2,799 MXN al mes. Sin contratos, sin permanencia. Cancelas cuando quieras desde tu cuenta.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -161,7 +161,7 @@ export function LandingPage() {
                 className="text-[13px] font-medium px-3.5 py-1.5 rounded-md text-white transition-colors"
                 style={{ background: t.accent }}
               >
-                Empezar gratis
+                Crear cuenta
               </button>
             </Link>
           </div>
@@ -194,7 +194,7 @@ export function LandingPage() {
               clínicas dentales y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
-              <FancyButton href="/register">Prueba 14 días gratis</FancyButton>
+              <FancyButton href="/register">Activar Turno AI →</FancyButton>
               <Link href="/login">
                 <button
                   className="text-[14px] font-medium px-5 py-3 rounded-md transition-colors w-full sm:w-auto"
@@ -205,7 +205,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              Sin tarjeta de crédito · Cancela cuando quieras
+              $2,799 MXN/mes · Cancela cuando quieras
             </p>
           </div>
 
@@ -305,7 +305,7 @@ export function LandingPage() {
                           : { border: `1px solid ${t.border}`, color: t.muted }
                       }
                     >
-                      Empezar gratis
+                      Activar ahora
                     </button>
                   </Link>
                 </div>
@@ -358,7 +358,7 @@ export function LandingPage() {
                         className="px-4 py-2 rounded-md text-white text-[13px] font-medium transition-colors whitespace-nowrap"
                         style={{ background: t.accent }}
                       >
-                        Empezar gratis
+                        Activar ahora
                       </button>
                     </Link>
                   </div>
@@ -366,7 +366,7 @@ export function LandingPage() {
               ))}
             </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
-              14 días gratis en todos los planes · Sin tarjeta · Cancela cuando quieras
+              $2,799 MXN/mes · Sin contrato · Cancela cuando quieras
             </p>
           </div>
         </div>
@@ -398,9 +398,9 @@ export function LandingPage() {
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>14 días sin tarjeta. Sin compromiso.</p>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>$2,799 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Psicología · Odontología · Fisioterapia · y más</p>
-          <FancyButton href="/register">Crear cuenta gratis</FancyButton>
+          <FancyButton href="/register">Activar Turno AI →</FancyButton>
         </div>
       </section>
 

@@ -74,6 +74,24 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
       const duration = selectedService?.duration_minutes ?? 60
       const endsAt = new Date(startsAt.getTime() + duration * 60000)
 
+      // Check for overlapping appointments with the same staff member
+      const { data: conflicts } = await supabase
+        .from('appointments')
+        .select('id, starts_at, ends_at')
+        .eq('staff_id', form.staff_id)
+        .eq('organization_id', organizationId)
+        .in('status', ['confirmed'])
+        .lt('starts_at', endsAt.toISOString())
+        .gt('ends_at', startsAt.toISOString())
+
+      if (conflicts && conflicts.length > 0) {
+        const conflict = conflicts[0]
+        const conflictTime = new Date(conflict.starts_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+        toast.error(`Ese horario ya está ocupado (cita a las ${conflictTime})`)
+        setLoading(false)
+        return
+      }
+
       // Get branch
       const { data: branch } = await supabase
         .from('branches')

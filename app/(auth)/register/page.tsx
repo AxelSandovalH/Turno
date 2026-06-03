@@ -108,7 +108,7 @@ export default function RegisterPage() {
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>Crea tu cuenta</h1>
-        <p style={{ fontSize: 13, color: '#555' }}>14 días gratis · Sin tarjeta de crédito</p>
+        <p style={{ fontSize: 13, color: '#555' }}>$2,799 MXN/mes · Cancela cuando quieras</p>
       </div>
 
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
           disabled={loading}
           style={{ marginTop: 8, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 500, borderRadius: 10, height: 48, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' }}
         >
-          {loading ? <Spinner size={20} color="#fff" /> : 'Comenzar prueba gratis'}
+          {loading ? <Spinner size={20} color="#fff" /> : 'Crear cuenta →'}
         </button>
       </form>
 

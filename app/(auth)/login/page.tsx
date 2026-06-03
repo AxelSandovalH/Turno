@@ -133,7 +133,7 @@ return (
       <p style={{ textAlign: 'center', color: '#555', fontSize: 13, margin: '20px 0 0' }}>
         ¿No tienes cuenta?{' '}
         <Link href="/register" style={{ color: '#7c3aed', fontWeight: 500, textDecoration: 'none' }}>
-          Regístrate gratis
+          Crear cuenta
         </Link>
       </p>
 
