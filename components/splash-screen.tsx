@@ -42,7 +42,7 @@ export function SplashScreen() {
       style={{ pointerEvents: 'none' }}
     >
       <div data-splash-logo style={{ opacity: 0, color: '#ffffff' }}>
-        <TurnoLogo height={64} />
+        <TurnoLogo height={100} />
       </div>
     </div>
   )
