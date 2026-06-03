@@ -17,8 +17,8 @@ export async function GET(request: Request) {
       if (meta.organization_id) {
         return NextResponse.redirect(`${origin}/appointments`)
       }
-      // Google user with no org yet → send to register to complete setup
-      return NextResponse.redirect(`${origin}/register?step=org`)
+      // Google user with no org yet → onboarding
+      return NextResponse.redirect(`${origin}/onboarding`)
     }
   }
 
