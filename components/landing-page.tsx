@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
+import { SplineScene } from '@/components/ui/splite'
+import { Spotlight } from '@/components/ui/spotlight'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -169,18 +171,25 @@ export function LandingPage() {
 
       {/* Hero */}
       <section
-        className="relative px-5 pt-24 pb-24 sm:pt-32 sm:pb-32 overflow-hidden transition-colors duration-700"
-        style={{ background: t.heroBg }}
+        className="relative overflow-hidden transition-colors duration-700"
+        style={{ background: t.heroBg, minHeight: '580px' }}
       >
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="max-w-3xl">
+        <Spotlight
+          className="-top-40 left-0 md:left-60 md:-top-20"
+          fill={isDay ? '#7c3aed' : 'white'}
+        />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-5 flex flex-col lg:flex-row items-center gap-0" style={{ minHeight: '580px' }}>
+
+          {/* Left — copy */}
+          <div className="flex-1 py-24 sm:py-32 lg:py-0 flex flex-col justify-center">
             <p data-hero-badge className="text-[12px] font-semibold mb-5 tracking-widest uppercase" style={{ color: t.accent, opacity: 0 }}>
               Asistente de WhatsApp con IA · Agenda 24/7
             </p>
-            <h1 data-hero-h1 className="text-[40px] sm:text-[58px] lg:text-[72px] font-bold leading-[1.06] tracking-[-0.03em] mb-6" style={{ color: t.text, opacity: 0 }}>
+            <h1 data-hero-h1 className="text-[40px] sm:text-[58px] lg:text-[64px] font-bold leading-[1.06] tracking-[-0.03em] mb-6" style={{ color: t.text, opacity: 0 }}>
               Tu consulta agenda<br />citas sola.
             </h1>
-            <p data-hero-p className="text-[16px] sm:text-[19px] leading-relaxed mb-9 max-w-xl" style={{ color: t.muted, opacity: 0 }}>
+            <p data-hero-p className="text-[16px] sm:text-[18px] leading-relaxed mb-9 max-w-md" style={{ color: t.muted, opacity: 0 }}>
               Un asistente de IA responde WhatsApp 24/7, agenda sin errores y
               muestra todo en un dashboard limpio. Para barberías, consultorios,
               clínicas dentales y más.
@@ -200,6 +209,15 @@ export function LandingPage() {
               Sin tarjeta de crédito · Cancela cuando quieras
             </p>
           </div>
+
+          {/* Right — 3D scene */}
+          <div className="flex-1 relative hidden lg:block" style={{ height: '580px' }}>
+            <SplineScene
+              scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
+              className="w-full h-full"
+            />
+          </div>
+
         </div>
       </section>
 
