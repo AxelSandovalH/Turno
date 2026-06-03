@@ -20,7 +20,7 @@ export async function requireOrganization(): Promise<{ user: { id: string; user_
     .single()
 
   if (!organization) redirect('/login')
-  if (organization.subscription_status === 'suspended') redirect('/suspended')
+  if (organization.subscription_status !== 'active') redirect('/payment')
 
   return { user: user as { id: string; user_metadata: Record<string, string> }, organization }
 }
