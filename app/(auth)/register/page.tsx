@@ -100,7 +100,7 @@ export default function RegisterPage() {
 
     if (!res.ok) { const { error } = await res.json(); toast.error(error ?? 'Error'); setLoading(false); return }
     toast.success('¡Cuenta creada!')
-    router.push('/onboarding')
+    router.push('/payment')
     router.refresh()
   }
 

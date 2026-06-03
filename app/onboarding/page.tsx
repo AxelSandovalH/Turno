@@ -96,7 +96,7 @@ export default function OnboardingPage() {
     // Refresh session so new metadata is picked up
     await supabase.auth.refreshSession()
     toast.success('¡Negocio creado!')
-    router.push('/appointments')
+    router.push('/payment')
     router.refresh()
   }
 
