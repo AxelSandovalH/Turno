@@ -11,6 +11,10 @@ export default async function SchedulePage() {
   const service = createServiceClient()
   const organizationId = user.user_metadata?.organization_id
 
+  const { data: org } = await service.from('organizations').select('business_type').eq('id', organizationId).single()
+  const isMedical = org?.business_type && org.business_type !== 'barbershop'
+  const staffLabel = isMedical ? 'Equipo' : 'Barberos'
+
   const [{ data: staff }, { data: schedules }, { data: blocks }] = await Promise.all([
     service
       .from('staff')
@@ -44,6 +48,7 @@ export default async function SchedulePage() {
         schedules={schedules ?? []}
         blocks={blocks ?? []}
         organizationId={organizationId}
+        staffLabel={staffLabel}
       />
     </div>
   )
