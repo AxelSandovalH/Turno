@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
-import { SplineScene } from '@/components/ui/splite'
 import { Spotlight } from '@/components/ui/spotlight'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -208,14 +207,6 @@ export function LandingPage() {
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
               Sin tarjeta de crédito · Cancela cuando quieras
             </p>
-          </div>
-
-          {/* Right — 3D scene */}
-          <div className="flex-1 relative hidden lg:block" style={{ height: '580px' }}>
-            <SplineScene
-              scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-              className="w-full h-full"
-            />
           </div>
 
         </div>
