@@ -54,7 +54,7 @@ export default async function PatientsPage() {
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">{label}</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden sm:table-cell">Teléfono</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden md:table-cell">Edad</th>
-                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden lg:table-cell">Médico referente</th>
+                {isMedical && <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden lg:table-cell">Médico referente</th>}
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden md:table-cell">Registrado</th>
               </tr>
             </thead>
@@ -86,13 +86,15 @@ export default async function PatientsPage() {
                         {age !== null ? `${age} años` : '—'}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
-                      <Link href={`/patients/${p.id}`} className="block">
-                        {p.referring_doctor
-                          ? <span>{p.referring_doctor} <span className="text-xs opacity-60">{p.referring_doctor_specialty}</span></span>
-                          : '—'}
-                      </Link>
-                    </td>
+                    {isMedical && (
+                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
+                        <Link href={`/patients/${p.id}`} className="block">
+                          {p.referring_doctor
+                            ? <span>{p.referring_doctor} <span className="text-xs opacity-60">{p.referring_doctor_specialty}</span></span>
+                            : '—'}
+                        </Link>
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-muted-foreground text-xs hidden md:table-cell">
                       <Link href={`/patients/${p.id}`} className="block">
                         {format(new Date(p.created_at), 'd MMM yyyy', { locale: es })}
