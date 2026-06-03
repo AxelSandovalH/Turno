@@ -42,6 +42,8 @@ export default async function PatientPage({ params }: Props) {
 
   if (!patient) notFound()
 
+  const isMedical = !!organization.business_type && organization.business_type !== 'barbershop'
+
   return (
     <PatientDetail
       patient={patient}
@@ -52,6 +54,7 @@ export default async function PatientPage({ params }: Props) {
       attachments={attachments ?? []}
       staff={staff ?? []}
       organizationId={organization.id}
+      isMedical={isMedical}
     />
   )
 }

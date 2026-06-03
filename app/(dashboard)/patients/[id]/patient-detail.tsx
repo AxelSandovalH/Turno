@@ -47,9 +47,11 @@ interface Props {
   attachments: Attachment[]
   staff: { id: string; name: string }[]
   organizationId: string
+  isMedical: boolean
 }
 
-export function PatientDetail({ patient, appointments, notes, plans, payments, attachments, staff, organizationId }: Props) {
+export function PatientDetail({ patient, appointments, notes, plans, payments, attachments, staff, organizationId, isMedical }: Props) {
+  const label = isMedical ? 'paciente' : 'cliente'
   const router = useRouter()
   const supabase = createClient()
   const age = patient.date_of_birth ? differenceInYears(new Date(), new Date(patient.date_of_birth)) : null
@@ -425,7 +427,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
         {/* ── CITAS ── */}
         <TabsContent value="citas" className="space-y-3 mt-4">
           {appointments.length === 0 ? (
-            <EmptyState text="Este paciente no tiene citas registradas." />
+            <EmptyState text={`Este ${label} no tiene citas registradas.`} />
           ) : (
             appointments.map(a => (
               <div key={a.id} className="flex items-center justify-between py-3 px-4 rounded-xl border border-border">
@@ -480,7 +482,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
 
             {(['soap_subjective', 'soap_objective', 'soap_assessment', 'soap_plan'] as const).map((field, i) => (
               <div key={field} className="space-y-2">
-                <Label>{['S — Subjetivo (lo que reporta el paciente)', 'O — Objetivo (lo que observa el terapeuta)', 'A — Análisis / Diagnóstico', 'P — Plan'][i]}</Label>
+                <Label>{[`S — Subjetivo (lo que reporta el ${label})`, 'O — Objetivo (lo que observa el terapeuta)', 'A — Análisis / Diagnóstico', 'P — Plan'][i]}</Label>
                 <textarea
                   className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                   value={soapForm[field]}

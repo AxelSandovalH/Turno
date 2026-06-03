@@ -11,6 +11,10 @@ export default async function PatientsPage() {
   const { organization } = await requireOrganization()
   const db = createServiceClient()
 
+  const isMedical = organization.business_type && organization.business_type !== 'barbershop'
+  const label = isMedical ? 'Paciente' : 'Cliente'
+  const labelPlural = isMedical ? 'Pacientes' : 'Clientes'
+
   const { data: patients } = await db
     .from('customers')
     .select('*')
@@ -22,13 +26,13 @@ export default async function PatientsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Pacientes</h1>
+          <h1 className="text-xl font-semibold text-foreground">{labelPlural}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{patients?.length ?? 0} registrados</p>
         </div>
         <Link href="/patients/new">
           <Button size="sm">
             <Plus className="h-4 w-4 mr-1.5" />
-            Nuevo paciente
+            Nuevo {label.toLowerCase()}
           </Button>
         </Link>
       </div>
@@ -36,10 +40,10 @@ export default async function PatientsPage() {
       {(!patients || patients.length === 0) ? (
         <div className="rounded-xl border border-border bg-card py-16 text-center">
           <UserRound className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground mb-1">Sin pacientes todavía</p>
-          <p className="text-sm text-muted-foreground mb-5">Los pacientes que agendan por WhatsApp aparecen aquí automáticamente.</p>
+          <p className="text-sm font-medium text-foreground mb-1">Sin {labelPlural.toLowerCase()} todavía</p>
+          <p className="text-sm text-muted-foreground mb-5">Los {labelPlural.toLowerCase()} que agendan por WhatsApp aparecen aquí automáticamente.</p>
           <Link href="/patients/new">
-            <Button size="sm">Agregar paciente</Button>
+            <Button size="sm">Agregar {label.toLowerCase()}</Button>
           </Link>
         </div>
       ) : (
@@ -47,7 +51,7 @@ export default async function PatientsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Paciente</th>
+                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">{label}</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden sm:table-cell">Teléfono</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden md:table-cell">Edad</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium hidden lg:table-cell">Médico referente</th>
