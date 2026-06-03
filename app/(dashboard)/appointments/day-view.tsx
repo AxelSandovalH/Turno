@@ -42,7 +42,7 @@ const HOUR_HEIGHT = 72
 const START_HOUR  = 7
 const END_HOUR    = 22
 
-interface Apt extends Appointment {
+type Apt = Omit<Appointment, 'customer' | 'staff' | 'service'> & {
   customer?: { name: string | null }
   staff?:    { name: string }
   service?:  { name: string }
