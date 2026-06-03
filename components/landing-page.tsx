@@ -3,7 +3,6 @@
 import { useLayoutEffect, useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
-import { MandelbrotCanvas } from '@/components/mandelbrot-canvas'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import gsap from 'gsap'
@@ -146,8 +145,8 @@ export function LandingPage() {
         style={{ borderBottom: `1px solid ${t.border}`, background: t.navBg, opacity: 0 }}
       >
         <div className="max-w-5xl mx-auto px-5 flex items-center justify-between" style={{ height: '56px' }}>
-          <Link href="/" style={{ color: t.logoColor }}>
-            <TurnoLogo height={22} />
+          <Link href="/">
+            <TurnoLogo height={22} variant={isDay ? 'light' : 'dark'} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px]" style={{ color: t.muted }}>
             <a href="#features" className="transition-colors hover:opacity-80">Funciones</a>
@@ -173,11 +172,6 @@ export function LandingPage() {
         className="relative px-5 pt-24 pb-24 sm:pt-32 sm:pb-32 overflow-hidden transition-colors duration-700"
         style={{ background: t.heroBg }}
       >
-        {/* Mandelbrot — behind content */}
-        <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0 }}>
-          <MandelbrotCanvas isDay={isDay} />
-        </div>
-
         <div className="relative z-10 max-w-5xl mx-auto">
           <div className="max-w-3xl">
             <p data-hero-badge className="text-[12px] font-semibold mb-5 tracking-widest uppercase" style={{ color: t.accent, opacity: 0 }}>
@@ -404,8 +398,8 @@ export function LandingPage() {
       {/* Footer */}
       <footer style={{ borderTop: `1px solid ${t.border}` }}>
         <div className="max-w-5xl mx-auto px-5 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <Link href="/" style={{ color: t.logoColor }}>
-            <TurnoLogo height={18} />
+          <Link href="/">
+            <TurnoLogo height={18} variant={isDay ? 'light' : 'dark'} />
           </Link>
           <p className="text-[13px]" style={{ color: t.subtle }}>© 2026 Turno · Hecho en México</p>
           <a
