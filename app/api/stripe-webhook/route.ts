@@ -31,17 +31,24 @@ export async function POST(req: Request) {
 
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as Stripe.Invoice
-      const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
-      const orgId = sub.metadata?.organization_id
-      if (orgId) {
-        await db.from('organizations').update({ subscription_status: 'active' }).eq('id', orgId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subId = (invoice as any).subscription as string | null
+      if (subId) {
+        const sub = await stripe.subscriptions.retrieve(subId)
+        const orgId = sub.metadata?.organization_id
+        if (orgId) {
+          await db.from('organizations').update({ subscription_status: 'active' }).eq('id', orgId)
+        }
       }
       break
     }
 
     case 'invoice.payment_failed': {
       const invoice = event.data.object as Stripe.Invoice
-      const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subId = (invoice as any).subscription as string | null
+      if (!subId) break
+      const sub = await stripe.subscriptions.retrieve(subId)
       const orgId = sub.metadata?.organization_id
       if (orgId) {
         await db.from('organizations').update({ subscription_status: 'suspended' }).eq('id', orgId)
