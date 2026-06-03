@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   // Create organization
   const { data: org, error: orgError } = await db
     .from('organizations')
-    .insert({ name, slug: slug ?? name.toLowerCase().replace(/\s+/g, '-'), whatsapp_number: whatsappNumber, plan: 'trial', business_type: businessType ?? 'barbershop' })
+    .insert({ name, slug: slug ?? name.toLowerCase().replace(/\s+/g, '-'), whatsapp_number: whatsappNumber, business_type: businessType ?? 'barbershop' })
     .select()
     .single()
 
