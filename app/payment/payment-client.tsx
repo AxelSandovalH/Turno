@@ -13,7 +13,6 @@ interface Plan {
   desc: string
   features: string[]
   highlight: boolean
-  priceEnvKey: string
 }
 
 const PLANS: Plan[] = [
@@ -25,7 +24,6 @@ const PLANS: Plan[] = [
     desc: 'Presencia digital para tu negocio',
     features: ['Página web profesional', 'Formulario de contacto', 'SEO básico', 'Dominio incluido 1 año'],
     highlight: false,
-    priceEnvKey: 'STRIPE_PRICE_LANDING',
   },
   {
     key: 'turno-sys',
@@ -35,7 +33,6 @@ const PLANS: Plan[] = [
     desc: 'Sistema de agenda sin IA',
     features: ['Dashboard de citas', 'Hasta 5 profesionales', 'Recordatorios automáticos', 'Sin límite de citas'],
     highlight: false,
-    priceEnvKey: 'STRIPE_PRICE_TURNO_SYS',
   },
   {
     key: 'turno-ai',
@@ -45,7 +42,6 @@ const PLANS: Plan[] = [
     desc: 'Agenda con bot de WhatsApp 24/7',
     features: ['Todo de Turno Sys', 'Bot IA en WhatsApp 24/7', 'Agenda automática', 'Soporte prioritario'],
     highlight: true,
-    priceEnvKey: 'STRIPE_PRICE_TURNO_AI',
   },
   {
     key: 'bundle-sys',
@@ -55,7 +51,6 @@ const PLANS: Plan[] = [
     desc: 'Ahorra $399/mes',
     features: ['Página web profesional', 'Dashboard de citas', 'Hasta 5 profesionales', 'Recordatorios automáticos'],
     highlight: false,
-    priceEnvKey: 'STRIPE_PRICE_BUNDLE_SYS',
   },
   {
     key: 'bundle-ai',
@@ -65,11 +60,10 @@ const PLANS: Plan[] = [
     desc: 'Ahorra $499/mes',
     features: ['Página web profesional', 'Bot IA en WhatsApp 24/7', 'Agenda automática', 'Soporte prioritario'],
     highlight: false,
-    priceEnvKey: 'STRIPE_PRICE_BUNDLE_AI',
   },
 ]
 
-export function PaymentClient({ prices }: { prices: Record<string, string> }) {
+export function PaymentClient() {
   const [selected, setSelected] = useState('turno-ai')
   const [loading, setLoading] = useState(false)
 
@@ -77,11 +71,10 @@ export function PaymentClient({ prices }: { prices: Record<string, string> }) {
 
   async function handleCheckout() {
     setLoading(true)
-    const priceId = prices[plan.priceEnvKey]
     const res = await fetch('/api/stripe-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId }),
+      body: JSON.stringify({ planKey: selected }),
     })
     const { url, error } = await res.json()
     if (error || !url) { setLoading(false); return }
