@@ -3,15 +3,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Public routes — never redirect
-  const publicPaths = ['/', '/login', '/register', '/api/', '/_next/', '/favicon']
-  if (publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)))) {
-    return NextResponse.next()
-  }
-
-  const response = NextResponse.next()
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,25 +12,31 @@ export async function proxy(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            response.cookies.set(name, value, options)
-          })
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
+  // Refresca la sesión — crítico para SSR
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Not logged in → send to login
-  if (!user && !pathname.startsWith('/login') && !pathname.startsWith('/register')) {
+  const { pathname } = request.nextUrl
+  const publicPaths = ['/', '/login', '/register', '/payment', '/onboarding', '/api/', '/_next/', '/favicon', '/auth/']
+  const isPublic = publicPaths.some(p => pathname === p || (p !== '/' && pathname.startsWith(p)))
+
+  // No autenticado en ruta protegida → login
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.ico|.*\\.webp).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.ico|.*\\.webp).*)'],
 }
