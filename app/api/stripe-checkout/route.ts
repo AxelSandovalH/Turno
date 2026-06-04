@@ -3,7 +3,9 @@ import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
-export async function POST() {
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}))
+  const priceId: string = body.priceId ?? process.env.STRIPE_PRICE_TURNO_AI!
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
@@ -30,7 +32,7 @@ export async function POST() {
     customer: customerId,
     mode: 'subscription',
     payment_method_types: ['card'],
-    line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?payment=cancelled`,
     metadata: { organization_id: orgId },

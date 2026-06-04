@@ -5,20 +5,84 @@ import { Check } from 'lucide-react'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
 
-const FEATURES = [
-  'Bot de WhatsApp con IA 24/7',
-  'Dashboard de citas y clientes',
-  'Recordatorios automáticos',
-  'Múltiples profesionales',
-  'Soporte prioritario',
+interface Plan {
+  key: string
+  name: string
+  price: string
+  priceNum: number
+  desc: string
+  features: string[]
+  highlight: boolean
+  priceEnvKey: string
+}
+
+const PLANS: Plan[] = [
+  {
+    key: 'landing',
+    name: 'Landing',
+    price: '$899',
+    priceNum: 899,
+    desc: 'Presencia digital para tu negocio',
+    features: ['Página web profesional', 'Formulario de contacto', 'SEO básico', 'Dominio incluido 1 año'],
+    highlight: false,
+    priceEnvKey: 'STRIPE_PRICE_LANDING',
+  },
+  {
+    key: 'turno-sys',
+    name: 'Turno Sys',
+    price: '$1,299',
+    priceNum: 1299,
+    desc: 'Sistema de agenda sin IA',
+    features: ['Dashboard de citas', 'Hasta 5 profesionales', 'Recordatorios automáticos', 'Sin límite de citas'],
+    highlight: false,
+    priceEnvKey: 'STRIPE_PRICE_TURNO_SYS',
+  },
+  {
+    key: 'turno-ai',
+    name: 'Turno AI',
+    price: '$2,799',
+    priceNum: 2799,
+    desc: 'Agenda con bot de WhatsApp 24/7',
+    features: ['Todo de Turno Sys', 'Bot IA en WhatsApp 24/7', 'Agenda automática', 'Soporte prioritario'],
+    highlight: true,
+    priceEnvKey: 'STRIPE_PRICE_TURNO_AI',
+  },
+  {
+    key: 'bundle-sys',
+    name: 'Landing + Turno Sys',
+    price: '$1,799',
+    priceNum: 1799,
+    desc: 'Ahorra $399/mes',
+    features: ['Página web profesional', 'Dashboard de citas', 'Hasta 5 profesionales', 'Recordatorios automáticos'],
+    highlight: false,
+    priceEnvKey: 'STRIPE_PRICE_BUNDLE_SYS',
+  },
+  {
+    key: 'bundle-ai',
+    name: 'Landing + Turno AI',
+    price: '$3,299',
+    priceNum: 3299,
+    desc: 'Ahorra $499/mes',
+    features: ['Página web profesional', 'Bot IA en WhatsApp 24/7', 'Agenda automática', 'Soporte prioritario'],
+    highlight: false,
+    priceEnvKey: 'STRIPE_PRICE_BUNDLE_AI',
+  },
 ]
 
-export function PaymentClient() {
+export function PaymentClient({ prices }: { prices: Record<string, string> }) {
+  const [selected, setSelected] = useState('turno-ai')
   const [loading, setLoading] = useState(false)
+
+  const plan = PLANS.find(p => p.key === selected)!
 
   async function handleCheckout() {
     setLoading(true)
-    const res = await fetch('/api/stripe-checkout', { method: 'POST' })
+    const priceId = prices[plan.priceEnvKey]
+    const res = await fetch('/api/stripe-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ priceId }),
+    })
     const { url, error } = await res.json()
     if (error || !url) { setLoading(false); return }
     window.location.href = url
@@ -26,51 +90,90 @@ export function PaymentClient() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0c0c0c', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'var(--font-geist-sans)' }}>
-      <div style={{ width: '100%', maxWidth: 420 }}>
+      <div style={{ width: '100%', maxWidth: 560 }}>
 
         <div style={{ marginBottom: 32, color: '#fff' }}>
           <TurnoLogo height={28} />
         </div>
 
-        <div style={{ background: '#111', border: '1px solid #1f1f1f', borderRadius: 16, padding: 32 }}>
-          {/* Plan */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Turno AI</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', border: '1px solid #7c3aed55', borderRadius: 99, padding: '2px 8px' }}>Popular</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontSize: 42, fontWeight: 700, color: '#ebebeb', letterSpacing: '-0.03em' }}>$2,799</span>
-              <span style={{ fontSize: 14, color: '#555' }}>MXN / mes</span>
-            </div>
-            <p style={{ fontSize: 13, color: '#555', marginTop: 4 }}>Tu asistente de WhatsApp activo desde hoy</p>
-          </div>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>Elige tu plan</h1>
+          <p style={{ fontSize: 13, color: '#555' }}>Sin contratos · Cancela cuando quieras</p>
+        </div>
 
-          {/* Features */}
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {FEATURES.map(f => (
+        {/* Plan selector */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {PLANS.map(p => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setSelected(p.key)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 16,
+                padding: '14px 18px', borderRadius: 12, cursor: 'pointer',
+                border: `1.5px solid ${selected === p.key ? '#7c3aed' : '#1f1f1f'}`,
+                background: selected === p.key ? '#7c3aed12' : '#111',
+                textAlign: 'left', width: '100%', fontFamily: 'inherit',
+                transition: 'all .15s',
+              }}
+            >
+              {/* Radio */}
+              <div style={{
+                width: 18, height: 18, borderRadius: 99, flexShrink: 0,
+                border: `2px solid ${selected === p.key ? '#7c3aed' : '#333'}`,
+                background: selected === p.key ? '#7c3aed' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {selected === p.key && <div style={{ width: 6, height: 6, borderRadius: 99, background: '#fff' }} />}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#ebebeb' }}>{p.name}</span>
+                  {p.highlight && (
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', border: '1px solid #7c3aed55', borderRadius: 99, padding: '1px 7px' }}>Popular</span>
+                  )}
+                </div>
+                <span style={{ fontSize: 12, color: '#555' }}>{p.desc}</span>
+              </div>
+
+              {/* Price */}
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: '#ebebeb' }}>{p.price}</span>
+                <span style={{ fontSize: 11, color: '#555' }}> MXN/mes</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Features del plan seleccionado */}
+        <div style={{ background: '#111', border: '1px solid #1f1f1f', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
+          <p style={{ fontSize: 12, fontWeight: 500, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Incluye</p>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {plan.features.map(f => (
               <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 18, height: 18, borderRadius: 99, background: '#7c3aed22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Check size={11} color="#7c3aed" strokeWidth={2.5} />
+                <div style={{ width: 16, height: 16, borderRadius: 99, background: '#7c3aed22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Check size={10} color="#7c3aed" strokeWidth={2.5} />
                 </div>
                 <span style={{ fontSize: 13, color: '#aaa' }}>{f}</span>
               </li>
             ))}
           </ul>
-
-          {/* CTA */}
-          <button
-            onClick={handleCheckout}
-            disabled={loading}
-            style={{ width: '100%', height: 52, background: '#7c3aed', border: 'none', borderRadius: 12, color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', transition: 'opacity .15s' }}
-          >
-            {loading ? <Spinner size={20} color="#fff" /> : 'Activar mi cuenta →'}
-          </button>
-
-          <p style={{ textAlign: 'center', fontSize: 11, color: '#3d3d3d', marginTop: 14 }}>
-            Pago seguro vía Stripe · Cancela cuando quieras
-          </p>
         </div>
+
+        {/* CTA */}
+        <button
+          onClick={handleCheckout}
+          disabled={loading}
+          style={{ width: '100%', height: 52, background: '#7c3aed', border: 'none', borderRadius: 12, color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', transition: 'opacity .15s' }}
+        >
+          {loading ? <Spinner size={20} color="#fff" /> : `Activar ${plan.name} — ${plan.price} MXN/mes →`}
+        </button>
+
+        <p style={{ textAlign: 'center', fontSize: 11, color: '#3d3d3d', marginTop: 14 }}>
+          Pago seguro vía Stripe · Cancela cuando quieras
+        </p>
       </div>
     </div>
   )
