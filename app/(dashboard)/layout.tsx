@@ -1,4 +1,5 @@
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
+import { SubscriptionGate } from '@/components/dashboard/subscription-gate'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeSwitch } from '@/components/ui/theme-switch'
 import { createClient } from '@/lib/supabase/server'
@@ -19,20 +20,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
     organization = data
   }
 
+  const status = organization?.subscription_status ?? 'trialing'
+  const trialEndsAt = organization?.trial_ends_at ?? null
+
   return (
-    <SidebarProvider>
-      {organization && <AppSidebar organization={organization} />}
-      <main className="flex-1 min-w-0 bg-background">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <SidebarTrigger className="text-muted-foreground/40 hover:text-muted-foreground" />
-          <div style={{ transform: 'scale(0.65)', transformOrigin: 'right center' }}>
-            <ThemeSwitch />
+    <SubscriptionGate status={status} trialEndsAt={trialEndsAt}>
+      <SidebarProvider>
+        {organization && <AppSidebar organization={organization} />}
+        <main className="flex-1 min-w-0 bg-background">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <SidebarTrigger className="text-muted-foreground/40 hover:text-muted-foreground" />
+            <div style={{ transform: 'scale(0.65)', transformOrigin: 'right center' }}>
+              <ThemeSwitch />
+            </div>
           </div>
-        </div>
-        <div className="p-6 max-w-5xl">
-          {children}
-        </div>
-      </main>
-    </SidebarProvider>
+          <div className="p-6 max-w-5xl">
+            {children}
+          </div>
+        </main>
+      </SidebarProvider>
+    </SubscriptionGate>
   )
 }

@@ -56,6 +56,55 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
   const supabase = createClient()
   const age = patient.date_of_birth ? differenceInYears(new Date(), new Date(patient.date_of_birth)) : null
 
+  // ── Edit patient dialog ──────────────────────────────────────────────────────
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: patient.name ?? '',
+    phone: patient.phone ?? '',
+    date_of_birth: patient.date_of_birth ?? '',
+    gender: patient.gender ?? '',
+    occupation: patient.occupation ?? '',
+    civil_status: (patient as any).civil_status ?? '',
+    notes: patient.notes ?? '',
+    allergies: patient.allergies ?? '',
+    medical_notes: patient.medical_notes ?? '',
+    emergency_contact: patient.emergency_contact ?? '',
+    emergency_phone: patient.emergency_phone ?? '',
+    referring_doctor: (patient as any).referring_doctor ?? '',
+    referring_doctor_specialty: (patient as any).referring_doctor_specialty ?? '',
+    referring_doctor_phone: (patient as any).referring_doctor_phone ?? '',
+    insurance_provider: (patient as any).insurance_provider ?? '',
+    insurance_policy: (patient as any).insurance_policy ?? '',
+  })
+  const [editLoading, setEditLoading] = useState(false)
+
+  async function handleSaveEdit() {
+    setEditLoading(true)
+    const { error } = await supabase.from('customers').update({
+      name: editForm.name || null,
+      phone: editForm.phone,
+      date_of_birth: editForm.date_of_birth || null,
+      gender: editForm.gender || null,
+      occupation: editForm.occupation || null,
+      civil_status: editForm.civil_status || null,
+      notes: editForm.notes || null,
+      allergies: editForm.allergies || null,
+      medical_notes: editForm.medical_notes || null,
+      emergency_contact: editForm.emergency_contact || null,
+      emergency_phone: editForm.emergency_phone || null,
+      referring_doctor: editForm.referring_doctor || null,
+      referring_doctor_specialty: editForm.referring_doctor_specialty || null,
+      referring_doctor_phone: editForm.referring_doctor_phone || null,
+      insurance_provider: editForm.insurance_provider || null,
+      insurance_policy: editForm.insurance_policy || null,
+    }).eq('id', patient.id)
+    setEditLoading(false)
+    if (error) return toast.error(error.message)
+    toast.success('Perfil actualizado')
+    setEditOpen(false)
+    router.refresh()
+  }
+
   // ── SOAP note dialog ─────────────────────────────────────────────────────────
   const [soapOpen, setSoapOpen] = useState(false)
   const [soapForm, setSoapForm] = useState({
@@ -136,6 +185,9 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
             )}
           </div>
         </div>
+        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+          <Pencil className="h-3.5 w-3.5 mr-1.5" />Editar
+        </Button>
       </div>
 
       <Tabs defaultValue="ficha">
@@ -447,6 +499,136 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Edit Patient Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar {label}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-2">
+
+            {/* Datos personales */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Datos personales</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Nombre</Label>
+                  <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} placeholder="Nombre completo" />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Teléfono</Label>
+                  <Input value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} placeholder="521XXXXXXXXXX" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Fecha de nacimiento</Label>
+                  <Input type="date" value={editForm.date_of_birth} onChange={e => setEditForm(p => ({ ...p, date_of_birth: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Género</Label>
+                  <Select value={editForm.gender} onValueChange={v => setEditForm(p => ({ ...p, gender: v ?? '' }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Masculino</SelectItem>
+                      <SelectItem value="female">Femenino</SelectItem>
+                      <SelectItem value="other">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Ocupación</Label>
+                  <Input value={editForm.occupation} onChange={e => setEditForm(p => ({ ...p, occupation: e.target.value }))} placeholder="Ingeniero, maestro..." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Estado civil</Label>
+                  <Select value={editForm.civil_status} onValueChange={v => setEditForm(p => ({ ...p, civil_status: v ?? '' }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single">Soltero/a</SelectItem>
+                      <SelectItem value="married">Casado/a</SelectItem>
+                      <SelectItem value="divorced">Divorciado/a</SelectItem>
+                      <SelectItem value="widowed">Viudo/a</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Notas generales</Label>
+                  <textarea
+                    className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    value={editForm.notes}
+                    onChange={e => setEditForm(p => ({ ...p, notes: e.target.value }))}
+                    placeholder="Preferencias, observaciones..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Datos clínicos */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Datos clínicos</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Alergias</Label>
+                  <Input value={editForm.allergies} onChange={e => setEditForm(p => ({ ...p, allergies: e.target.value }))} placeholder="Penicilina, látex..." />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <Label>Antecedentes médicos</Label>
+                  <textarea
+                    className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                    value={editForm.medical_notes}
+                    onChange={e => setEditForm(p => ({ ...p, medical_notes: e.target.value }))}
+                    placeholder="Diabetes, hipertensión, cirugías previas..."
+                  />
+                </div>
+                {isMedical && <>
+                  <div className="space-y-1.5">
+                    <Label>Médico referente</Label>
+                    <Input value={editForm.referring_doctor} onChange={e => setEditForm(p => ({ ...p, referring_doctor: e.target.value }))} placeholder="Dr. Martínez" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Especialidad</Label>
+                    <Input value={editForm.referring_doctor_specialty} onChange={e => setEditForm(p => ({ ...p, referring_doctor_specialty: e.target.value }))} placeholder="Traumatología" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tel. médico</Label>
+                    <Input value={editForm.referring_doctor_phone} onChange={e => setEditForm(p => ({ ...p, referring_doctor_phone: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Aseguradora</Label>
+                    <Input value={editForm.insurance_provider} onChange={e => setEditForm(p => ({ ...p, insurance_provider: e.target.value }))} placeholder="IMSS, GNP..." />
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Número de póliza</Label>
+                    <Input value={editForm.insurance_policy} onChange={e => setEditForm(p => ({ ...p, insurance_policy: e.target.value }))} />
+                  </div>
+                </>}
+              </div>
+            </div>
+
+            {/* Contacto de emergencia */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Contacto de emergencia</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Nombre</Label>
+                  <Input value={editForm.emergency_contact} onChange={e => setEditForm(p => ({ ...p, emergency_contact: e.target.value }))} placeholder="María García" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Teléfono</Label>
+                  <Input value={editForm.emergency_phone} onChange={e => setEditForm(p => ({ ...p, emergency_phone: e.target.value }))} placeholder="3141234567" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveEdit} disabled={editLoading}>
+              {editLoading ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* SOAP Dialog */}
       <Dialog open={soapOpen} onOpenChange={setSoapOpen}>

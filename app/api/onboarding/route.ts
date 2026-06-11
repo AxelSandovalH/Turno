@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { resend, FROM } from '@/lib/resend'
+import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 
 export async function POST(req: Request) {
   const { userId, name, slug, whatsappNumber, email, businessType } = await req.json()
@@ -33,6 +35,17 @@ export async function POST(req: Request) {
   })
 
   if (metaError) return NextResponse.json({ error: metaError.message }, { status: 500 })
+
+  // Send welcome email (non-blocking — don't fail onboarding if email fails)
+  if (email) {
+    resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: `¡Bienvenido a QuickTurno, ${name}!`,
+      html: welcomeEmailHtml({ businessName: name, whatsappNumber }),
+      text: welcomeEmailText({ businessName: name, whatsappNumber }),
+    }).catch(err => console.error('[onboarding] welcome email failed:', err))
+  }
 
   return NextResponse.json({ organizationId: org.id })
 }

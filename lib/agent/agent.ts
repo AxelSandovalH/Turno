@@ -11,9 +11,10 @@ interface RunAgentParams {
   organizationId: string
   customerPhone: string
   incomingMessage: string
+  ultramsgId?: string
 }
 
-export async function runAgent({ organizationId, customerPhone, incomingMessage }: RunAgentParams): Promise<string> {
+export async function runAgent({ organizationId, customerPhone, incomingMessage, ultramsgId }: RunAgentParams): Promise<string> {
   const db = createServiceClient()
 
   // Load org context
@@ -72,6 +73,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage 
     organization_id: organizationId,
     role: 'user',
     content: incomingMessage,
+    ultramsg_id: ultramsgId ?? null,
   })
 
   const ctx = { organizationId, branchId: branch?.id ?? '', timezone: org.timezone }

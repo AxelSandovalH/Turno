@@ -37,8 +37,20 @@ export async function POST(req: Request) {
     if (!from || !text) return NextResponse.json({ ok: true })
 
     const phone = from.replace('@c.us', '').replace(/\D/g, '')
-
     const db = createServiceClient()
+
+    // Dedup: ignore if we already processed this UltraMsg message ID
+    if (msgId) {
+      const { data: existing } = await db
+        .from('messages')
+        .select('id')
+        .eq('ultramsg_id', msgId)
+        .maybeSingle()
+      if (existing) {
+        console.log('[whatsapp] duplicate msgId, skipping:', msgId)
+        return NextResponse.json({ ok: true })
+      }
+    }
 
     // Find org
     const candidates = [phone, `52${phone.slice(-10)}`, `521${phone.slice(-10)}`]
@@ -68,6 +80,7 @@ export async function POST(req: Request) {
       organizationId: organization.id,
       customerPhone: phone,
       incomingMessage: text,
+      ultramsgId: msgId || undefined,
     })
 
     console.log('[whatsapp] agent reply:', reply.slice(0, 200))
