@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -38,8 +38,28 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
     notes: '',
   })
   const [mode, setMode] = useState<'existing' | 'new'>('existing')
+  const [activePlans, setActivePlans] = useState<{ id: string; title: string; sessions_done: number; total_sessions: number | null }[]>([])
+  const [selectedPlanId, setSelectedPlanId] = useState('')
 
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    if (!form.customer_id || mode !== 'existing') {
+      setActivePlans([])
+      setSelectedPlanId('')
+      return
+    }
+    supabase
+      .from('treatment_plans')
+      .select('id, title, sessions_done, total_sessions')
+      .eq('customer_id', form.customer_id)
+      .eq('status', 'active')
+      .then(({ data }) => {
+        setActivePlans(data ?? [])
+        setSelectedPlanId('')
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.customer_id, mode])
 
   const selectedService = services.find(s => s.id === form.service_id)
 
@@ -114,9 +134,17 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
 
       if (error) { toast.error(error.message); setLoading(false); return }
 
+      if (selectedPlanId) {
+        const plan = activePlans.find(p => p.id === selectedPlanId)
+        if (plan) {
+          await supabase.from('treatment_plans').update({ sessions_done: plan.sessions_done + 1 }).eq('id', selectedPlanId)
+        }
+      }
+
       toast.success('Cita creada')
       setOpen(false)
       setForm({ customer_id: '', new_customer_name: '', new_customer_phone: '', staff_id: '', service_id: '', date: '', time: '', notes: '' })
+      setSelectedPlanId('')
       router.refresh()
     } finally {
       setLoading(false)
@@ -175,6 +203,33 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
                 </div>
               )}
             </div>
+
+            {/* Vincular a plan */}
+            {activePlans.length > 0 && (
+              <div className="space-y-2">
+                <Label>Plan de tratamiento (opcional)</Label>
+                <Select value={selectedPlanId} onValueChange={v => setSelectedPlanId(!v || v === '__none__' ? '' : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sin vincular a plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin vincular</SelectItem>
+                    {activePlans.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.title}{p.total_sessions ? ` · Sesión ${p.sessions_done + 1}/${p.total_sessions}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedPlanId && (() => {
+                  const plan = activePlans.find(p => p.id === selectedPlanId)
+                  const remaining = plan?.total_sessions ? plan.total_sessions - plan.sessions_done - 1 : null
+                  return remaining !== null && remaining <= 2 ? (
+                    <p className="text-xs text-amber-400">⚠ Quedarán {remaining} sesiones después de esta cita</p>
+                  ) : null
+                })()}
+              </div>
+            )}
 
             {/* Servicio */}
             <div className="space-y-2">

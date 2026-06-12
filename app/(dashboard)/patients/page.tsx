@@ -64,10 +64,10 @@ export default async function PatientsPage() {
                   ? differenceInYears(new Date(), new Date(p.date_of_birth))
                   : null
                 return (
-                  <tr key={p.id} className="hover:bg-muted/20 transition-colors cursor-pointer">
+                  <tr key={p.id} className="hover:bg-violet-500/5 hover:border-l-2 hover:border-l-violet-500 transition-all cursor-pointer group">
                     <td className="px-4 py-3">
                       <Link href={`/patients/${p.id}`} className="block">
-                        <p className="font-medium text-foreground">{p.name ?? '—'}</p>
+                        <p className="font-medium text-foreground group-hover:text-violet-400 transition-colors">{p.name ?? '—'}</p>
                         {p.allergies && (
                           <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-400/30 mt-0.5">
                             Alergias

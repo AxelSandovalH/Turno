@@ -8,7 +8,8 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import {
   Phone, Calendar, AlertTriangle, FileText, TrendingUp,
-  Paperclip, CreditCard, ChevronLeft, Plus, Pencil, Check, X,
+  Paperclip, CreditCard, ChevronLeft, Plus, Upload, Loader2,
+  ClipboardList, Pencil, ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -107,10 +108,15 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
 
   // ── SOAP note dialog ─────────────────────────────────────────────────────────
   const [soapOpen, setSoapOpen] = useState(false)
+  const [romOpen, setRomOpen] = useState(false)
   const [soapForm, setSoapForm] = useState({
     appointment_id: '', staff_id: '', pain_level: '',
     soap_subjective: '', soap_objective: '', soap_assessment: '', soap_plan: '',
     functional_goals: '', next_session_plan: '',
+    // ROM
+    rom_cervical: '', rom_shoulder_l: '', rom_shoulder_r: '', rom_lumbar: '',
+    rom_hip_l: '', rom_hip_r: '', rom_knee_l: '', rom_knee_r: '',
+    rom_ankle_l: '', rom_ankle_r: '', rom_custom: '',
   })
 
   async function handleAddNote() {
@@ -127,10 +133,128 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
       soap_plan: soapForm.soap_plan || null,
       functional_goals: soapForm.functional_goals || null,
       next_session_plan: soapForm.next_session_plan || null,
+      rom_cervical: soapForm.rom_cervical || null,
+      rom_shoulder_l: soapForm.rom_shoulder_l || null,
+      rom_shoulder_r: soapForm.rom_shoulder_r || null,
+      rom_lumbar: soapForm.rom_lumbar || null,
+      rom_hip_l: soapForm.rom_hip_l || null,
+      rom_hip_r: soapForm.rom_hip_r || null,
+      rom_knee_l: soapForm.rom_knee_l || null,
+      rom_knee_r: soapForm.rom_knee_r || null,
+      rom_ankle_l: soapForm.rom_ankle_l || null,
+      rom_ankle_r: soapForm.rom_ankle_r || null,
+      rom_custom: soapForm.rom_custom || null,
     })
     if (error) return toast.error(error.message)
     toast.success('Nota SOAP guardada')
     setSoapOpen(false)
+    router.refresh()
+  }
+
+  // ── File upload ───────────────────────────────────────────────────────────────
+  const [uploading, setUploading] = useState(false)
+  const [uploadCategory, setUploadCategory] = useState<string>('other')
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const storagePath = `${organizationId}/${patient.id}/${Date.now()}.${ext}`
+    const { error: storageError } = await supabase.storage
+      .from('attachments')
+      .upload(storagePath, file, { upsert: false })
+    if (storageError) {
+      setUploading(false)
+      return toast.error(storageError.message)
+    }
+    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(storagePath)
+    const { error: dbError } = await supabase.from('attachments').insert({
+      organization_id: organizationId,
+      customer_id: patient.id,
+      name: file.name,
+      storage_path: storagePath,
+      file_url: urlData.publicUrl,
+      mime_type: file.type || null,
+      file_size_bytes: file.size,
+      category: uploadCategory as 'xray' | 'mri' | 'lab' | 'prescription' | 'referral' | 'other',
+    })
+    setUploading(false)
+    e.target.value = ''
+    if (dbError) return toast.error(dbError.message)
+    toast.success('Archivo subido')
+    router.refresh()
+  }
+
+  // ── Treatment plan CRUD ───────────────────────────────────────────────────────
+  const [planOpen, setPlanOpen] = useState(false)
+  const [planEditId, setPlanEditId] = useState<string | null>(null)
+  const [planForm, setPlanForm] = useState({
+    title: '', diagnosis: '', goals: '',
+    total_sessions: '', staff_id: '', starts_at: '', ends_at: '', notes: '',
+  })
+  const [plansList, setPlansList] = useState<typeof plans>(plans)
+
+  function openNewPlan() {
+    setPlanEditId(null)
+    setPlanForm({ title: '', diagnosis: patient.main_diagnosis ?? '', goals: '', total_sessions: '', staff_id: staff[0]?.id ?? '', starts_at: new Date().toISOString().slice(0, 10), ends_at: '', notes: '' })
+    setPlanOpen(true)
+  }
+
+  function openEditPlan(plan: (typeof plans)[0]) {
+    setPlanEditId(plan.id)
+    setPlanForm({
+      title: plan.title,
+      diagnosis: plan.diagnosis ?? '',
+      goals: plan.goals ?? '',
+      total_sessions: plan.total_sessions?.toString() ?? '',
+      staff_id: plan.staff_id ?? '',
+      starts_at: plan.starts_at?.slice(0, 10) ?? '',
+      ends_at: plan.ends_at?.slice(0, 10) ?? '',
+      notes: plan.notes ?? '',
+    })
+    setPlanOpen(true)
+  }
+
+  async function handleSavePlan() {
+    if (!planForm.title.trim()) return toast.error('El título es requerido')
+    const payload = {
+      organization_id: organizationId,
+      customer_id: patient.id,
+      title: planForm.title.trim(),
+      diagnosis: planForm.diagnosis || null,
+      goals: planForm.goals || null,
+      total_sessions: planForm.total_sessions ? parseInt(planForm.total_sessions) : null,
+      staff_id: planForm.staff_id || null,
+      starts_at: planForm.starts_at || null,
+      ends_at: planForm.ends_at || null,
+      notes: planForm.notes || null,
+    }
+    if (planEditId) {
+      const { error } = await supabase.from('treatment_plans').update(payload).eq('id', planEditId)
+      if (error) return toast.error(error.message)
+      setPlansList(prev => prev.map(p => p.id === planEditId ? { ...p, ...payload } : p))
+      toast.success('Plan actualizado')
+    } else {
+      const { data, error } = await supabase.from('treatment_plans')
+        .insert({ ...payload, status: 'active', sessions_done: 0 })
+        .select().single()
+      if (error) return toast.error(error.message)
+      setPlansList(prev => [...prev, data])
+      toast.success('Plan creado')
+    }
+    setPlanOpen(false)
+    router.refresh()
+  }
+
+  async function handleClosePlan(planId: string) {
+    const { error } = await supabase.from('treatment_plans').update({
+      status: 'completed',
+      ends_at: new Date().toISOString().slice(0, 10),
+    }).eq('id', planId)
+    if (error) return toast.error(error.message)
+    setPlansList(prev => prev.map(p => p.id === planId ? { ...p, status: 'completed' as const, ends_at: new Date().toISOString() } : p))
+    toast.success('Plan cerrado')
     router.refresh()
   }
 
@@ -193,6 +317,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
       <Tabs defaultValue="ficha">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="ficha"><FileText className="h-3.5 w-3.5 mr-1.5" />Ficha</TabsTrigger>
+          {isMedical && <TabsTrigger value="planes"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Planes{plansList.filter(p => p.status === 'active').length > 0 && <span className="ml-1.5 bg-violet-500/20 text-violet-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{plansList.filter(p => p.status === 'active').length}</span>}</TabsTrigger>}
           <TabsTrigger value="notas"><FileText className="h-3.5 w-3.5 mr-1.5" />Notas SOAP</TabsTrigger>
           <TabsTrigger value="evolucion"><TrendingUp className="h-3.5 w-3.5 mr-1.5" />Evolución</TabsTrigger>
           <TabsTrigger value="archivos"><Paperclip className="h-3.5 w-3.5 mr-1.5" />Archivos</TabsTrigger>
@@ -213,12 +338,16 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                 <Row label="Género" value={patient.gender} />
                 <Row label="Estado civil" value={patient.civil_status} />
                 <Row label="Ocupación" value={patient.occupation} />
+                <Row label="Tipo de sangre" value={patient.blood_type} />
+                <Row label="CURP" value={patient.curp} />
+                <Row label="RFC" value={patient.rfc} />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-sm">Datos clínicos</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
+                <Row label="Diagnóstico principal" value={patient.main_diagnosis} />
                 <Row label="Alergias" value={patient.allergies} warn />
                 <Row label="Antecedentes" value={patient.medical_notes} />
                 <Row label="Médico referente" value={patient.referring_doctor} />
@@ -270,6 +399,104 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
             )}
           </div>
         </TabsContent>
+
+        {/* ── PLANES ── */}
+        {isMedical && (
+          <TabsContent value="planes" className="space-y-4 mt-4">
+            <div className="flex justify-end">
+              <Button size="sm" onClick={openNewPlan}>
+                <Plus className="h-4 w-4 mr-1.5" />Nuevo plan
+              </Button>
+            </div>
+
+            {plansList.length === 0 ? (
+              <EmptyState text="No hay planes de tratamiento. Crea uno para llevar seguimiento de sesiones." />
+            ) : (
+              <div className="space-y-3">
+                {[...plansList].sort((a, b) => {
+                  const order = { active: 0, paused: 1, completed: 2, cancelled: 3 }
+                  return (order[a.status] ?? 9) - (order[b.status] ?? 9)
+                }).map(plan => {
+                  const remaining = plan.total_sessions ? plan.total_sessions - plan.sessions_done : null
+                  const isCritical = remaining !== null && remaining <= 2 && plan.status === 'active'
+                  const isActive = plan.status === 'active'
+                  const pct = plan.total_sessions ? Math.min(100, (plan.sessions_done / plan.total_sessions) * 100) : null
+                  return (
+                    <Card key={plan.id} className={isCritical ? 'border-amber-500/40' : ''}>
+                      <CardContent className="py-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-medium text-sm">{plan.title}</p>
+                              <PlanStatusBadge status={plan.status} />
+                              {isCritical && (
+                                <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <AlertTriangle className="h-3 w-3" />Quedan {remaining} sesiones
+                                </span>
+                              )}
+                            </div>
+                            {plan.diagnosis && <p className="text-xs text-muted-foreground mt-0.5">{plan.diagnosis}</p>}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {plan.status === 'completed' && (
+                              <Link href={`/patients/${patient.id}/plans/${plan.id}/contrarreferencia`} target="_blank">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-violet-400">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </Link>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => openEditPlan(plan)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            {isActive && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                onClick={() => handleClosePlan(plan.id)}
+                              >
+                                Concluir plan
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {plan.goals && (
+                          <p className="text-xs text-muted-foreground bg-muted/30 rounded-md px-3 py-2">
+                            <span className="font-medium text-foreground">Objetivos: </span>{plan.goals}
+                          </p>
+                        )}
+
+                        {plan.total_sessions !== null && (
+                          <div>
+                            <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                              <span>{plan.sessions_done} de {plan.total_sessions} sesiones</span>
+                              <span>{pct?.toFixed(0)}%</span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${plan.status === 'completed' ? 'bg-emerald-500' : 'bg-violet-500'}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          {plan.starts_at && <span>Inicio: {format(new Date(plan.starts_at), 'd MMM yyyy', { locale: es })}</span>}
+                          {plan.ends_at && <span>Fin: {format(new Date(plan.ends_at), 'd MMM yyyy', { locale: es })}</span>}
+                          {staff.find(s => s.id === plan.staff_id) && (
+                            <span>· {staff.find(s => s.id === plan.staff_id)?.name}</span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </TabsContent>
+        )}
 
         {/* ── NOTAS SOAP ── */}
         <TabsContent value="notas" className="space-y-4 mt-4">
@@ -330,43 +557,14 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
             <Card>
               <CardHeader><CardTitle className="text-sm">Línea de tiempo — Nivel de dolor</CardTitle></CardHeader>
               <CardContent>
-                <div className="relative">
-                  {/* Chart */}
-                  <div className="flex items-end gap-2 h-32 border-b border-border pb-2">
-                    {painPoints.map((n, i) => (
-                      <div key={n.id} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                        <span className="text-[10px] text-muted-foreground">{n.pain_level}</span>
-                        <div
-                          className="w-full rounded-t-sm"
-                          style={{
-                            height: `${(n.pain_level! / 10) * 100}%`,
-                            background: n.pain_level! <= 3
-                              ? 'rgb(52 211 153)' : n.pain_level! <= 6
-                              ? 'rgb(251 191 36)' : 'rgb(248 113 113)',
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 mt-1">
-                    {painPoints.map(n => (
-                      <div key={n.id} className="flex-1 min-w-0">
-                        <p className="text-[9px] text-muted-foreground text-center truncate">
-                          {format(new Date(n.appointment!.starts_at), 'd/M', { locale: es })}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Stats */}
+                <PainChart points={painPoints} />
                 <div className="grid grid-cols-3 gap-4 mt-5 pt-4 border-t border-border">
                   <Stat label="Inicio" value={`${painPoints[0]?.pain_level ?? '—'}/10`} />
                   <Stat label="Actual" value={`${painPoints[painPoints.length - 1]?.pain_level ?? '—'}/10`} />
                   <Stat
                     label="Mejora"
                     value={painPoints.length >= 2
-                      ? `${(painPoints[0].pain_level! - painPoints[painPoints.length - 1].pain_level!)} pts`
+                      ? `${painPoints[0].pain_level! - painPoints[painPoints.length - 1].pain_level!} pts`
                       : '—'}
                   />
                 </div>
@@ -399,8 +597,31 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
 
         {/* ── ARCHIVOS ── */}
         <TabsContent value="archivos" className="space-y-4 mt-4">
+          <div className="flex items-center gap-3">
+            <Select value={uploadCategory} onValueChange={v => v && setUploadCategory(v)}>
+              <SelectTrigger className="w-40 h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="xray">Radiografía</SelectItem>
+                <SelectItem value="mri">Resonancia</SelectItem>
+                <SelectItem value="lab">Laboratorio</SelectItem>
+                <SelectItem value="prescription">Receta</SelectItem>
+                <SelectItem value="referral">Referencia</SelectItem>
+                <SelectItem value="other">Otro</SelectItem>
+              </SelectContent>
+            </Select>
+            <label className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-border bg-background hover:bg-muted/40 cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              {uploading
+                ? <><Loader2 className="h-4 w-4 animate-spin" />Subiendo…</>
+                : <><Upload className="h-4 w-4" />Subir archivo</>
+              }
+              <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+            </label>
+          </div>
+
           {attachments.length === 0 ? (
-            <EmptyState text="No hay archivos adjuntos. Próximamente podrás subir radiografías, resonancias y estudios." />
+            <EmptyState text="No hay archivos adjuntos. Sube radiografías, resonancias o estudios con el botón de arriba." />
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {attachments.map(a => (
@@ -414,7 +635,9 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                   <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{a.name}</p>
-                    <p className="text-xs text-muted-foreground">{a.category} · {format(new Date(a.created_at), 'd MMM yyyy', { locale: es })}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {CATEGORY_LABEL[a.category] ?? a.category} · {format(new Date(a.created_at), 'd MMM yyyy', { locale: es })}
+                    </p>
                   </div>
                 </a>
               ))}
@@ -681,10 +904,129 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                 onChange={e => setSoapForm(p => ({ ...p, next_session_plan: e.target.value }))}
               />
             </div>
+
+            {/* ROM colapsable */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setRomOpen(p => !p)}
+                className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider w-full py-1"
+              >
+                <span className="flex-1 h-px bg-border" />
+                Rango de movimiento (ROM)
+                <span className="flex-1 h-px bg-border" />
+                <span className="text-[10px]">{romOpen ? '▲' : '▼'}</span>
+              </button>
+              {romOpen && (
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  {ROM_FIELDS.map(f => (
+                    <div key={f.key} className="space-y-1.5">
+                      <Label className="text-xs">{f.label}</Label>
+                      <Input
+                        className="h-8 text-sm"
+                        placeholder={f.placeholder}
+                        value={soapForm[f.key as keyof typeof soapForm]}
+                        onChange={e => setSoapForm(p => ({ ...p, [f.key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                  <div className="col-span-2 space-y-1.5">
+                    <Label className="text-xs">Otras articulaciones</Label>
+                    <Input
+                      className="h-8 text-sm"
+                      placeholder="Codo D: Flex 120°…"
+                      value={soapForm.rom_custom}
+                      onChange={e => setSoapForm(p => ({ ...p, rom_custom: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSoapOpen(false)}>Cancelar</Button>
             <Button onClick={handleAddNote}>Guardar nota</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Plan Dialog */}
+      <Dialog open={planOpen} onOpenChange={setPlanOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{planEditId ? 'Editar plan' : 'Nuevo plan de tratamiento'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input
+                placeholder="Rehabilitación lumbar, Recuperación post-fractura…"
+                value={planForm.title}
+                onChange={e => setPlanForm(p => ({ ...p, title: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Diagnóstico (CIE-10 o texto libre)</Label>
+              <Input
+                placeholder="M54.5 Lumbalgia crónica"
+                value={planForm.diagnosis}
+                onChange={e => setPlanForm(p => ({ ...p, diagnosis: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Objetivos funcionales</Label>
+              <textarea
+                className="w-full min-h-[70px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Recuperar 80% de movilidad lumbar, reducir dolor a ≤3/10…"
+                value={planForm.goals}
+                onChange={e => setPlanForm(p => ({ ...p, goals: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Total de sesiones</Label>
+                <Input
+                  type="number" min={1} max={200}
+                  placeholder="10"
+                  value={planForm.total_sessions}
+                  onChange={e => setPlanForm(p => ({ ...p, total_sessions: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Terapeuta responsable</Label>
+                <Select value={planForm.staff_id} onValueChange={v => setPlanForm(p => ({ ...p, staff_id: v ?? '' }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                  <SelectContent>
+                    {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Fecha inicio</Label>
+                <Input type="date" value={planForm.starts_at} onChange={e => setPlanForm(p => ({ ...p, starts_at: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Fecha fin estimada</Label>
+                <Input type="date" value={planForm.ends_at} onChange={e => setPlanForm(p => ({ ...p, ends_at: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Notas del plan</Label>
+              <Input
+                placeholder="Precauciones, contraindicaciones…"
+                value={planForm.notes}
+                onChange={e => setPlanForm(p => ({ ...p, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPlanOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSavePlan}>
+              {planEditId ? 'Actualizar plan' : 'Crear plan'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -724,7 +1066,98 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
   )
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const CATEGORY_LABEL: Record<string, string> = {
+  xray: 'Radiografía', mri: 'Resonancia', lab: 'Laboratorio',
+  prescription: 'Receta', referral: 'Referencia', other: 'Otro',
+}
+
+const ROM_FIELDS = [
+  { key: 'rom_cervical',   label: 'Cervical',       placeholder: 'Flex 45°, Ext 35°' },
+  { key: 'rom_lumbar',     label: 'Lumbar',          placeholder: 'Flex 60°, Ext 20°' },
+  { key: 'rom_shoulder_l', label: 'Hombro Izq',      placeholder: 'Flex 170°, Abd 160°' },
+  { key: 'rom_shoulder_r', label: 'Hombro Der',      placeholder: 'Flex 170°, Abd 160°' },
+  { key: 'rom_hip_l',      label: 'Cadera Izq',      placeholder: 'Flex 110°, Ext 20°' },
+  { key: 'rom_hip_r',      label: 'Cadera Der',      placeholder: 'Flex 110°, Ext 20°' },
+  { key: 'rom_knee_l',     label: 'Rodilla Izq',     placeholder: 'Flex 130°, Ext 0°' },
+  { key: 'rom_knee_r',     label: 'Rodilla Der',     placeholder: 'Flex 130°, Ext 0°' },
+  { key: 'rom_ankle_l',    label: 'Tobillo Izq',     placeholder: 'Flex 20°, Ext 40°' },
+  { key: 'rom_ankle_r',    label: 'Tobillo Der',     placeholder: 'Flex 20°, Ext 40°' },
+]
+
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function PainChart({ points }: { points: { id: string; pain_level: number | null; appointment?: { starts_at: string } | null }[] }) {
+  const W = 560
+  const H = 140
+  const PAD = { top: 20, right: 12, bottom: 28, left: 28 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+  const n = points.length
+  const barW = Math.min(36, (chartW / n) - 6)
+  const barColor = (v: number) => v <= 3 ? '#34d399' : v <= 6 ? '#fbbf24' : '#f87171'
+
+  const gridLines = [0, 2, 4, 6, 8, 10]
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ overflow: 'visible' }}>
+      {/* grid lines */}
+      {gridLines.map(v => {
+        const y = PAD.top + chartH - (v / 10) * chartH
+        return (
+          <g key={v}>
+            <line x1={PAD.left} x2={PAD.left + chartW} y1={y} y2={y} stroke="currentColor" strokeOpacity={0.08} strokeWidth={1} />
+            <text x={PAD.left - 5} y={y + 3.5} textAnchor="end" fontSize={9} fill="currentColor" opacity={0.4}>{v}</text>
+          </g>
+        )
+      })}
+
+      {/* line connecting tops */}
+      {points.length > 1 && (
+        <polyline
+          fill="none"
+          stroke="#a78bfa"
+          strokeWidth={1.5}
+          strokeDasharray="3 2"
+          opacity={0.5}
+          points={points.map((p, i) => {
+            const x = PAD.left + (i / (n - 1)) * chartW
+            const y = PAD.top + chartH - ((p.pain_level ?? 0) / 10) * chartH
+            return `${x},${y}`
+          }).join(' ')}
+        />
+      )}
+
+      {/* bars */}
+      {points.map((p, i) => {
+        const x = PAD.left + (n === 1 ? chartW / 2 : (i / (n - 1)) * chartW)
+        const barH = Math.max(3, ((p.pain_level ?? 0) / 10) * chartH)
+        const y = PAD.top + chartH - barH
+        const date = p.appointment?.starts_at
+          ? format(new Date(p.appointment.starts_at), 'd/M', { locale: es })
+          : ''
+        return (
+          <g key={i}>
+            <rect
+              x={x - barW / 2} y={y}
+              width={barW} height={barH}
+              rx={3}
+              fill={barColor(p.pain_level ?? 0)}
+              opacity={0.85}
+            />
+            <text x={x} y={y - 5} textAnchor="middle" fontSize={10} fill="currentColor" opacity={0.7} fontWeight={600}>
+              {p.pain_level}
+            </text>
+            <text x={x} y={PAD.top + chartH + 14} textAnchor="middle" fontSize={9} fill="currentColor" opacity={0.45}>
+              {date}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
 
 function Row({ label, value, warn }: { label: string; value: string | null | undefined; warn?: boolean }) {
   if (!value) return null
@@ -757,6 +1190,19 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="text-lg font-semibold">{value}</p>
     </div>
   )
+}
+
+function PlanStatusBadge({ status }: { status: string }) {
+  const cfg: Record<string, string> = {
+    active: 'text-emerald-400 bg-emerald-500/10',
+    paused: 'text-amber-400 bg-amber-500/10',
+    completed: 'text-blue-400 bg-blue-500/10',
+    cancelled: 'text-zinc-400 bg-zinc-500/10',
+  }
+  const label: Record<string, string> = {
+    active: 'Activo', paused: 'Pausado', completed: 'Completado', cancelled: 'Cancelado',
+  }
+  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg[status] ?? ''}`}>{label[status] ?? status}</span>
 }
 
 function EmptyState({ text }: { text: string }) {

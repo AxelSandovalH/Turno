@@ -111,6 +111,10 @@ export interface Customer {
   civil_status: string | null
   insurance_provider: string | null
   insurance_policy: string | null
+  curp: string | null
+  rfc: string | null
+  blood_type: string | null
+  main_diagnosis: string | null
   is_active: boolean
   created_at: string
   updated_at: string

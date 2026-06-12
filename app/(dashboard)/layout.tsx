@@ -26,9 +26,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <SubscriptionGate status={status} trialEndsAt={trialEndsAt}>
       <SidebarProvider>
-        {organization && <AppSidebar organization={organization} />}
+        <div className="print:hidden contents">{organization && <AppSidebar organization={organization} />}</div>
         <main className="flex-1 min-w-0 bg-background">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="print:hidden flex items-center justify-between px-4 py-3 border-b border-border">
             <SidebarTrigger className="text-muted-foreground/40 hover:text-muted-foreground" />
             <div style={{ transform: 'scale(0.65)', transformOrigin: 'right center' }}>
               <ThemeSwitch />
