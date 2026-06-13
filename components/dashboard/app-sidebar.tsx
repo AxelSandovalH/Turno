@@ -4,8 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  CalendarDays, Users, Scissors, Clock, Settings,
-  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle,
+  CalendarDays, Users, Bone, Clock, Settings,
+  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -53,6 +53,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
     { id: 'services',     type: 'module', title: 'Servicios',       subtitle: 'Catálogo y precios',       breadcrumb: ['Servicios'],      href: '/services', },
     { id: 'schedule',     type: 'module', title: 'Horarios',        subtitle: 'Disponibilidad y bloqueos',breadcrumb: ['Horarios'],       href: '/schedule', },
     { id: 'conversations', type: 'module', title: 'Conversaciones',   subtitle: 'Historial de WhatsApp',      breadcrumb: ['Conversaciones'], href: '/conversations', },
+    { id: 'finanzas',     type: 'module', title: 'Finanzas',         subtitle: 'Ingresos, comisiones, cortes', breadcrumb: ['Finanzas'],      href: '/finanzas', },
     { id: 'analytics',    type: 'module', title: 'Analytics',        subtitle: 'Citas, ingresos, tendencias', breadcrumb: ['Analytics'],     href: '/analytics', },
     { id: 'settings',     type: 'module', title: 'Configuración',   subtitle: 'Negocio, WhatsApp, cuenta',breadcrumb: ['Configuración'],  href: '/settings', },
   ]
@@ -292,9 +293,10 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                   appointments: CalendarDays,
                   patients:     FolderHeart,
                   staff:        Users,
-                  services:     Scissors,
+                  services:     Bone,
                   schedule:     Clock,
                   conversations: MessageCircle,
+                  finanzas:     DollarSign,
                   analytics:    BarChart2,
                   settings:     Settings,
                 }[id] ?? CalendarDays

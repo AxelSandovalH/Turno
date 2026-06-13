@@ -5,7 +5,7 @@ export type AttachmentCategory = 'xray' | 'mri' | 'lab' | 'prescription' | 'refe
 export type NoteType = 'session' | 'soap' | 'clinical' | 'evolution' | 'intake'
 export type TreatmentPlanStatus = 'active' | 'completed' | 'paused' | 'cancelled'
 export type AppointmentStatus = 'confirmed' | 'completed' | 'cancelled' | 'no_show'
-export type StaffRole = 'owner' | 'manager' | 'staff'
+export type StaffRole = 'owner' | 'manager' | 'staff' | 'therapist' | 'receptionist'
 export type ActorType = 'user' | 'bot' | 'system'
 export type MessageRole = 'user' | 'assistant'
 export type ConversationStatus = 'active' | 'closed'
@@ -29,6 +29,8 @@ export interface Organization {
   trial_ends_at: string | null
   suspended_at: string | null
   is_active: boolean
+  logo_url: string | null
+  primary_color: string | null
   created_at: string
   updated_at: string
 }
@@ -66,6 +68,8 @@ export interface Staff {
   avatar_url: string | null
   role: StaffRole
   is_active: boolean
+  commission_type: 'percentage' | 'fixed_per_session' | null
+  commission_value: number | null
   created_at: string
   updated_at: string
 }
@@ -104,6 +108,8 @@ export interface Customer {
   medical_notes: string | null
   emergency_contact: string | null
   emergency_phone: string | null
+  email: string | null
+  portal_token: string | null
   referred_by: string | null
   referring_doctor: string | null
   referring_doctor_specialty: string | null
@@ -167,6 +173,7 @@ export interface TreatmentPlan {
   starts_at: string | null
   ends_at: string | null
   notes: string | null
+  price_per_session: number | null
   created_at: string
   updated_at: string
 }
@@ -212,6 +219,8 @@ export interface Appointment {
   branch_id: string | null
   customer_id: string
   staff_id: string
+  confirmation_status: 'pending' | 'confirmed' | 'declined' | 'risk' | null
+  confirmation_sent_at: string | null
   service_id: string
   starts_at: string
   ends_at: string
