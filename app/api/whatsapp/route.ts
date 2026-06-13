@@ -75,6 +75,52 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
+    // ── Intercept confirmation responses (SI / NO) ────────────────────────────
+    const normalized = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const isYes = /^(si|sí|yes|confirmo|confirm)$/i.test(normalized)
+    const isNo  = /^(no|cancel|cancelo|no\s+puedo|no\s+voy)$/i.test(normalized)
+
+    if (isYes || isNo) {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      // Find customer by phone
+      const { data: customer } = await db
+        .from('customers')
+        .select('id')
+        .eq('organization_id', organization.id)
+        .or(`phone.eq.${phone},phone.eq.52${phone.slice(-10)},phone.eq.521${phone.slice(-10)}`)
+        .maybeSingle()
+
+      if (customer) {
+        const { data: pendingAppt } = await db
+          .from('appointments')
+          .select('id')
+          .eq('customer_id', customer.id)
+          .eq('organization_id', organization.id)
+          .eq('confirmation_status', 'pending')
+          .gte('starts_at', new Date().toISOString())
+          .lte('starts_at', tomorrow.toISOString())
+          .order('starts_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+
+        if (pendingAppt) {
+          const newStatus = isYes ? 'confirmed' : 'declined'
+          await db.from('appointments')
+            .update({ confirmation_status: newStatus })
+            .eq('id', pendingAppt.id)
+
+          const reply = isYes
+            ? `✅ ¡Perfecto! Tu asistencia quedó confirmada. Te esperamos.`
+            : `Entendido, hemos registrado tu cancelación. Si deseas reagendar, escríbenos.`
+
+          await sendMessage(from, reply)
+          return NextResponse.json({ ok: true })
+        }
+      }
+    }
+
     console.log('[whatsapp] running agent for org:', organization.id)
     const reply = await runAgent({
       organizationId: organization.id,

@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
+import { resend, FROM } from '@/lib/resend'
+import { reminderEmailHtml, reminderEmailText } from '@/lib/emails/reminder'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end()
@@ -20,8 +22,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id,
       starts_at,
       reminder_sent_at,
-      organization:organizations(name),
-      customer:customers(name, phone),
+      organization:organizations(name, id),
+      customer:customers(name, phone, email),
       service:services(name),
       staff:staff(name)
     `)
@@ -38,10 +40,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let sent = 0
 
   for (const appt of appointments) {
-    const customer = appt.customer as unknown as { name: string; phone: string } | null
+    const customer = appt.customer as unknown as { name: string; phone: string; email: string | null } | null
     const svc      = appt.service  as unknown as { name: string } | null
     const stf      = appt.staff    as unknown as { name: string } | null
-    const org      = appt.organization as unknown as { name: string } | null
+    const org      = appt.organization as unknown as { name: string; id: string } | null
 
     if (!customer?.phone) continue
 
@@ -52,29 +54,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       timeZone: 'America/Mexico_City',
     })
 
-    const message = [
+    const dateLabel = `hoy a las ${time}`
+
+    // ── WhatsApp: recordatorio + solicitud de confirmación ─────────────────────
+    const whatsappMessage = [
       `🔔 *Recordatorio de cita*`,
       ``,
-      `Hola ${customer.name}, tienes cita en *${org?.name}* hoy a las *${time}*.`,
+      `Hola ${customer.name ?? 'estimado paciente'}, tienes cita en *${org?.name}* ${dateLabel}.`,
       ``,
       `📋 Servicio: ${svc?.name ?? 'N/A'}`,
-      `💈 Con: ${stf?.name ?? 'N/A'}`,
+      `👤 Con: ${stf?.name ?? 'N/A'}`,
       ``,
-      `¿Necesitas cancelar? Responde este mensaje.`,
+      `¿Confirmas tu asistencia?`,
+      `Responde *SI* para confirmar o *NO* si no podrás asistir.`,
     ].join('\n')
 
     try {
       const r = await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, to: customer.phone, body: message }),
+        body: JSON.stringify({ token, to: customer.phone, body: whatsappMessage }),
       })
       if (r.ok) {
-        await service.from('appointments').update({ reminder_sent_at: new Date().toISOString() }).eq('id', appt.id)
+        await service.from('appointments').update({
+          reminder_sent_at: new Date().toISOString(),
+          confirmation_status: 'pending',
+          confirmation_sent_at: new Date().toISOString(),
+        }).eq('id', appt.id)
         sent++
       }
     } catch (err) {
-      console.error(`Reminder failed for ${appt.id}:`, err)
+      console.error(`WhatsApp reminder failed for ${appt.id}:`, err)
+    }
+
+    // ── Email de respaldo (si el paciente tiene correo) ────────────────────────
+    if (customer.email) {
+      try {
+        await resend.emails.send({
+          from: FROM,
+          to: customer.email,
+          subject: `Recordatorio: tu cita en ${org?.name} ${dateLabel}`,
+          html: reminderEmailHtml({
+            customerName: customer.name ?? 'Paciente',
+            businessName: org?.name ?? 'el consultorio',
+            serviceName: svc?.name ?? 'tu sesión',
+            staffName: stf?.name ?? 'tu terapeuta',
+            dateLabel,
+          }),
+          text: reminderEmailText({
+            customerName: customer.name ?? 'Paciente',
+            businessName: org?.name ?? 'el consultorio',
+            serviceName: svc?.name ?? 'tu sesión',
+            staffName: stf?.name ?? 'tu terapeuta',
+            dateLabel,
+          }),
+        })
+      } catch (err) {
+        console.error(`Email reminder failed for ${appt.id}:`, err)
+      }
     }
   }
 
