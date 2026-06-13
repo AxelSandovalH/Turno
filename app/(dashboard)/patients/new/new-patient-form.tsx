@@ -29,6 +29,10 @@ const STEPS = [
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
+const GENDER_LABEL: Record<string, string> = {
+  male: 'Masculino', female: 'Femenino', other: 'Otro', prefer_not_to_say: 'Prefiero no decir',
+}
+
 const CIVIL_STATUSES = [
   { value: 'soltero', label: 'Soltero/a' },
   { value: 'casado', label: 'Casado/a' },
@@ -191,7 +195,7 @@ export function NewPatientForm({ organizationId, isMedical }: Props) {
                 </Field>
                 <Field label="Género">
                   <Select value={form.gender} onValueChange={v => v && set('gender', v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Selecciona">{form.gender ? GENDER_LABEL[form.gender] : undefined}</SelectValue></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Masculino</SelectItem>
                       <SelectItem value="female">Femenino</SelectItem>
@@ -205,7 +209,7 @@ export function NewPatientForm({ organizationId, isMedical }: Props) {
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Estado civil">
                   <Select value={form.civil_status} onValueChange={v => v && set('civil_status', v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Selecciona">{form.civil_status ? (CIVIL_STATUSES.find(c => c.value === form.civil_status)?.label) : undefined}</SelectValue></SelectTrigger>
                     <SelectContent>
                       {CIVIL_STATUSES.map(c => (
                         <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
@@ -225,7 +229,7 @@ export function NewPatientForm({ organizationId, isMedical }: Props) {
               <div className="grid sm:grid-cols-3 gap-4">
                 <Field label="Tipo de sangre">
                   <Select value={form.blood_type} onValueChange={v => v && set('blood_type', v)}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="—">{form.blood_type || undefined}</SelectValue></SelectTrigger>
                     <SelectContent>
                       {BLOOD_TYPES.map(t => (
                         <SelectItem key={t} value={t}>{t}</SelectItem>

@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Phone, Calendar, AlertTriangle, FileText, TrendingUp,
   Paperclip, CreditCard, ChevronLeft, Plus, Upload, Loader2,
-  ClipboardList, Pencil, ExternalLink,
+  ClipboardList, Pencil, ExternalLink, Share2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,12 @@ import type { Customer, Appointment, AppointmentNote, TreatmentPlan, Payment, At
 
 const METHOD_LABEL: Record<string, string> = {
   cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', insurance: 'Seguro', other: 'Otro',
+}
+const GENDER_LABEL: Record<string, string> = {
+  male: 'Masculino', female: 'Femenino', other: 'Otro',
+}
+const CIVIL_LABEL: Record<string, string> = {
+  single: 'Soltero/a', married: 'Casado/a', divorced: 'Divorciado/a', widowed: 'Viudo/a',
 }
 const STATUS_LABEL: Record<string, string> = {
   confirmed: 'Confirmada', completed: 'Completada', cancelled: 'Cancelada', no_show: 'No asistió',
@@ -186,18 +192,38 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
     router.refresh()
   }
 
+  // ── Portal link ───────────────────────────────────────────────────────────────
+  const [sendingPortal, setSendingPortal] = useState(false)
+
+  async function handleSendPortal() {
+    setSendingPortal(true)
+    const res = await fetch('/api/portal-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patientId: patient.id }),
+    })
+    const data = await res.json()
+    setSendingPortal(false)
+    if (!res.ok) return toast.error(data.error ?? 'Error al generar portal')
+    toast.success('Portal enviado por WhatsApp')
+    if (data.portalUrl) {
+      await navigator.clipboard.writeText(data.portalUrl).catch(() => null)
+      toast.info('Link copiado al portapapeles')
+    }
+  }
+
   // ── Treatment plan CRUD ───────────────────────────────────────────────────────
   const [planOpen, setPlanOpen] = useState(false)
   const [planEditId, setPlanEditId] = useState<string | null>(null)
   const [planForm, setPlanForm] = useState({
     title: '', diagnosis: '', goals: '',
-    total_sessions: '', staff_id: '', starts_at: '', ends_at: '', notes: '',
+    total_sessions: '', price_per_session: '', staff_id: '', starts_at: '', ends_at: '', notes: '',
   })
   const [plansList, setPlansList] = useState<typeof plans>(plans)
 
   function openNewPlan() {
     setPlanEditId(null)
-    setPlanForm({ title: '', diagnosis: patient.main_diagnosis ?? '', goals: '', total_sessions: '', staff_id: staff[0]?.id ?? '', starts_at: new Date().toISOString().slice(0, 10), ends_at: '', notes: '' })
+    setPlanForm({ title: '', diagnosis: patient.main_diagnosis ?? '', goals: '', total_sessions: '', price_per_session: '', staff_id: staff[0]?.id ?? '', starts_at: new Date().toISOString().slice(0, 10), ends_at: '', notes: '' })
     setPlanOpen(true)
   }
 
@@ -208,6 +234,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
       diagnosis: plan.diagnosis ?? '',
       goals: plan.goals ?? '',
       total_sessions: plan.total_sessions?.toString() ?? '',
+      price_per_session: plan.price_per_session?.toString() ?? '',
       staff_id: plan.staff_id ?? '',
       starts_at: plan.starts_at?.slice(0, 10) ?? '',
       ends_at: plan.ends_at?.slice(0, 10) ?? '',
@@ -225,6 +252,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
       diagnosis: planForm.diagnosis || null,
       goals: planForm.goals || null,
       total_sessions: planForm.total_sessions ? parseInt(planForm.total_sessions) : null,
+      price_per_session: planForm.price_per_session ? parseFloat(planForm.price_per_session) : null,
       staff_id: planForm.staff_id || null,
       starts_at: planForm.starts_at || null,
       ends_at: planForm.ends_at || null,
@@ -309,9 +337,23 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
             )}
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-          <Pencil className="h-3.5 w-3.5 mr-1.5" />Editar
-        </Button>
+        <div className="flex items-center gap-2">
+          {isMedical && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-muted-foreground hover:text-violet-400"
+              onClick={handleSendPortal}
+              disabled={sendingPortal}
+            >
+              <Share2 className="h-3.5 w-3.5 mr-1.5" />
+              {sendingPortal ? 'Enviando…' : 'Portal'}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-3.5 w-3.5 mr-1.5" />Editar
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="ficha">
@@ -482,6 +524,24 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                           </div>
                         )}
 
+                        {plan.price_per_session && plan.sessions_done > 0 && (() => {
+                          const totalExpected = plan.price_per_session * plan.sessions_done
+                          const totalPaidByPatient = payments
+                            .filter(p => p.status === 'paid')
+                            .reduce((s, p) => s + Number(p.amount), 0)
+                          const sessionsPaid = Math.min(plan.sessions_done, Math.floor(totalPaidByPatient / plan.price_per_session))
+                          const sessionsPending = plan.sessions_done - sessionsPaid
+                          return (
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="text-emerald-400 font-medium">{sessionsPaid} sesiones cobradas</span>
+                              {sessionsPending > 0 && (
+                                <span className="text-amber-400 font-medium">· {sessionsPending} pendientes (${(sessionsPending * plan.price_per_session).toLocaleString('es-MX')})</span>
+                              )}
+                              <span className="text-muted-foreground">· ${plan.price_per_session.toLocaleString('es-MX')}/sesión</span>
+                            </div>
+                          )
+                        })()}
+
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           {plan.starts_at && <span>Inicio: {format(new Date(plan.starts_at), 'd MMM yyyy', { locale: es })}</span>}
                           {plan.ends_at && <span>Fin: {format(new Date(plan.ends_at), 'd MMM yyyy', { locale: es })}</span>}
@@ -600,7 +660,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
           <div className="flex items-center gap-3">
             <Select value={uploadCategory} onValueChange={v => v && setUploadCategory(v)}>
               <SelectTrigger className="w-40 h-9 text-sm">
-                <SelectValue />
+                <SelectValue>{CATEGORY_LABEL[uploadCategory] ?? uploadCategory}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="xray">Radiografía</SelectItem>
@@ -750,7 +810,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                 <div className="space-y-1.5">
                   <Label>Género</Label>
                   <Select value={editForm.gender} onValueChange={v => setEditForm(p => ({ ...p, gender: v ?? '' }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Selecciona">{editForm.gender ? GENDER_LABEL[editForm.gender] : undefined}</SelectValue></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Masculino</SelectItem>
                       <SelectItem value="female">Femenino</SelectItem>
@@ -765,7 +825,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                 <div className="space-y-1.5">
                   <Label>Estado civil</Label>
                   <Select value={editForm.civil_status} onValueChange={v => setEditForm(p => ({ ...p, civil_status: v ?? '' }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Selecciona">{editForm.civil_status ? CIVIL_LABEL[editForm.civil_status] : undefined}</SelectValue></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="single">Soltero/a</SelectItem>
                       <SelectItem value="married">Casado/a</SelectItem>
@@ -864,7 +924,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               <div className="space-y-2">
                 <Label>Cita</Label>
                 <Select value={soapForm.appointment_id} onValueChange={v => setSoapForm(p => ({ ...p, appointment_id: v ?? '' }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecciona">{soapForm.appointment_id ? format(new Date(appointments.find(a => a.id === soapForm.appointment_id)?.starts_at ?? ''), 'd MMM yyyy HH:mm', { locale: es }) : undefined}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {appointments.map(a => (
                       <SelectItem key={a.id} value={a.id}>
@@ -983,7 +1043,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                 onChange={e => setPlanForm(p => ({ ...p, goals: e.target.value }))}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Total de sesiones</Label>
                 <Input
@@ -994,9 +1054,18 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                 />
               </div>
               <div className="space-y-2">
+                <Label>Precio por sesión ($)</Label>
+                <Input
+                  type="number" min={0}
+                  placeholder="500"
+                  value={planForm.price_per_session}
+                  onChange={e => setPlanForm(p => ({ ...p, price_per_session: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Terapeuta responsable</Label>
                 <Select value={planForm.staff_id} onValueChange={v => setPlanForm(p => ({ ...p, staff_id: v ?? '' }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecciona">{planForm.staff_id ? (staff.find(s => s.id === planForm.staff_id)?.name) : undefined}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
@@ -1044,7 +1113,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               <div className="space-y-2">
                 <Label>Método</Label>
                 <Select value={payForm.method} onValueChange={v => setPayForm(p => ({ ...p, method: v ?? 'cash' }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue>{METHOD_LABEL[payForm.method] ?? payForm.method}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {Object.entries(METHOD_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                   </SelectContent>

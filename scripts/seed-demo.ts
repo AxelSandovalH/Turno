@@ -27,7 +27,7 @@ async function main() {
       name: 'Barbería Demo — Turno',
       slug: 'demo-turno',
       whatsapp_number: '5200000000000',   // número ficticio
-      email: 'demo@turno.app',
+      email: 'demo@quickturno.app',
       subscription_status: 'active',
       trial_ends_at: trialEndsAt.toISOString(),
     })
@@ -61,7 +61,7 @@ async function main() {
 async function seedUser(org: { id: string; name: string }) {
   console.log('\n=== Creando usuario demo para JL ===\n')
 
-  const DEMO_EMAIL = 'jl.demo@turno.app'
+  const DEMO_EMAIL = 'jl.demo@quickturno.app'
 
   const { data: existing } = await service.auth.admin.listUsers()
   const existingUser = existing?.users.find(u => u.email === DEMO_EMAIL)
@@ -104,7 +104,7 @@ async function seedUser(org: { id: string; name: string }) {
   }
 
   console.log(`\n✅ Listo.\n`)
-  console.log(`  Email:      jl.demo@turno.app`)
+  console.log(`  Email:      jl.demo@quickturno.app`)
   console.log(`  Contraseña: TurnoDemo2024!`)
   console.log(`  Org:        ${org.name}`)
   console.log(`\n  JL entra con esta cuenta para demos de venta.`)

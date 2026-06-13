@@ -305,7 +305,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
                 onValueChange={v => setBlockForm(p => ({ ...p, staff_id: v ?? '' }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Todo el negocio" />
+                  <SelectValue placeholder="Todo el negocio">{blockForm.staff_id ? (staff.find(s => s.id === blockForm.staff_id)?.name) : 'Todo el negocio'}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Todo el negocio</SelectItem>

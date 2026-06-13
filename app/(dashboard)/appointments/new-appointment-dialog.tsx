@@ -137,7 +137,17 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
       if (selectedPlanId) {
         const plan = activePlans.find(p => p.id === selectedPlanId)
         if (plan) {
-          await supabase.from('treatment_plans').update({ sessions_done: plan.sessions_done + 1 }).eq('id', selectedPlanId)
+          const newDone = plan.sessions_done + 1
+          await supabase.from('treatment_plans').update({ sessions_done: newDone }).eq('id', selectedPlanId)
+          // Alert therapist if only 2 sessions remain
+          const remaining = (plan.total_sessions ?? 0) - newDone
+          if (remaining === 2) {
+            fetch('/api/plan-alert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ planId: selectedPlanId }),
+            }).catch(() => null)
+          }
         }
       }
 
@@ -186,7 +196,7 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
               {mode === 'existing' ? (
                 <Select value={form.customer_id} onValueChange={v => set('customer_id')(v ?? '')}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Busca un cliente..." />
+                    <SelectValue placeholder="Busca un cliente...">{form.customer_id ? (() => { const c = customers.find(x => x.id === form.customer_id); return c ? (c.name ?? c.phone) : undefined })() : undefined}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {customers.map(c => (
@@ -210,7 +220,7 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
                 <Label>Plan de tratamiento (opcional)</Label>
                 <Select value={selectedPlanId} onValueChange={v => setSelectedPlanId(!v || v === '__none__' ? '' : v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sin vincular a plan" />
+                    <SelectValue placeholder="Sin vincular a plan">{selectedPlanId ? (activePlans.find(p => p.id === selectedPlanId)?.title) : undefined}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin vincular</SelectItem>
@@ -236,7 +246,7 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
               <Label>Servicio</Label>
               <Select value={form.service_id} onValueChange={v => set('service_id')(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona servicio" />
+                  <SelectValue placeholder="Selecciona servicio">{form.service_id ? (services.find(s => s.id === form.service_id)?.name) : undefined}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {services.map(s => (
@@ -253,7 +263,7 @@ export function NewAppointmentDialog({ organizationId, staff, services, customer
               <Label>Profesional</Label>
               <Select value={form.staff_id} onValueChange={v => set('staff_id')(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecciona" />
+                  <SelectValue placeholder="Selecciona">{form.staff_id ? (staff.find(s => s.id === form.staff_id)?.name) : undefined}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {staff.map(s => (

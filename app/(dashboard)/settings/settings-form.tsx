@@ -38,6 +38,7 @@ export function SettingsForm({ organization }: Props) {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name:            organization.name            ?? '',
+    slug:            organization.slug            ?? '',
     whatsapp_number: organization.whatsapp_number ?? '',
     phone:           organization.phone           ?? '',
     address:         organization.address         ?? '',
@@ -45,6 +46,7 @@ export function SettingsForm({ organization }: Props) {
     welcome_message: organization.welcome_message ?? '',
     away_message:    organization.away_message    ?? '',
   })
+  const [slugError, setSlugError] = useState('')
 
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
@@ -56,13 +58,36 @@ export function SettingsForm({ organization }: Props) {
     window.location.href = url
   }
 
+  function handleSlugChange(v: string) {
+    const clean = v.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')
+    setForm(p => ({ ...p, slug: clean }))
+    setSlugError('')
+  }
+
   async function handleSave() {
     if (!form.name.trim()) return toast.error('El nombre es requerido')
+    if (form.slug && !/^[a-z0-9-]+$/.test(form.slug)) {
+      setSlugError('Solo letras minúsculas, números y guiones')
+      return
+    }
     setLoading(true)
+
+    // Check slug uniqueness if changed
+    if (form.slug && form.slug !== organization.slug) {
+      const { data: existing } = await supabase
+        .from('organizations').select('id').eq('slug', form.slug).neq('id', organization.id).maybeSingle()
+      if (existing) {
+        setSlugError('Este slug ya está en uso')
+        setLoading(false)
+        return
+      }
+    }
+
     const { error } = await supabase
       .from('organizations')
       .update({
         name:            form.name,
+        slug:            form.slug || null,
         whatsapp_number: form.whatsapp_number || null,
         phone:           form.phone           || null,
         address:         form.address         || null,
@@ -92,6 +117,24 @@ export function SettingsForm({ organization }: Props) {
         <div>
           <label style={s.label}>Nombre del negocio</label>
           <input style={s.input} value={form.name} onChange={e => set('name')(e.target.value)} />
+        </div>
+        <div>
+          <label style={s.label}>Slug de reserva pública</label>
+          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--background)', border: `1px solid ${slugError ? '#ef4444' : 'var(--border)'}`, borderRadius: 8, overflow: 'hidden' }}>
+            <span style={{ padding: '0 10px', fontSize: 12, color: 'var(--muted-foreground)', whiteSpace: 'nowrap', borderRight: '1px solid var(--border)', height: 38, display: 'flex', alignItems: 'center' }}>
+              quickturno.app/book/
+            </span>
+            <input
+              style={{ ...s.input, border: 'none', borderRadius: 0 }}
+              placeholder="mi-clinica"
+              value={form.slug}
+              onChange={e => handleSlugChange(e.target.value)}
+            />
+          </div>
+          {slugError
+            ? <p style={{ ...s.hint, color: '#ef4444' }}>{slugError}</p>
+            : <p style={s.hint}>Solo letras minúsculas, números y guiones. Ej: <em>fisio-garcia</em></p>
+          }
         </div>
         <div>
           <label style={s.label}>WhatsApp del negocio</label>
