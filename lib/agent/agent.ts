@@ -20,7 +20,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, timezone, welcome_message, away_message')
+    .select('id, name, timezone, welcome_message, away_message, whatsapp_number')
     .eq('id', organizationId)
     .single()
 
@@ -76,7 +76,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     ultramsg_id: ultramsgId ?? null,
   })
 
-  const ctx = { organizationId, branchId: branch?.id ?? '', timezone: org.timezone }
+  const ctx = { organizationId, branchId: branch?.id ?? '', timezone: org.timezone, ownerWhatsapp: org.whatsapp_number }
 
   // Agentic loop
   let response = await anthropic.messages.create({
