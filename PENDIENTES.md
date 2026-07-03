@@ -25,40 +25,15 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 
 ---
 
-## Pacientes / Fisioterapia
-
-- [ ] Botón para revocar portal del paciente desde su perfil (llama a DELETE `/api/portal-token`)
-- [ ] Campo email visible y editable en la ficha del paciente (columna ya existe en DB)
-- [ ] Indicador de `confirmation_status` en la tarjeta de cita (✅ confirmada / ⚠ riesgo / ❌ declinada)
-
----
-
 ## Citas
 
-- [ ] Mostrar estado de confirmación por cita en `/appointments`
 - [ ] Flujo de reagendamiento cuando un paciente declina la confirmación
-
----
-
-## Finanzas
-
-- [ ] Adaptar `/finanzas` para barbería (las comisiones son específicas de fisioterapia)
-- [ ] Exportar reporte financiero (CSV o PDF)
-
----
-
-## Settings
-
-- [ ] UI para subir logo del negocio (campo `logo_url` en DB listo)
-- [ ] Color picker para color de marca (campo `primary_color` en DB listo)
-- [ ] Tipo de negocio editable después del onboarding
 
 ---
 
 ## Booking page pública `/book/[slug]`
 
 - [ ] Guiar al usuario desde el dashboard a configurar su slug si aún no lo tiene
-- [ ] Botón "Ver mi página de reservas" en settings para previsualizar
 
 ---
 
@@ -93,3 +68,23 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 - [ ] Facturación electrónica (CFDI)
 - [ ] Estadísticas por terapeuta
 - [ ] Reportes exportables avanzados
+- [ ] Punto de venta (por validar)
+
+---
+
+## Resuelto
+
+- [x] Indicador de `confirmation_status` en citas — lista y day view con `resolveStatus()`
+- [x] Columna Estado unificada en `/appointments` (elimina columna Conf. separada)
+- [x] Vista Por hora (`DayView`) con posicionamiento correcto y 3 niveles de densidad
+- [x] Label dinámico Barbero / Fisioterapeuta según `business_type`
+- [x] Logo del negocio — subida a Storage (`org-assets`) y preview en settings
+- [x] Color picker de marca con 5 swatches en settings
+- [x] Botón "Ver mi página de reservas" en settings
+- [x] Campo email visible y editable en ficha del paciente
+- [x] Botón "Revocar acceso" al portal (llama a DELETE `/api/portal-token`)
+- [x] Portal del paciente muestra citas próximas con rango horario correcto
+- [x] `/finanzas` adaptado para barbería (oculta comisiones si `business_type = barbershop`)
+- [x] Exportar reporte financiero a Excel (CSV con BOM UTF-8, columnas: fecha/concepto/método/monto/cliente)
+- [x] Gráfica de pastel para método de pago en /finanzas
+- [x] Tipo de negocio — no editable post-onboarding (decisión de producto)
