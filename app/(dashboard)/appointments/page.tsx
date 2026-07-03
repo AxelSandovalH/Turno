@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Suspense } from 'react'
+import { CheckCircle, Clock, XCircle, AlertTriangle, CircleCheck, Ban, UserX } from 'lucide-react'
 import { AppointmentActions } from './appointment-actions'
 import { NewAppointmentDialog } from './new-appointment-dialog'
 import { CalendarView } from './calendar-view'
@@ -11,11 +12,20 @@ import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
 import type { Appointment } from '@/types/database'
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  confirmed: { label: 'Confirmada', className: 'text-primary bg-primary/10' },
-  completed: { label: 'Completada', className: 'text-muted-foreground bg-muted' },
-  cancelled: { label: 'Cancelada', className: 'text-destructive bg-destructive/10' },
-  no_show:   { label: 'No asistió', className: 'text-muted-foreground bg-muted' },
+type ConfStatus = 'pending' | 'confirmed' | 'declined' | 'risk' | null
+
+function resolveStatus(status: string, conf: ConfStatus): {
+  label: string; className: string; Icon: React.ElementType
+} {
+  if (status === 'completed') return { label: 'Completada',       className: 'text-foreground',                    Icon: CircleCheck  }
+  if (status === 'cancelled') return { label: 'Cancelada',        className: 'text-muted-foreground bg-muted',      Icon: Ban          }
+  if (status === 'no_show')   return { label: 'No asistió',       className: 'text-destructive bg-destructive/10', Icon: UserX        }
+
+  // status === 'confirmed' — diferencia por confirmation_status
+  if (conf === 'confirmed') return { label: 'Asistencia confirmada', className: 'text-emerald-600 bg-emerald-500/10',  Icon: CheckCircle  }
+  if (conf === 'declined')  return { label: 'Declinó asistencia',   className: 'text-destructive bg-destructive/10', Icon: XCircle      }
+  if (conf === 'risk')      return { label: 'Riesgo de cancelación', className: 'text-amber-600 bg-amber-500/10',    Icon: AlertTriangle }
+  return                           { label: 'Sin confirmar',         className: 'text-sky-600 bg-sky-500/10',        Icon: Clock        }
 }
 
 interface Props {
@@ -46,17 +56,18 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     { data: staff },
     { data: services },
     { data: customers },
+    { data: org },
   ] = await Promise.all([
     service
       .from('appointments')
-      .select('*, customer:customers(name,phone), staff:staff(name), service:services(name,duration_minutes,price)')
+      .select('*, customer:customers(name,phone), staff:staff(name), service:services(name,duration_minutes,price), confirmation_status')
       .eq('organization_id', organizationId)
       .gte('starts_at', startOfDay.toISOString())
       .lte('starts_at', endOfDay.toISOString())
       .order('starts_at'),
     service
       .from('appointments')
-      .select('*, customer:customers(name,phone), staff:staff(name), service:services(name,duration_minutes,price)')
+      .select('*, customer:customers(name,phone), staff:staff(name), service:services(name,duration_minutes,price), confirmation_status')
       .eq('organization_id', organizationId)
       .gte('starts_at', monthStart)
       .lte('starts_at', monthEnd)
@@ -64,14 +75,18 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     service.from('staff').select('id, name').eq('organization_id', organizationId).eq('is_active', true),
     service.from('services').select('id, name, duration_minutes, price').eq('organization_id', organizationId).eq('is_active', true),
     service.from('customers').select('id, name, phone').eq('organization_id', organizationId).order('name'),
+    service.from('organizations').select('business_type').eq('id', organizationId).single(),
   ])
+
+  const staffLabel = org?.business_type === 'barbershop' ? 'Barbero' : 'Fisioterapeuta'
 
   const list = (todayApts ?? []) as Appointment[]
   const allApts = (monthApts ?? []) as Appointment[]
 
-  const confirmed = list.filter(a => a.status === 'confirmed').length
-  const completed = list.filter(a => a.status === 'completed').length
-  const cancelled = list.filter(a => a.status === 'cancelled').length
+  const cntConfirmed  = list.filter(a => a.status === 'confirmed' && a.confirmation_status === 'confirmed').length
+  const cntPending    = list.filter(a => a.status === 'confirmed' && (a.confirmation_status === 'pending' || a.confirmation_status === 'risk')).length
+  const cntCompleted  = list.filter(a => a.status === 'completed').length
+  const cntCancelled  = list.filter(a => a.status === 'cancelled' || (a.status === 'confirmed' && a.confirmation_status === 'declined')).length
 
   return (
     <div className="space-y-6">
@@ -118,15 +133,16 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       {/* ── LIST VIEW ── */}
       {view === 'list' && (
         <>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {[
-              { label: 'Confirmadas', value: confirmed },
-              { label: 'Completadas', value: completed },
-              { label: 'Canceladas',  value: cancelled },
+              { label: 'Confirmadas',   value: cntConfirmed, color: 'text-emerald-500' },
+              { label: 'Sin confirmar', value: cntPending,   color: 'text-sky-500'     },
+              { label: 'Completadas',   value: cntCompleted, color: 'text-foreground'  },
+              { label: 'Canceladas',    value: cntCancelled, color: 'text-destructive' },
             ].map(s => (
               <div key={s.label} className="rounded-lg border border-border bg-card px-5 py-4">
                 <p className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest mb-2">{s.label}</p>
-                <p className="text-[28px] font-semibold text-foreground">{s.value}</p>
+                <p className={`text-[28px] font-semibold ${s.color}`}>{s.value}</p>
               </div>
             ))}
           </div>
@@ -140,7 +156,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-card">
-                    {['Hora', 'Cliente', 'Servicio', 'Barbero', 'Estado', ''].map((h, i) => (
+                    {['Hora', 'Paciente', 'Servicio', staffLabel, 'Estado', ''].map((h, i) => (
                       <th key={i} className="px-4 py-3 text-left text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest">
                         {h}
                       </th>
@@ -149,7 +165,10 @@ export default async function AppointmentsPage({ searchParams }: Props) {
                 </thead>
                 <tbody>
                   {list.map(appointment => {
-                    const status = statusConfig[appointment.status] ?? statusConfig.confirmed
+                    const { label, className, Icon } = resolveStatus(
+                      appointment.status,
+                      appointment.confirmation_status as ConfStatus,
+                    )
                     return (
                       <tr key={appointment.id} className="border-b border-border last:border-0 hover:bg-card transition-colors">
                         <td className="px-4 py-3.5 font-mono text-[13px] text-muted-foreground">
@@ -162,8 +181,9 @@ export default async function AppointmentsPage({ searchParams }: Props) {
                         <td className="px-4 py-3.5 text-[13px] text-muted-foreground">{appointment.service?.name}</td>
                         <td className="px-4 py-3.5 text-[13px] text-muted-foreground">{appointment.staff?.name}</td>
                         <td className="px-4 py-3.5">
-                          <span className={`inline-block text-[11px] font-medium px-2.5 py-1 rounded ${status.className}`}>
-                            {status.label}
+                          <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded ${className}`}>
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                            {label}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 w-10">

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { format, isSameDay, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Appointment } from '@/types/database'
 
@@ -46,7 +46,25 @@ type Apt = Omit<Appointment, 'customer' | 'staff' | 'service'> & {
   customer?: { name: string | null }
   staff?:    { name: string }
   service?:  { name: string }
+  confirmation_status?: 'pending' | 'confirmed' | 'declined' | 'risk' | null
 }
+
+import { CircleCheck, Ban, UserX } from 'lucide-react'
+
+type ConfStatus = 'pending' | 'confirmed' | 'declined' | 'risk' | null
+
+function resolveStatus(status: string, conf: ConfStatus): {
+  label: string; Icon: React.ElementType; iconClass: string
+} {
+  if (status === 'completed') return { label: 'Completada',            Icon: CircleCheck,   iconClass: 'text-emerald-400' }
+  if (status === 'cancelled') return { label: 'Cancelada',             Icon: Ban,           iconClass: 'text-zinc-400'    }
+  if (status === 'no_show')   return { label: 'No asistió',            Icon: UserX,         iconClass: 'text-red-400'     }
+  if (conf === 'confirmed')   return { label: 'Asistencia confirmada', Icon: CheckCircle,   iconClass: 'text-emerald-400' }
+  if (conf === 'declined')    return { label: 'Declinó asistencia',    Icon: XCircle,       iconClass: 'text-red-400'     }
+  if (conf === 'risk')        return { label: 'Riesgo de cancelación', Icon: AlertTriangle, iconClass: 'text-amber-400'   }
+  return                             { label: 'Sin confirmar',          Icon: Clock,         iconClass: 'text-sky-400/80'  }
+}
+
 
 interface Props {
   appointments: Apt[]
@@ -118,9 +136,20 @@ export function DayView({ appointments, initialDate }: Props) {
           {/* Appointments */}
           <div className="absolute top-0 bottom-0" style={{ left: '56px', right: '12px' }}>
             {dayApts.map(apt => {
-              const st     = s(apt)
-              const height = aptHeight(apt)
-              const compact = height < 56
+              const st      = s(apt)
+              const height  = aptHeight(apt)
+              const isTiny  = height < 48
+              const isShort = height < 72
+              const { label: statusLabel, Icon: ConfIcon, iconClass } = resolveStatus(apt.status, (apt.confirmation_status ?? null) as ConfStatus)
+              const timeStr = `${format(new Date(apt.starts_at), 'HH:mm')} – ${format(new Date(apt.ends_at), 'HH:mm')}`
+
+              const statusLine = (
+                <p className={`text-[10px] font-medium leading-tight ${st.time} flex items-center gap-1`}>
+                  {timeStr}
+                  <ConfIcon className={`h-3 w-3 shrink-0 ${iconClass}`} />
+                  <span className={iconClass}>{statusLabel}</span>
+                </p>
+              )
 
               return (
                 <div
@@ -133,29 +162,38 @@ export function DayView({ appointments, initialDate }: Props) {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0 px-2.5 py-1.5 flex flex-col justify-center gap-0.5">
-                    {compact ? (
-                      // Very short slot — single line
-                      <p className={`text-[11px] font-semibold truncate ${st.text}`}>
-                        {apt.customer?.name ?? 'Sin nombre'}
-                        <span className={`font-normal ml-1.5 ${st.sub}`}>
-                          · {apt.service?.name}
-                        </span>
+                    {isTiny ? (
+                      // <30 min — todo en una sola línea comprimida
+                      <p className={`text-[10px] truncate flex items-center gap-1 ${st.text}`}>
+                        <span className="font-semibold shrink-0">{apt.customer?.name ?? 'Sin nombre'}</span>
+                        <span className={`${st.sub} shrink-0`}>·</span>
+                        <span className={`${st.sub} truncate`}>{apt.service?.name}{apt.staff?.name ? ` · ${apt.staff.name}` : ''}</span>
+                        <span className={`${st.time} shrink-0`}>{timeStr}</span>
+                        <ConfIcon className={`h-2.5 w-2.5 shrink-0 ${iconClass}`} />
+                        <span className={`${iconClass} shrink-0`}>{statusLabel}</span>
                       </p>
-                    ) : (
+                    ) : isShort ? (
+                      // 30–59 min — paciente + servicio·staff en L1, horario + estado en L2
                       <>
-                        {/* Name */}
+                        <p className={`text-[11px] font-semibold truncate leading-tight ${st.text}`}>
+                          {apt.customer?.name ?? 'Sin nombre'}
+                          <span className={`font-normal ml-1.5 ${st.sub}`}>
+                            {apt.service?.name}{apt.staff?.name ? ` · ${apt.staff.name}` : ''}
+                          </span>
+                        </p>
+                        {statusLine}
+                      </>
+                    ) : (
+                      // ≥60 min — tres líneas completas
+                      <>
                         <p className={`text-[13px] font-semibold truncate leading-tight ${st.text}`}>
                           {apt.customer?.name ?? 'Sin nombre'}
                         </p>
-                        {/* Service · Staff */}
                         <p className={`text-[11px] truncate leading-tight ${st.sub}`}>
                           {apt.service?.name}
                           {apt.staff?.name && <span> · {apt.staff.name}</span>}
                         </p>
-                        {/* Time */}
-                        <p className={`text-[10px] font-medium mt-0.5 ${st.time}`}>
-                          {format(new Date(apt.starts_at), 'HH:mm')} – {format(new Date(apt.ends_at), 'HH:mm')}
-                        </p>
+                        {statusLine}
                       </>
                     )}
                   </div>
