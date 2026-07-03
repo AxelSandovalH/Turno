@@ -38,8 +38,9 @@ export default async function PatientPortalPage({ params }: Props) {
   // Upcoming appointments
   const { data: appointments } = await db
     .from('appointments')
-    .select('id, starts_at, status, service:services(name), staff:staff(name)')
+    .select('id, starts_at, ends_at, status, service:services(name), staff:staff(name)')
     .eq('customer_id', patient.id)
+    .eq('organization_id', patient.organization_id)
     .eq('status', 'confirmed')
     .gte('starts_at', new Date().toISOString())
     .order('starts_at', { ascending: true })
@@ -164,8 +165,11 @@ export default async function PatientPortalPage({ params }: Props) {
                 const stf = a.staff as unknown as { name: string } | null
                 return (
                   <div key={a.id} className="px-4 py-3">
-                    <p className="font-medium text-sm">
-                      {format(new Date(a.starts_at), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}
+                    <p className="font-medium text-sm capitalize">
+                      {format(new Date(a.starts_at), "EEEE d 'de' MMMM", { locale: es })}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: accent }}>
+                      {format(new Date(a.starts_at), 'HH:mm')} – {format(new Date((a as any).ends_at), 'HH:mm')}
                     </p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {svc?.name ?? '—'}{stf?.name ? ` · ${stf.name}` : ''}

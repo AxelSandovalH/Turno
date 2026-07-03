@@ -68,6 +68,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
   const [editForm, setEditForm] = useState({
     name: patient.name ?? '',
     phone: patient.phone ?? '',
+    email: (patient as any).email ?? '',
     date_of_birth: patient.date_of_birth ?? '',
     gender: patient.gender ?? '',
     occupation: patient.occupation ?? '',
@@ -90,6 +91,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
     const { error } = await supabase.from('customers').update({
       name: editForm.name || null,
       phone: editForm.phone,
+      email: editForm.email || null,
       date_of_birth: editForm.date_of_birth || null,
       gender: editForm.gender || null,
       occupation: editForm.occupation || null,
@@ -194,6 +196,8 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
 
   // ── Portal link ───────────────────────────────────────────────────────────────
   const [sendingPortal, setSendingPortal] = useState(false)
+  const [revokingPortal, setRevokingPortal] = useState(false)
+  const [hasPortal, setHasPortal] = useState(!!(patient as any).portal_token)
 
   async function handleSendPortal() {
     setSendingPortal(true)
@@ -206,10 +210,24 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
     setSendingPortal(false)
     if (!res.ok) return toast.error(data.error ?? 'Error al generar portal')
     toast.success('Portal enviado por WhatsApp')
+    setHasPortal(true)
     if (data.portalUrl) {
       await navigator.clipboard.writeText(data.portalUrl).catch(() => null)
       toast.info('Link copiado al portapapeles')
     }
+  }
+
+  async function handleRevokePortal() {
+    setRevokingPortal(true)
+    const res = await fetch('/api/portal-token', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patientId: patient.id }),
+    })
+    setRevokingPortal(false)
+    if (!res.ok) { toast.error('Error al revocar portal'); return }
+    setHasPortal(false)
+    toast.success('Acceso al portal revocado')
   }
 
   // ── Treatment plan CRUD ───────────────────────────────────────────────────────
@@ -339,16 +357,29 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
         </div>
         <div className="flex items-center gap-2">
           {isMedical && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-muted-foreground hover:text-violet-400"
-              onClick={handleSendPortal}
-              disabled={sendingPortal}
-            >
-              <Share2 className="h-3.5 w-3.5 mr-1.5" />
-              {sendingPortal ? 'Enviando…' : 'Portal'}
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-muted-foreground hover:text-violet-400"
+                onClick={handleSendPortal}
+                disabled={sendingPortal || revokingPortal}
+              >
+                <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                {sendingPortal ? 'Enviando…' : 'Portal'}
+              </Button>
+              {hasPortal && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={handleRevokePortal}
+                  disabled={revokingPortal || sendingPortal}
+                >
+                  {revokingPortal ? 'Revocando…' : 'Revocar acceso'}
+                </Button>
+              )}
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="h-3.5 w-3.5 mr-1.5" />Editar
@@ -375,6 +406,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               <CardContent className="space-y-2 text-sm">
                 <Row label="Nombre" value={patient.name} />
                 <Row label="Teléfono" value={patient.phone} />
+                <Row label="Correo" value={(patient as any).email} />
                 <Row label="Fecha de nac." value={patient.date_of_birth ? format(new Date(patient.date_of_birth), 'd MMM yyyy', { locale: es }) : null} />
                 <Row label="Edad" value={age !== null ? `${age} años` : null} />
                 <Row label="Género" value={patient.gender} />
@@ -799,9 +831,13 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                   <Label>Nombre</Label>
                   <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} placeholder="Nombre completo" />
                 </div>
-                <div className="col-span-2 space-y-1.5">
+                <div className="space-y-1.5">
                   <Label>Teléfono</Label>
                   <Input value={editForm.phone} onChange={e => setEditForm(p => ({ ...p, phone: e.target.value }))} placeholder="521XXXXXXXXXX" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Correo electrónico</Label>
+                  <Input type="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} placeholder="paciente@correo.com" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Fecha de nacimiento</Label>
