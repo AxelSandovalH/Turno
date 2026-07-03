@@ -14,9 +14,10 @@ export default async function FinanzasPage() {
     { data: payments },
     { data: appointments },
     { data: staff },
+    { data: org },
   ] = await Promise.all([
     db.from('payments')
-      .select('id, amount, method, status, concept, paid_at, staff_id, customer_id, created_at')
+      .select('id, amount, method, status, concept, paid_at, staff_id, customer_id, created_at, customer:customers(name)')
       .eq('organization_id', organization.id)
       .gte('paid_at', since.toISOString())
       .order('paid_at', { ascending: false }),
@@ -29,6 +30,10 @@ export default async function FinanzasPage() {
       .select('id, name, commission_type, commission_value, role')
       .eq('organization_id', organization.id)
       .eq('is_active', true),
+    db.from('organizations')
+      .select('business_type')
+      .eq('id', organization.id)
+      .single(),
   ])
 
   return (
@@ -36,6 +41,7 @@ export default async function FinanzasPage() {
       payments={payments ?? []}
       appointments={appointments ?? []}
       staff={staff ?? []}
+      businessType={org?.business_type ?? null}
     />
   )
 }

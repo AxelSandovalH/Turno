@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import * as XLSX from 'xlsx'
 import { format, startOfDay, startOfWeek, startOfMonth, subDays, isAfter } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { TrendingUp, DollarSign, Calendar, AlertCircle, Users } from 'lucide-react'
+import { TrendingUp, DollarSign, Calendar, AlertCircle, Users, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -18,6 +19,7 @@ interface Payment {
   paid_at: string | null
   staff_id: string | null
   customer_id: string
+  customer?: unknown
 }
 
 interface Appointment {
@@ -39,6 +41,7 @@ interface Props {
   payments: Payment[]
   appointments: Appointment[]
   staff: StaffMember[]
+  businessType: string | null
 }
 
 const METHOD_LABEL: Record<string, string> = {
@@ -49,8 +52,9 @@ const PERIOD_LABELS: Record<Period, string> = {
   day: 'Hoy', week: 'Esta semana', month: 'Este mes', all: '90 días',
 }
 
-export function FinanzasClient({ payments, appointments, staff }: Props) {
+export function FinanzasClient({ payments, appointments, staff, businessType }: Props) {
   const [period, setPeriod] = useState<Period>('month')
+  const isBarbershop = businessType === 'barbershop'
 
   const periodStart = useMemo(() => {
     const now = new Date()
@@ -131,16 +135,45 @@ export function FinanzasClient({ payments, appointments, staff }: Props) {
 
   const totalCommissions = commissions.reduce((s, c) => s + c.commission, 0)
 
+  function exportExcel() {
+    const rows = [
+      ['Fecha', 'Concepto', 'Método', 'Monto', 'Cliente'],
+      ...filteredPayments.map(p => [
+        p.paid_at ? format(new Date(p.paid_at), 'dd/MM/yyyy') : '',
+        p.concept ?? '',
+        METHOD_LABEL[p.method] ?? p.method,
+        Number(p.amount),
+        (p.customer as unknown as { name: string } | null)?.name ?? p.customer_id,
+      ]),
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    // Ancho de columnas
+    ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 12 }, { wch: 28 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Finanzas')
+    XLSX.writeFile(wb, `finanzas-${PERIOD_LABELS[period].toLowerCase().replace(/\s/g, '-')}.xlsx`)
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Finanzas</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Ingresos, sesiones y comisiones</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isBarbershop ? 'Ingresos y sesiones' : 'Ingresos, sesiones y comisiones'}
+          </p>
         </div>
-        {/* Period selector */}
-        <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportExcel}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar a Excel
+          </button>
+          {/* Period selector */}
+          <div className="flex rounded-lg border border-border overflow-hidden text-sm">
           {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
             <button
               key={p}
@@ -150,11 +183,12 @@ export function FinanzasClient({ payments, appointments, staff }: Props) {
               {PERIOD_LABELS[p]}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid gap-4 ${isBarbershop ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
         <KpiCard
           icon={<DollarSign className="h-4 w-4 text-emerald-400" />}
           label="Ingresos"
@@ -176,13 +210,15 @@ export function FinanzasClient({ payments, appointments, staff }: Props) {
           sub="pendientes"
           accent="amber"
         />
-        <KpiCard
-          icon={<Users className="h-4 w-4 text-blue-400" />}
-          label="Comisiones"
-          value={`$${totalCommissions.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`}
-          sub="por pagar"
-          accent="blue"
-        />
+        {!isBarbershop && (
+          <KpiCard
+            icon={<Users className="h-4 w-4 text-blue-400" />}
+            label="Comisiones"
+            value={`$${totalCommissions.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`}
+            sub="por pagar"
+            accent="blue"
+          />
+        )}
       </div>
 
       {/* Chart — 30 days */}
@@ -198,34 +234,23 @@ export function FinanzasClient({ payments, appointments, staff }: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* By method */}
+      <div className={`grid gap-4 ${isBarbershop ? '' : 'md:grid-cols-2'}`}>
+        {/* By method — pie chart */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Método de pago</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent>
             {byMethod.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin pagos en el período</p>
-            ) : byMethod.map(([method, amount]) => {
-              const pct = totalRevenue > 0 ? (amount / totalRevenue) * 100 : 0
-              return (
-                <div key={method}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">{METHOD_LABEL[method] ?? method}</span>
-                    <span className="font-medium">${amount.toLocaleString('es-MX')}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full bg-violet-500 rounded-full" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              )
-            })}
+            ) : (
+              <PieChart data={byMethod} total={totalRevenue} />
+            )}
           </CardContent>
         </Card>
 
-        {/* Commissions */}
-        <Card>
+        {/* Commissions — hidden for barbershop */}
+        {!isBarbershop && <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Comisiones por terapeuta</CardTitle>
           </CardHeader>
@@ -233,7 +258,7 @@ export function FinanzasClient({ payments, appointments, staff }: Props) {
             {commissions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Sin comisiones configuradas o sin actividad en el período.{' '}
-                <span className="text-violet-400">Configúralas en Equipo →</span>
+                <a href="/staff" className="text-violet-400 hover:underline">Configúralas en Equipo →</a>
               </p>
             ) : (
               <div className="space-y-3">
@@ -262,7 +287,7 @@ export function FinanzasClient({ payments, appointments, staff }: Props) {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
       {/* Recent payments */}
@@ -335,6 +360,73 @@ function KpiCard({ icon, label, value, sub, accent }: {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+const PIE_COLORS = ['#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444']
+
+function polarToXY(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = (angleDeg - 90) * (Math.PI / 180)
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+}
+
+function PieChart({ data, total }: { data: [string, number][]; total: number }) {
+  const R = 52, INNER = 28
+  const CX = 64, CY = 64, SIZE = 128
+
+  // Accumulate angles in degrees (avoids floating-point drift)
+  let startDeg = 0
+  const slices = data.map(([method, amount], i) => {
+    const pct = total > 0 ? amount / total : 0
+    const sweepDeg = pct * 360
+    // SVG arc doesn't work when sweep == 360; cap slightly under
+    const endDeg = startDeg + Math.min(sweepDeg, 359.999)
+    const large = sweepDeg > 180 ? 1 : 0
+
+    const s = polarToXY(CX, CY, R, startDeg)
+    const e = polarToXY(CX, CY, R, endDeg)
+    const si = polarToXY(CX, CY, INNER, startDeg)
+    const ei = polarToXY(CX, CY, INNER, endDeg)
+
+    // Donut slice path: outer arc → inner arc (reverse)
+    const path = [
+      `M ${s.x} ${s.y}`,
+      `A ${R} ${R} 0 ${large} 1 ${e.x} ${e.y}`,
+      `L ${ei.x} ${ei.y}`,
+      `A ${INNER} ${INNER} 0 ${large} 0 ${si.x} ${si.y}`,
+      'Z',
+    ].join(' ')
+
+    startDeg += sweepDeg
+    return { path, color: PIE_COLORS[i % PIE_COLORS.length], method, amount, pct }
+  })
+
+  return (
+    <div className="flex items-center gap-5">
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-[112px] h-[112px] shrink-0">
+        {slices.map((s, i) => (
+          <path key={i} d={s.path} fill={s.color} stroke="var(--card)" strokeWidth={1.5} />
+        ))}
+        <text x={CX} y={CY - 4} textAnchor="middle" fontSize={8} fill="currentColor" opacity={0.45}>Total</text>
+        <text x={CX} y={CY + 8} textAnchor="middle" fontSize={11} fontWeight="700" fill="currentColor">
+          ${total >= 1000 ? `${(total / 1000).toFixed(1)}k` : total.toLocaleString('es-MX')}
+        </text>
+      </svg>
+      <div className="flex flex-col gap-2.5 flex-1 min-w-0">
+        {slices.map((s, i) => (
+          <div key={i} className="flex items-center justify-between gap-2 text-sm">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+              <span className="text-muted-foreground truncate">{METHOD_LABEL[s.method] ?? s.method}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-muted-foreground/50">{Math.round(s.pct * 100)}%</span>
+              <span className="font-medium">${s.amount.toLocaleString('es-MX')}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
