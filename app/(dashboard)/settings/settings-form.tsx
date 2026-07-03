@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import type { Organization } from '@/types/database'
+
 
 const TIMEZONES = [
   { value: 'America/Mexico_City',            label: 'Ciudad de México (CST)' },
@@ -36,6 +38,8 @@ export function SettingsForm({ organization }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
     name:            organization.name            ?? '',
     slug:            organization.slug            ?? '',
@@ -45,10 +49,27 @@ export function SettingsForm({ organization }: Props) {
     timezone:        organization.timezone        ?? 'America/Mexico_City',
     welcome_message: organization.welcome_message ?? '',
     away_message:    organization.away_message    ?? '',
+    primary_color:   organization.primary_color   ?? '#7c3aed',
+    logo_url:        organization.logo_url        ?? '',
   })
   const [slugError, setSlugError] = useState('')
 
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { toast.error('El logo no debe superar 2 MB'); return }
+    setUploadingLogo(true)
+    const ext = file.name.split('.').pop()
+    const path = `logos/${organization.id}.${ext}`
+    const { error } = await supabase.storage.from('org-assets').upload(path, file, { upsert: true })
+    if (error) { toast.error('Error al subir logo'); setUploadingLogo(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('org-assets').getPublicUrl(path)
+    setForm(p => ({ ...p, logo_url: publicUrl }))
+    setUploadingLogo(false)
+    toast.success('Logo cargado')
+  }
 
   async function handleSubscribe() {
     setLoading(true)
@@ -87,13 +108,15 @@ export function SettingsForm({ organization }: Props) {
       .from('organizations')
       .update({
         name:            form.name,
-        slug:            form.slug || null,
+        slug:            form.slug            || null,
         whatsapp_number: form.whatsapp_number || null,
         phone:           form.phone           || null,
         address:         form.address         || null,
         timezone:        form.timezone,
         welcome_message: form.welcome_message || null,
         away_message:    form.away_message    || null,
+        primary_color:   form.primary_color   || null,
+        logo_url:        form.logo_url        || null,
       })
       .eq('id', organization.id)
 
@@ -157,6 +180,94 @@ export function SettingsForm({ organization }: Props) {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Identidad visual */}
+      <div style={s.section}>
+        <div>
+          <p style={s.sectionTitle}>Identidad visual</p>
+          <p style={s.sectionDesc}>Aparece en tu página de reservas pública y en el portal del paciente</p>
+        </div>
+
+        {/* Logo */}
+        <div>
+          <label style={s.label}>Logo del negocio</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {form.logo_url ? (
+              <img src={form.logo_url} alt="Logo" style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }} />
+            ) : (
+              <div style={{ width: 52, height: 52, borderRadius: 10, background: `${form.primary_color}22`, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: form.primary_color }}>
+                {form.name.slice(0, 2).toUpperCase() || 'T'}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                disabled={uploadingLogo}
+                style={{ ...s.btn, background: 'var(--background)', border: '1px solid var(--border)', color: 'var(--foreground)', opacity: uploadingLogo ? 0.6 : 1 }}
+              >
+                {uploadingLogo ? <Spinner size={14} color="currentColor" /> : <ImageUp size={14} />}
+                {uploadingLogo ? 'Subiendo…' : 'Subir logo'}
+              </button>
+              {form.logo_url && (
+                <button
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, logo_url: '' }))}
+                  style={{ ...s.btn, background: 'transparent', border: 'none', color: 'var(--muted-foreground)', padding: 0, height: 'auto', fontSize: 11 }}
+                >
+                  Eliminar logo
+                </button>
+              )}
+            </div>
+            <input ref={logoInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleLogoUpload} />
+          </div>
+          <p style={s.hint}>PNG, JPG o SVG. Máx 2 MB. Se mostrará en tu página pública.</p>
+        </div>
+
+        {/* Color de marca */}
+        <div>
+          <label style={s.label}>Color de marca</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="color"
+              value={form.primary_color}
+              onChange={e => set('primary_color')(e.target.value)}
+              style={{ width: 38, height: 38, padding: 2, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--background)', cursor: 'pointer' }}
+            />
+            <input
+              style={{ ...s.input, width: 120 }}
+              value={form.primary_color}
+              onChange={e => set('primary_color')(e.target.value)}
+              placeholder="#7c3aed"
+              maxLength={7}
+            />
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['#7c3aed', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444'].map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => set('primary_color')(c)}
+                  style={{ width: 24, height: 24, borderRadius: 6, background: c, border: form.primary_color === c ? '2px solid var(--foreground)' : '2px solid transparent', cursor: 'pointer' }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Ver página pública */}
+        {form.slug && (
+          <div style={{ paddingTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => window.open(`/book/${form.slug}`, '_blank')}
+              style={{ ...s.btn, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted-foreground)' }}
+            >
+              <span style={{ fontSize: 13 }}>↗</span>
+              Ver mi página de reservas
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mensajes del bot */}
