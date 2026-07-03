@@ -3,6 +3,34 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // strip accents: barbería → barberia
+    .replace(/[^a-z0-9\s-]/g, '')    // drop anything not alphanumeric/space/dash
+    .trim()
+    .replace(/[\s-]+/g, '-')         // collapse spaces/dashes into single dash
+    .replace(/^-|-$/g, '')
+    || 'negocio'
+}
+
+async function uniqueSlug(db: ReturnType<typeof createServiceClient>, base: string): Promise<string> {
+  const { data: existing } = await db
+    .from('organizations')
+    .select('slug')
+    .like('slug', `${base}%`)
+
+  const taken = new Set((existing ?? []).map(o => o.slug))
+  if (!taken.has(base)) return base
+
+  for (let i = 2; i < 100; i++) {
+    const candidate = `${base}-${i}`
+    if (!taken.has(candidate)) return candidate
+  }
+  return `${base}-${Date.now()}`
+}
+
 export async function POST(req: Request) {
   const { userId, name, slug, whatsappNumber, email, businessType } = await req.json()
   if (!userId || !name || !whatsappNumber) {
@@ -11,10 +39,14 @@ export async function POST(req: Request) {
 
   const db = createServiceClient()
 
+  // Generate a clean, unique slug from the business name
+  const baseSlug = slugify(slug || name)
+  const finalSlug = await uniqueSlug(db, baseSlug)
+
   // Create organization
   const { data: org, error: orgError } = await db
     .from('organizations')
-    .insert({ name, slug: slug ?? name.toLowerCase().replace(/\s+/g, '-'), whatsapp_number: whatsappNumber, business_type: businessType ?? 'barbershop' })
+    .insert({ name, slug: finalSlug, whatsapp_number: whatsappNumber, business_type: businessType ?? 'barbershop' })
     .select()
     .single()
 
