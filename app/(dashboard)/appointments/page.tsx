@@ -4,36 +4,19 @@ import { redirect } from 'next/navigation'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Suspense } from 'react'
-import { CheckCircle, Clock, XCircle, AlertTriangle, CircleCheck, Ban, UserX } from 'lucide-react'
-import { AppointmentActions } from './appointment-actions'
+import { AppointmentsList } from './appointment-list'
 import { NewAppointmentDialog } from './new-appointment-dialog'
 import { CalendarView } from './calendar-view'
 import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
 import type { Appointment } from '@/types/database'
 
-type ConfStatus = 'pending' | 'confirmed' | 'declined' | 'risk' | null
-
-function resolveStatus(status: string, conf: ConfStatus): {
-  label: string; className: string; Icon: React.ElementType
-} {
-  if (status === 'completed') return { label: 'Completada',       className: 'text-foreground',                    Icon: CircleCheck  }
-  if (status === 'cancelled') return { label: 'Cancelada',        className: 'text-muted-foreground bg-muted',      Icon: Ban          }
-  if (status === 'no_show')   return { label: 'No asistió',       className: 'text-destructive bg-destructive/10', Icon: UserX        }
-
-  // status === 'confirmed' — diferencia por confirmation_status
-  if (conf === 'confirmed') return { label: 'Asistencia confirmada', className: 'text-emerald-600 bg-emerald-500/10',  Icon: CheckCircle  }
-  if (conf === 'declined')  return { label: 'Declinó asistencia',   className: 'text-destructive bg-destructive/10', Icon: XCircle      }
-  if (conf === 'risk')      return { label: 'Riesgo de cancelación', className: 'text-amber-600 bg-amber-500/10',    Icon: AlertTriangle }
-  return                           { label: 'Sin confirmar',         className: 'text-sky-600 bg-sky-500/10',        Icon: Clock        }
-}
-
 interface Props {
-  searchParams: Promise<{ view?: string }>
+  searchParams: Promise<{ view?: string; date?: string }>
 }
 
 export default async function AppointmentsPage({ searchParams }: Props) {
-  const { view = 'list' } = await searchParams
+  const { view = 'list', date } = await searchParams
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -42,7 +25,8 @@ export default async function AppointmentsPage({ searchParams }: Props) {
   const service = createServiceClient()
   const organizationId = user.user_metadata?.organization_id
 
-  const today = new Date()
+  // Si viene ?date=YYYY-MM-DD desde el calendario, mostrar ese día; si no, hoy
+  const today = date ? new Date(`${date}T12:00:00`) : new Date()
   const startOfDay = new Date(today); startOfDay.setHours(0, 0, 0, 0)
   const endOfDay   = new Date(today); endOfDay.setHours(23, 59, 59, 999)
 
@@ -97,9 +81,19 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-semibold text-foreground tracking-tight">Citas</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5 capitalize">
-            {format(today, "EEEE d 'de' MMMM", { locale: es })}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-[13px] text-muted-foreground capitalize">
+              {format(today, "EEEE d 'de' MMMM yyyy", { locale: es })}
+            </p>
+            {date && (
+              <a
+                href="?view=list"
+                className="text-[11px] px-2 py-0.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+              >
+                Hoy
+              </a>
+            )}
+          </div>
         </div>
         <NewAppointmentDialog
           organizationId={organizationId}
@@ -147,55 +141,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
             ))}
           </div>
 
-          <div className="rounded-lg border border-border overflow-hidden">
-            {list.length === 0 ? (
-              <div className="py-16 text-center text-[13px] text-muted-foreground">
-                No hay citas programadas para hoy
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-card">
-                    {['Hora', 'Paciente', 'Servicio', staffLabel, 'Estado', ''].map((h, i) => (
-                      <th key={i} className="px-4 py-3 text-left text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map(appointment => {
-                    const { label, className, Icon } = resolveStatus(
-                      appointment.status,
-                      appointment.confirmation_status as ConfStatus,
-                    )
-                    return (
-                      <tr key={appointment.id} className="border-b border-border last:border-0 hover:bg-card transition-colors">
-                        <td className="px-4 py-3.5 font-mono text-[13px] text-muted-foreground">
-                          {format(new Date(appointment.starts_at), 'HH:mm')}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <p className="text-[13px] font-medium text-foreground">{appointment.customer?.name ?? 'Sin nombre'}</p>
-                          <p className="text-[11px] text-muted-foreground/60 mt-0.5">{appointment.customer?.phone}</p>
-                        </td>
-                        <td className="px-4 py-3.5 text-[13px] text-muted-foreground">{appointment.service?.name}</td>
-                        <td className="px-4 py-3.5 text-[13px] text-muted-foreground">{appointment.staff?.name}</td>
-                        <td className="px-4 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded ${className}`}>
-                            <Icon className="h-3.5 w-3.5 shrink-0" />
-                            {label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 w-10">
-                          <AppointmentActions appointmentId={appointment.id} status={appointment.status} />
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <AppointmentsList list={list} staffLabel={staffLabel} />
         </>
       )}
 

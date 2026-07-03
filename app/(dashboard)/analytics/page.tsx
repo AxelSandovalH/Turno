@@ -31,12 +31,12 @@ export default async function AnalyticsPage() {
       .order('starts_at', { ascending: true }),
 
     db.from('appointments')
-      .select('id, status, service_id, staff_id')
+      .select('id, status, confirmation_status, service_id, staff_id')
       .eq('organization_id', orgId)
       .gte('starts_at', thisMonthStart),
 
     db.from('appointments')
-      .select('id, status')
+      .select('id, status, confirmation_status')
       .eq('organization_id', orgId)
       .gte('starts_at', lastMonthStart)
       .lt('starts_at', thisMonthStart),
@@ -63,7 +63,11 @@ export default async function AnalyticsPage() {
 
   // ── KPIs ──────────────────────────────────────────────────────────────────────
   const completedThis = thisMonth.filter(a => a.status === 'completed').length
-  const cancelledThis = thisMonth.filter(a => a.status === 'cancelled').length
+  const cancelledThis = thisMonth.filter(a =>
+    a.status === 'cancelled' ||
+    a.status === 'no_show' ||
+    (a.status === 'confirmed' && (a as any).confirmation_status === 'declined')
+  ).length
   const cancelRate = thisMonth.length > 0 ? Math.round((cancelledThis / thisMonth.length) * 100) : 0
   const lastMonthTotal = lastMonth.length
   const growthPct = lastMonthTotal > 0

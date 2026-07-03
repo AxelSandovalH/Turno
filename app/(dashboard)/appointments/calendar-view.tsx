@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Appointment } from '@/types/database'
 
+
 const STATUS_DOT: Record<string, string> = {
   confirmed: 'bg-blue-400',
   completed: 'bg-emerald-400',
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function CalendarView({ appointments, onDayClick }: Props) {
+  const router = useRouter()
   const [current, setCurrent] = useState(new Date())
   const monthStart = startOfMonth(current)
   const monthEnd = endOfMonth(current)
@@ -74,7 +76,10 @@ export function CalendarView({ appointments, onDayClick }: Props) {
             return (
               <div
                 key={day.toISOString()}
-                onClick={() => onDayClick?.(day)}
+                onClick={() => {
+                  onDayClick?.(day)
+                  router.push(`?view=list&date=${format(day, 'yyyy-MM-dd')}`)
+                }}
                 className={`min-h-[80px] p-2 border-b border-r border-border last:border-r-0 transition-colors cursor-pointer hover:bg-muted/20 ${!inMonth ? 'opacity-30' : ''}`}
               >
                 <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full mb-1 ${today ? 'bg-primary text-white' : 'text-foreground'}`}>
