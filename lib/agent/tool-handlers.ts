@@ -79,11 +79,9 @@ export async function handleTool(toolName: string, input: Record<string, string>
           .gte('ends_at', localStart.toISOString())
 
         // Generate slots every 30 minutes within working hours
-        const [startH, startM] = schedule.start_time.split(':').map(Number)
-        const [endH, endM] = schedule.end_time.split(':').map(Number)
-
-        const workStart = fromZonedTime(`${date}T${schedule.start_time}:00`, ctx.timezone)
-        const workEnd = fromZonedTime(`${date}T${schedule.end_time}:00`, ctx.timezone)
+        // Postgres time comes as "09:00:00" — normalize to HH:mm or fromZonedTime gets "T09:00:00:00" (Invalid Date)
+        const workStart = fromZonedTime(`${date}T${schedule.start_time.slice(0, 5)}:00`, ctx.timezone)
+        const workEnd = fromZonedTime(`${date}T${schedule.end_time.slice(0, 5)}:00`, ctx.timezone)
 
         let cursor = workStart
         while (cursor < workEnd) {

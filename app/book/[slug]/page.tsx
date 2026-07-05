@@ -82,7 +82,7 @@ export default async function BookingPage({ params }: Props) {
         </div>
 
         <BookingForm
-          org={{ id: org.id, name: org.name, whatsapp_number: org.whatsapp_number }}
+          org={{ id: org.id, name: org.name, whatsapp_number: org.whatsapp_number, slug: org.slug }}
           services={services}
           staff={staff ?? []}
           accent={accent}

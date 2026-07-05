@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { format, addDays, startOfDay, isBefore } from 'date-fns'
+import { format, addDays, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -10,7 +9,7 @@ interface Service { id: string; name: string; duration_minutes: number; price: n
 interface Staff { id: string; name: string }
 
 interface Props {
-  org: { id: string; name: string; whatsapp_number: string }
+  org: { id: string; name: string; whatsapp_number: string; slug: string }
   services: Service[]
   staff: Staff[]
   accent: string
@@ -18,31 +17,8 @@ interface Props {
 }
 
 const DAYS_AHEAD = 14
-const SLOT_INTERVAL = 30 // minutes
-
-function generateSlots(startTime: string, endTime: string, durationMin: number, bookedRanges: { start: Date; end: Date }[]): string[] {
-  const slots: string[] = []
-  const [sh, sm] = startTime.split(':').map(Number)
-  const [eh, em] = endTime.split(':').map(Number)
-  const startMinutes = sh * 60 + sm
-  const endMinutes   = eh * 60 + em
-
-  for (let m = startMinutes; m + durationMin <= endMinutes; m += SLOT_INTERVAL) {
-    const h = Math.floor(m / 60).toString().padStart(2, '0')
-    const min = (m % 60).toString().padStart(2, '0')
-    const slotStart = new Date()
-    slotStart.setHours(Math.floor(m / 60), m % 60, 0, 0)
-    const slotEnd = new Date(slotStart.getTime() + durationMin * 60000)
-
-    const overlaps = bookedRanges.some(b => slotStart < b.end && slotEnd > b.start)
-    if (!overlaps) slots.push(`${h}:${min}`)
-  }
-  return slots
-}
 
 export function BookingForm({ org, services, staff, accent, ctaLabel }: Props) {
-  const supabase = createClient()
-
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
@@ -62,49 +38,32 @@ export function BookingForm({ org, services, staff, accent, ctaLabel }: Props) {
   const dates = Array.from({ length: DAYS_AHEAD }, (_, i) => addDays(today, i + 1))
   const visibleDates = dates.slice(weekOffset * 7, weekOffset * 7 + 7)
 
-  // Fetch slots when date + service + staff selected
+  // Fetch slots when date + service + staff selected — server-side calculation
+  // (respects time blocks, org timezone, and never exposes appointment data)
   useEffect(() => {
     if (!selectedDate || !serviceId || !staffId) { setSlots([]); return }
 
     setLoadingSlots(true)
     setSelectedSlot('')
 
-    const dayOfWeek = selectedDate.getDay()
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
+    const params = new URLSearchParams({ slug: org.slug, staff: staffId, service: serviceId, date: dateStr })
+    let cancelled = false
 
-    Promise.all([
-      // Get staff schedule for this day
-      supabase.from('staff_schedules')
-        .select('start_time, end_time, is_working')
-        .eq('staff_id', staffId)
-        .eq('day_of_week', dayOfWeek)
-        .maybeSingle(),
-      // Get existing appointments for this staff on this date
-      supabase.from('appointments')
-        .select('starts_at, ends_at')
-        .eq('staff_id', staffId)
-        .eq('organization_id', org.id)
-        .in('status', ['confirmed'])
-        .gte('starts_at', `${dateStr}T00:00:00`)
-        .lte('starts_at', `${dateStr}T23:59:59`),
-    ]).then(([scheduleRes, apptRes]) => {
-      const schedule = scheduleRes.data
-      if (!schedule?.is_working) { setSlots([]); setLoadingSlots(false); return }
+    fetch(`/api/booking/slots?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return
+        setSlots(data.slots ?? [])
+        setLoadingSlots(false)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSlots([])
+        setLoadingSlots(false)
+      })
 
-      const bookedRanges = (apptRes.data ?? []).map(a => ({
-        start: new Date(a.starts_at),
-        end: new Date(a.ends_at),
-      }))
-
-      const generatedSlots = generateSlots(
-        schedule.start_time,
-        schedule.end_time,
-        selectedService?.duration_minutes ?? 60,
-        bookedRanges,
-      )
-      setSlots(generatedSlots)
-      setLoadingSlots(false)
-    })
+    return () => { cancelled = true }
   }, [selectedDate, serviceId, staffId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleWhatsApp() {
