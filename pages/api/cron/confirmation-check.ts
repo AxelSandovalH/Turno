@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendMessage } from '@/lib/ultramsg'
 
 // Corre 2 horas antes de la cita — marca como riesgo si no hay confirmación
 // y notifica al terapeuta responsable vía WhatsApp
@@ -22,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .select(`
       id,
       starts_at,
-      organization:organizations(id),
+      organization:organizations(id, ultramsg_instance, ultramsg_token),
       customer:customers(name, phone),
       service:services(name),
       staff:staff(name, phone)
@@ -35,14 +36,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (error) return res.status(500).json({ error: error.message })
   if (!appointments || appointments.length === 0) return res.status(200).json({ flagged: 0 })
 
-  const instance = process.env.ULTRAMSG_INSTANCE!
-  const token    = process.env.ULTRAMSG_TOKEN!
   let flagged = 0
 
   for (const appt of appointments) {
     const customer = appt.customer as unknown as { name: string; phone: string } | null
     const stf      = appt.staff    as unknown as { name: string; phone: string | null } | null
     const svc      = appt.service  as unknown as { name: string } | null
+    const org      = appt.organization as unknown as { id: string; ultramsg_instance: string | null; ultramsg_token: string | null } | null
+    const creds    = { instance: org?.ultramsg_instance, token: org?.ultramsg_token }
 
     // Marcar como riesgo
     await service.from('appointments')
@@ -63,11 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ].join('\n')
 
       try {
-        await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, to: stf.phone, body: alert }),
-        })
+        await sendMessage(stf.phone, alert, creds)
       } catch (err) {
         console.error(`Therapist alert failed for appt ${appt.id}:`, err)
       }

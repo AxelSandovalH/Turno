@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendMessage } from '@/lib/ultramsg'
+import { sendMessage, type UltramsgCreds } from '@/lib/ultramsg'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
 
@@ -8,6 +8,7 @@ interface Context {
   branchId: string
   timezone: string
   ownerWhatsapp: string
+  ultramsg?: UltramsgCreds
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -183,7 +184,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         const localTime = format(toZonedTime(parseISO(starts_at), ctx.timezone), "dd/MM/yyyy 'a las' HH:mm", { timeZone: ctx.timezone })
         const ownerTo = `${ctx.ownerWhatsapp}@c.us`
         const msg = `📅 *Nueva cita agendada*\n👤 ${customer_name} (${customer_phone})\n💆 ${svc?.name ?? 'Servicio'} con ${stf?.name ?? 'Staff'}\n🕐 ${localTime}`
-        sendMessage(ownerTo, msg).catch(() => {})
+        sendMessage(ownerTo, msg, ctx.ultramsg).catch(() => {})
       }
 
       return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt })

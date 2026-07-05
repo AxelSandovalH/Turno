@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
+import { sendMessage } from '@/lib/ultramsg'
 import { resend, FROM } from '@/lib/resend'
 import { reminderEmailHtml, reminderEmailText } from '@/lib/emails/reminder'
 
@@ -22,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id,
       starts_at,
       reminder_sent_at,
-      organization:organizations(name, id),
+      organization:organizations(name, id, ultramsg_instance, ultramsg_token),
       customer:customers(name, phone, email),
       service:services(name),
       staff:staff(name)
@@ -35,15 +36,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (error) return res.status(500).json({ error: error.message })
   if (!appointments || appointments.length === 0) return res.status(200).json({ sent: 0 })
 
-  const instance = process.env.ULTRAMSG_INSTANCE!
-  const token    = process.env.ULTRAMSG_TOKEN!
   let sent = 0
 
   for (const appt of appointments) {
     const customer = appt.customer as unknown as { name: string; phone: string; email: string | null } | null
     const svc      = appt.service  as unknown as { name: string } | null
     const stf      = appt.staff    as unknown as { name: string } | null
-    const org      = appt.organization as unknown as { name: string; id: string } | null
+    const org      = appt.organization as unknown as { name: string; id: string; ultramsg_instance: string | null; ultramsg_token: string | null } | null
+    const creds    = { instance: org?.ultramsg_instance, token: org?.ultramsg_token }
 
     if (!customer?.phone) continue
 
@@ -70,12 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ].join('\n')
 
     try {
-      const r = await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, to: customer.phone, body: whatsappMessage }),
-      })
-      if (r.ok) {
+      const r = await sendMessage(customer.phone, whatsappMessage, creds)
+      if (!r?.error) {
         await service.from('appointments').update({
           reminder_sent_at: new Date().toISOString(),
           confirmation_status: 'pending',

@@ -31,6 +31,8 @@ export interface Organization {
   is_active: boolean
   logo_url: string | null
   primary_color: string | null
+  ultramsg_instance: string | null
+  ultramsg_token: string | null
   created_at: string
   updated_at: string
 }
