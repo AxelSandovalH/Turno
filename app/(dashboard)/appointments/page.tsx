@@ -17,7 +17,7 @@ interface Props {
 }
 
 export default async function AppointmentsPage({ searchParams }: Props) {
-  const { view = 'list', date } = await searchParams
+  const { view = 'calendar', date } = await searchParams
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -35,21 +35,16 @@ export default async function AppointmentsPage({ searchParams }: Props) {
   const monthStart = startOfMonth(today).toISOString()
   const monthEnd   = endOfMonth(today).toISOString()
 
+  // Single parallel batch — today's list is derived from the month fetch below
   const [
-    { data: todayApts },
     { data: monthApts },
     { data: staff },
     { data: services },
     { data: customers },
     { data: org },
+    { data: anySchedule },
+    { data: anyConversation },
   ] = await Promise.all([
-    service
-      .from('appointments')
-      .select('*, customer:customers(name,phone), staff:staff(name), service:services(name,duration_minutes,price), confirmation_status')
-      .eq('organization_id', organizationId)
-      .gte('starts_at', startOfDay.toISOString())
-      .lte('starts_at', endOfDay.toISOString())
-      .order('starts_at'),
     service
       .from('appointments')
       .select('*, customer:customers(name,phone), staff:staff(name), service:services(name,duration_minutes,price), confirmation_status')
@@ -61,21 +56,18 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     service.from('services').select('id, name, duration_minutes, price').eq('organization_id', organizationId).eq('is_active', true),
     service.from('customers').select('id, name, phone').eq('organization_id', organizationId).order('name'),
     service.from('organizations').select('business_type').eq('id', organizationId).single(),
-  ])
-
-  // Setup checklist state (derived from real data, hides itself when complete)
-  const staffIds = (staff ?? []).map(s => s.id)
-  const [{ data: anySchedule }, { data: anyConversation }] = await Promise.all([
-    staffIds.length > 0
-      ? service.from('staff_schedules').select('id').in('staff_id', staffIds).limit(1).maybeSingle()
-      : Promise.resolve({ data: null }),
+    // Setup checklist state (derived from real data, hides itself when complete)
+    service.from('staff_schedules').select('id, staff!inner(organization_id)').eq('staff.organization_id', organizationId).limit(1).maybeSingle(),
     service.from('conversations').select('id').eq('organization_id', organizationId).limit(1).maybeSingle(),
   ])
 
   const staffLabel = org?.business_type === 'barbershop' ? 'Barbero' : 'Fisioterapeuta'
 
-  const list = (todayApts ?? []) as Appointment[]
   const allApts = (monthApts ?? []) as Appointment[]
+  const list = allApts.filter(a => {
+    const t = new Date(a.starts_at).getTime()
+    return t >= startOfDay.getTime() && t <= endOfDay.getTime()
+  })
 
   const cntConfirmed  = list.filter(a => a.status === 'confirmed' && a.confirmation_status === 'confirmed').length
   const cntPending    = list.filter(a => a.status === 'confirmed' && (a.confirmation_status === 'pending' || a.confirmation_status === 'risk')).length
@@ -123,9 +115,9 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       {/* View tabs */}
       <div className="flex gap-1 border-b border-border">
         {[
+          { key: 'calendar', label: 'Calendario' },
           { key: 'list',     label: 'Lista' },
           { key: 'day',      label: 'Por hora' },
-          { key: 'calendar', label: 'Calendario' },
         ].map(v => (
           <a
             key={v.key}
