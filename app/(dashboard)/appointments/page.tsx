@@ -9,6 +9,7 @@ import { NewAppointmentDialog } from './new-appointment-dialog'
 import { CalendarView } from './calendar-view'
 import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
+import { SetupChecklist } from '@/components/dashboard/setup-checklist'
 import type { Appointment } from '@/types/database'
 
 interface Props {
@@ -62,6 +63,15 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     service.from('organizations').select('business_type').eq('id', organizationId).single(),
   ])
 
+  // Setup checklist state (derived from real data, hides itself when complete)
+  const staffIds = (staff ?? []).map(s => s.id)
+  const [{ data: anySchedule }, { data: anyConversation }] = await Promise.all([
+    staffIds.length > 0
+      ? service.from('staff_schedules').select('id').in('staff_id', staffIds).limit(1).maybeSingle()
+      : Promise.resolve({ data: null }),
+    service.from('conversations').select('id').eq('organization_id', organizationId).limit(1).maybeSingle(),
+  ])
+
   const staffLabel = org?.business_type === 'barbershop' ? 'Barbero' : 'Fisioterapeuta'
 
   const list = (todayApts ?? []) as Appointment[]
@@ -77,6 +87,13 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       <Suspense fallback={null}>
         <PaymentSuccessToast />
       </Suspense>
+
+      <SetupChecklist
+        hasServices={(services ?? []).length > 0}
+        hasSchedules={!!anySchedule}
+        hasConversations={!!anyConversation}
+      />
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
