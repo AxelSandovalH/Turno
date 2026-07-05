@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     for (const candidate of candidates) {
       const { data, error } = await db
         .from('organizations')
-        .select('id, subscription_status, whatsapp_number')
+        .select('id, subscription_status, whatsapp_number, timezone')
         .eq('whatsapp_number', candidate)
         .maybeSingle()
       console.log('[whatsapp] org lookup', candidate, '->', data?.id ?? 'not found', error?.message ?? '')
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       if (customer) {
         const { data: pendingAppt } = await db
           .from('appointments')
-          .select('id')
+          .select('id, starts_at, service:services(name), staff:staff(name)')
           .eq('customer_id', customer.id)
           .eq('organization_id', organization.id)
           .eq('confirmation_status', 'pending')
@@ -106,16 +106,70 @@ export async function POST(req: Request) {
           .maybeSingle()
 
         if (pendingAppt) {
-          const newStatus = isYes ? 'confirmed' : 'declined'
-          await db.from('appointments')
-            .update({ confirmation_status: newStatus })
-            .eq('id', pendingAppt.id)
+          const svc = pendingAppt.service as { name: string } | { name: string }[] | null
+          const stf = pendingAppt.staff as { name: string } | { name: string }[] | null
+          const svcName = (Array.isArray(svc) ? svc[0]?.name : svc?.name) ?? 'tu servicio'
+          const stfName = (Array.isArray(stf) ? stf[0]?.name : stf?.name) ?? ''
+          const localTime = new Date(pendingAppt.starts_at).toLocaleString('es-MX', {
+            timeZone: organization.timezone, weekday: 'long', day: 'numeric', month: 'long',
+            hour: '2-digit', minute: '2-digit',
+          })
 
-          const reply = isYes
-            ? `✅ ¡Perfecto! Tu asistencia quedó confirmada. Te esperamos.`
-            : `Entendido, hemos registrado tu cancelación. Si deseas reagendar, escríbenos.`
+          let reply: string
+          if (isYes) {
+            await db.from('appointments')
+              .update({ confirmation_status: 'confirmed' })
+              .eq('id', pendingAppt.id)
+            reply = `✅ ¡Perfecto! Tu asistencia quedó confirmada. Te esperamos.`
+          } else {
+            // Cancel for real — frees the slot so someone else can book it
+            await db.from('appointments')
+              .update({
+                confirmation_status: 'declined',
+                status: 'cancelled',
+                cancelled_by: 'customer',
+                cancellation_reason: 'Declinó la confirmación por WhatsApp',
+              })
+              .eq('id', pendingAppt.id)
+
+            await db.from('audit_logs').insert({
+              organization_id: organization.id,
+              actor_type: 'customer',
+              action: 'appointment.cancelled',
+              resource_type: 'appointment',
+              resource_id: pendingAppt.id,
+              metadata: { reason: 'declined_confirmation', phone },
+            })
+
+            // Notify owner (non-blocking)
+            sendMessage(
+              `${organization.whatsapp_number}@c.us`,
+              `❌ *Cita cancelada por el cliente*\n👤 ${phone}\n💆 ${svcName}${stfName ? ` con ${stfName}` : ''}\n🕐 ${localTime}\nEl horario quedó libre.`
+            ).catch(() => {})
+
+            reply = `Entendido, cancelamos tu cita de ${svcName} del ${localTime}. 😊\n\n¿Te gustaría reagendar? Dime qué día te acomoda y te paso los horarios disponibles.`
+          }
 
           await sendMessage(from, reply)
+
+          // Save the exchange so the agent has context if the customer follows up
+          // (also records ultramsg_id so the dedup check covers this path)
+          const { data: conversation } = await db
+            .from('conversations')
+            .upsert(
+              { organization_id: organization.id, whatsapp_phone: phone, status: 'active', last_message_at: new Date().toISOString() },
+              { onConflict: 'organization_id,whatsapp_phone' }
+            )
+            .select('id')
+            .single()
+
+          if (conversation) {
+            await db.from('messages').insert([
+              { conversation_id: conversation.id, organization_id: organization.id, role: 'user', content: text, ultramsg_id: msgId || null },
+              { conversation_id: conversation.id, organization_id: organization.id, role: 'assistant', content: reply },
+            ])
+          }
+
           return NextResponse.json({ ok: true })
         }
       }
