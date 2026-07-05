@@ -13,9 +13,11 @@ import { MoreHorizontal, CheckCircle, XCircle, UserX } from 'lucide-react'
 interface Props {
   appointmentId: string
   status: string
+  /** 'menu' (default) = dropdown de tres puntos · 'buttons' = quick buttons visibles */
+  variant?: 'menu' | 'buttons'
 }
 
-export function AppointmentActions({ appointmentId, status }: Props) {
+export function AppointmentActions({ appointmentId, status, variant = 'menu' }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -38,6 +40,45 @@ export function AppointmentActions({ appointmentId, status }: Props) {
   }
 
   if (status === 'completed' || status === 'cancelled') return null
+
+  if (variant === 'buttons') {
+    return (
+      <div className="flex gap-2 w-full">
+        {status === 'confirmed' && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            onClick={() => update('completed')}
+            className="flex-1 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+          >
+            <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+            Completada
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={loading}
+          onClick={() => update('no_show')}
+          className="flex-1 text-amber-500 border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-400"
+        >
+          <UserX className="h-3.5 w-3.5 mr-1.5" />
+          No asistió
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={loading}
+          onClick={() => update('cancelled')}
+          className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+        >
+          <XCircle className="h-3.5 w-3.5 mr-1.5" />
+          Cancelar
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <DropdownMenu>

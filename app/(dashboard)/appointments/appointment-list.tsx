@@ -133,7 +133,8 @@ function AppointmentDetailModal({
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">{duration} min</p>
           </div>
-          <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded mt-1 ${className}`}>
+          {/* mr-8 keeps the badge clear of the dialog's close button */}
+          <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded mt-1 mr-8 ${className}`}>
             <Icon className="h-3.5 w-3.5 shrink-0" />
             {label}
           </span>
@@ -179,10 +180,12 @@ function AppointmentDetailModal({
           )}
         </div>
 
-        {/* Footer — actions */}
+        {/* Footer — quick actions */}
         {apt.status !== 'completed' && apt.status !== 'cancelled' && (
-          <div className="px-5 pb-5 flex justify-end">
-            <AppointmentActions appointmentId={apt.id} status={apt.status} />
+          <div className="px-5 pb-5 pt-1 border-t border-border mt-1">
+            <div className="pt-4">
+              <AppointmentActions appointmentId={apt.id} status={apt.status} variant="buttons" />
+            </div>
           </div>
         )}
       </DialogContent>
