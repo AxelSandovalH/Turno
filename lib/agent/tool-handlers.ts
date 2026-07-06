@@ -214,6 +214,13 @@ export async function handleTool(toolName: string, input: Record<string, string>
     case 'cancel_appointment': {
       const { appointment_id, reason } = input
 
+      const { data: appt } = await db
+        .from('appointments')
+        .select('starts_at, customer:customers(name, phone), service:services(name), staff:staff(name)')
+        .eq('id', appointment_id)
+        .eq('organization_id', ctx.organizationId)
+        .single()
+
       const { error } = await db
         .from('appointments')
         .update({ status: 'cancelled', cancelled_by: 'customer', cancellation_reason: reason ?? null })
@@ -231,6 +238,16 @@ export async function handleTool(toolName: string, input: Record<string, string>
         metadata: { reason },
       })
 
+      // Notify owner via WhatsApp (non-blocking)
+      if (ctx.ownerWhatsapp && appt) {
+        const c = appt.customer as unknown as { name: string | null; phone: string } | null
+        const s = appt.service as unknown as { name: string } | null
+        const st = appt.staff as unknown as { name: string } | null
+        const localTime = format(toZonedTime(parseISO(appt.starts_at), ctx.timezone), "dd/MM/yyyy 'a las' HH:mm", { timeZone: ctx.timezone })
+        const msg = `❌ *Cita cancelada por el cliente*\n👤 ${c?.name ?? c?.phone ?? 'Cliente'}\n💆 ${s?.name ?? 'Servicio'}${st?.name ? ` con ${st.name}` : ''}\n🕐 ${localTime}${reason ? `\n📝 Motivo: ${reason}` : ''}\nEl horario quedó libre.`
+        sendMessage(`${ctx.ownerWhatsapp}@c.us`, msg, ctx.ultramsg).catch(() => {})
+      }
+
       return JSON.stringify({ success: true })
     }
 
@@ -239,7 +256,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
       const { data: appt } = await db
         .from('appointments')
-        .select('service_id, staff_id')
+        .select('service_id, staff_id, starts_at, customer:customers(name, phone), service:services(name)')
         .eq('id', appointment_id)
         .single()
 
@@ -278,6 +295,15 @@ export async function handleTool(toolName: string, input: Record<string, string>
         resource_id: appointment_id,
         metadata: { new_starts_at },
       })
+
+      // Notify owner via WhatsApp (non-blocking)
+      if (ctx.ownerWhatsapp) {
+        const c = appt.customer as unknown as { name: string | null; phone: string } | null
+        const s = appt.service as unknown as { name: string } | null
+        const fmt = (iso: string) => format(toZonedTime(parseISO(iso), ctx.timezone), "dd/MM 'a las' HH:mm", { timeZone: ctx.timezone })
+        const msg = `🔄 *Cita reagendada por el cliente*\n👤 ${c?.name ?? c?.phone ?? 'Cliente'}\n💆 ${s?.name ?? 'Servicio'}\n🕐 ${fmt(appt.starts_at)} → *${fmt(new_starts_at)}*`
+        sendMessage(`${ctx.ownerWhatsapp}@c.us`, msg, ctx.ultramsg).catch(() => {})
+      }
 
       return JSON.stringify({ success: true, new_starts_at, new_ends_at: newEndsAt })
     }
