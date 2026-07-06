@@ -15,6 +15,8 @@ interface Props {
   activeConversation: ConvWithCustomer | null
   messages: Message[]
   isMedical: boolean
+  page: number
+  totalPages: number
 }
 
 function initials(name: string | null | undefined, phone: string): string {
@@ -27,7 +29,7 @@ function displayName(conv: ConvWithCustomer): string {
 }
 
 // ── Conversation list item ────────────────────────────────────────────────────
-function ConvItem({ conv, selected }: { conv: ConvWithCustomer; selected: boolean }) {
+function ConvItem({ conv, selected, page }: { conv: ConvWithCustomer; selected: boolean; page: number }) {
   const name = displayName(conv)
   const time = conv.last_message_at
     ? formatDistanceToNow(new Date(conv.last_message_at), { locale: es, addSuffix: false })
@@ -35,7 +37,7 @@ function ConvItem({ conv, selected }: { conv: ConvWithCustomer; selected: boolea
 
   return (
     <Link
-      href={`/conversations?id=${conv.id}`}
+      href={`/conversations?id=${conv.id}${page > 1 ? `&page=${page}` : ''}`}
       className={`flex items-start gap-3 px-4 py-3 border-b border-border transition-colors hover:bg-muted/30 ${selected ? 'bg-muted/50' : ''}`}
     >
       {/* Avatar */}
@@ -87,7 +89,7 @@ function DateSep({ date }: { date: string }) {
 }
 
 // ── Main layout ───────────────────────────────────────────────────────────────
-export function ConversationsLayout({ conversations, selectedId, activeConversation, messages, isMedical }: Props) {
+export function ConversationsLayout({ conversations, selectedId, activeConversation, messages, isMedical, page, totalPages }: Props) {
   const label = isMedical ? 'Paciente' : 'Cliente'
 
   // Group messages by date for separators
@@ -117,10 +119,29 @@ export function ConversationsLayout({ conversations, selectedId, activeConversat
             </div>
           ) : (
             conversations.map(conv => (
-              <ConvItem key={conv.id} conv={conv} selected={conv.id === selectedId} />
+              <ConvItem key={conv.id} conv={conv} selected={conv.id === selectedId} page={page} />
             ))
           )}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-border shrink-0">
+            <Link
+              href={`/conversations?page=${page - 1}${selectedId ? `&id=${selectedId}` : ''}`}
+              className={`text-xs ${page <= 1 ? 'pointer-events-none opacity-30' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              ← Anterior
+            </Link>
+            <span className="text-[10px] text-muted-foreground">{page} / {totalPages}</span>
+            <Link
+              href={`/conversations?page=${page + 1}${selectedId ? `&id=${selectedId}` : ''}`}
+              className={`text-xs ${page >= totalPages ? 'pointer-events-none opacity-30' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Siguiente →
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* ── Main: chat view ───────────────────────────────────────────── */}

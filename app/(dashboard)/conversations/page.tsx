@@ -3,36 +3,46 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { ConversationsLayout } from './conversations-layout'
 
 interface Props {
-  searchParams: Promise<{ id?: string }>
+  searchParams: Promise<{ id?: string; page?: string }>
 }
 
+const PAGE_SIZE = 30
+
 export default async function ConversationsPage({ searchParams }: Props) {
-  const { id: selectedId } = await searchParams
+  const { id: selectedId, page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1') || 1)
   const { organization } = await requireOrganization()
   const db = createServiceClient()
 
-  // Load all conversations with customer name
-  const { data: conversations } = await db
+  const from = (page - 1) * PAGE_SIZE
+  const { data: conversations, count } = await db
     .from('conversations')
-    .select('*, customer:customers(id, name, phone)')
+    .select('*, customer:customers(id, name, phone)', { count: 'exact' })
     .eq('organization_id', organization.id)
     .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(60)
+    .range(from, from + PAGE_SIZE - 1)
 
-  // Load messages for selected conversation
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE))
+
+  // Load messages for selected conversation (may live outside the current page)
   let messages = null
-  let activeConversation = null
-  if (selectedId) {
-    const conv = (conversations ?? []).find(c => c.id === selectedId)
-    if (conv) {
-      activeConversation = conv
-      const { data } = await db
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', selectedId)
-        .order('created_at', { ascending: true })
-      messages = data
-    }
+  let activeConversation = (conversations ?? []).find(c => c.id === selectedId) ?? null
+  if (selectedId && !activeConversation) {
+    const { data } = await db
+      .from('conversations')
+      .select('*, customer:customers(id, name, phone)')
+      .eq('id', selectedId)
+      .eq('organization_id', organization.id)
+      .maybeSingle()
+    activeConversation = data
+  }
+  if (activeConversation) {
+    const { data } = await db
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', activeConversation.id)
+      .order('created_at', { ascending: true })
+    messages = data
   }
 
   return (
@@ -42,6 +52,8 @@ export default async function ConversationsPage({ searchParams }: Props) {
       activeConversation={activeConversation ?? null}
       messages={messages ?? []}
       isMedical={organization.business_type !== 'barbershop'}
+      page={page}
+      totalPages={totalPages}
     />
   )
 }

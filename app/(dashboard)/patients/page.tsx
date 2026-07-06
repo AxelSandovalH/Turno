@@ -7,7 +7,12 @@ import { UserRound, Plus, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-export default async function PatientsPage() {
+const PAGE_SIZE = 50
+
+export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, parseInt(pageParam ?? '1') || 1)
+
   const { organization } = await requireOrganization()
   const db = createServiceClient()
 
@@ -15,19 +20,24 @@ export default async function PatientsPage() {
   const label = isMedical ? 'Paciente' : 'Cliente'
   const labelPlural = isMedical ? 'Pacientes' : 'Clientes'
 
-  const { data: patients } = await db
+  const from = (page - 1) * PAGE_SIZE
+  const { data: patients, count } = await db
     .from('customers')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('organization_id', organization.id)
     .eq('is_active', true)
     .order('created_at', { ascending: false })
+    .range(from, from + PAGE_SIZE - 1)
+
+  const total = count ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">{labelPlural}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{patients?.length ?? 0} registrados</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{total} registrados</p>
         </div>
         <Link href="/patients/new">
           <Button size="sm">
@@ -105,6 +115,27 @@ export default async function PatientsPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Página {page} de {totalPages}
+          </p>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link href={`?page=${page - 1}`}>
+                <Button variant="outline" size="sm">← Anterior</Button>
+              </Link>
+            )}
+            {page < totalPages && (
+              <Link href={`?page=${page + 1}`}>
+                <Button variant="outline" size="sm">Siguiente →</Button>
+              </Link>
+            )}
+          </div>
         </div>
       )}
     </div>
