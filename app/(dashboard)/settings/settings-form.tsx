@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
+import { BookingQr } from '@/components/dashboard/booking-qr'
 import type { Organization } from '@/types/database'
 
 
@@ -255,7 +256,7 @@ export function SettingsForm({ organization }: Props) {
           </div>
         </div>
 
-        {/* Ver página pública */}
+        {/* Ver página pública + QR */}
         {form.slug && (
           <div style={{ paddingTop: 4 }}>
             <button
@@ -266,6 +267,7 @@ export function SettingsForm({ organization }: Props) {
               <span style={{ fontSize: 13 }}>↗</span>
               Ver mi página de reservas
             </button>
+            <BookingQr slug={form.slug} businessName={form.name || organization.name} />
           </div>
         )}
       </div>
