@@ -6,6 +6,7 @@ import { Check } from 'lucide-react'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spotlight } from '@/components/ui/spotlight'
+import { WhatsappMockup } from '@/components/landing/whatsapp-mockup'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -100,6 +101,7 @@ export function LandingPage() {
       gsap.fromTo('[data-hero-p]',    { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: 'power3.out', delay: 0.5 })
       gsap.fromTo('[data-hero-cta]',  { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: 'power3.out', delay: 0.65 })
       gsap.fromTo('[data-hero-note]', { opacity: 0 },        { opacity: 1, duration: 0.5, delay: 0.8 })
+      gsap.fromTo('[data-hero-mockup]', { y: 50, opacity: 0, rotate: 2 }, { y: 0, opacity: 1, rotate: 0, duration: 0.9, ease: 'power3.out', delay: 0.55 })
 
       gsap.utils.toArray<HTMLElement>('[data-section-head]').forEach(el => {
         gsap.fromTo(el, { y: 40, opacity: 0 }, {
@@ -209,6 +211,20 @@ export function LandingPage() {
             </p>
           </div>
 
+          {/* Right — WhatsApp demo */}
+          <div
+            data-hero-mockup
+            className="hidden lg:flex flex-1 items-center justify-center py-16"
+            style={{ opacity: 0 }}
+          >
+            <WhatsappMockup isDay={isDay} />
+          </div>
+
+        </div>
+
+        {/* Mobile — mockup debajo del copy */}
+        <div className="lg:hidden flex justify-center pb-16 px-5 relative z-10">
+          <WhatsappMockup isDay={isDay} />
         </div>
       </section>
 
