@@ -55,19 +55,20 @@ function tokens(isDay: boolean) {
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { title: 'Bot de WhatsApp 24/7', desc: 'Responde, agenda y cancela citas automáticamente. Sin importar el giro, tus pacientes o clientes siempre tienen respuesta.' },
-  { title: 'Cero doble booking', desc: 'Verifica disponibilidad en tiempo real. Nunca dos personas a la misma hora con el mismo profesional.' },
-  { title: 'Recordatorios automáticos', desc: 'Envía WhatsApp antes de cada cita. Reduce inasistencias y cancelaciones de último momento.' },
-  { title: 'Multi-especialidad', desc: 'Configura múltiples profesionales, cada uno con su horario, servicios y precios independientes.' },
-  { title: 'Sin instalar apps', desc: 'Tus clientes y pacientes usan el WhatsApp que ya tienen. Cero fricción, cero confusión.' },
-  { title: 'Lista en 5 minutos', desc: 'Crea cuenta, agrega servicios y horario. Tu asistente virtual queda activo al instante.' },
+  { title: 'Nunca pierdas una cita por no contestar', desc: 'Mientras trabajas, Turno responde al instante. Aunque te escriban a las 11 de la noche, la cita queda agendada.' },
+  { title: 'Dos clientes a la misma hora: imposible', desc: 'Turno revisa tu agenda antes de confirmar. Nunca más el "es que a mí me dijeron a las 5".' },
+  { title: 'Se acabaron los plantones', desc: 'Un día antes le recuerda a tu cliente su cita por WhatsApp. Si no puede ir, te avisa y el espacio se libera para otro.' },
+  { title: 'Todo tu equipo, cada quien su agenda', desc: 'Cada barbero o profesional con su propio horario, servicios y precios. Turno sabe con quién agendar a cada cliente.' },
+  { title: 'Tus clientes no instalan nada', desc: 'Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno se encarga del resto.' },
+  { title: 'Listo el mismo día', desc: 'Creas tu cuenta, pones tus servicios y horarios, y tu WhatsApp ya contesta solo. Sin técnicos ni instalaciones.' },
 ]
 
 const FAQ = [
-  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio basado en citas: barberías, consultorios de psicología, clínicas dentales, fisioterapia, spas, estéticas y más. Si agendas con clientes o pacientes, Turno funciona para ti.' },
+  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas: barberías, consultorios de psicología, clínicas dentales, fisioterapia, spas, estéticas y más. Si agendas con clientes o pacientes, Turno funciona para ti.' },
+  { q: '¿Puedo probarlo antes de pagar?', a: 'Sí. Tienes 14 días gratis con todo incluido, sin poner tarjeta. Si no te convence, no pagas nada.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
-  { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Cero fricción, cero confusión.' },
-  { q: '¿Cuánto cuesta?', a: '$2,799 MXN al mes. Sin contratos, sin permanencia. Cancelas cuando quieras desde tu cuenta.' },
+  { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
+  { q: '¿Cuánto cuesta?', a: 'Depende de lo que necesites: desde $899 MXN al mes por tu página web, hasta $2,799 por el asistente que contesta y agenda solo. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -113,6 +114,11 @@ export function LandingPage() {
       gsap.fromTo('[data-feature]', { y: 40, opacity: 0 }, {
         y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', stagger: 0.1,
         scrollTrigger: { trigger: '[data-features-grid]', start: 'top 82%' },
+      })
+
+      gsap.fromTo('[data-step]', { y: 40, opacity: 0 }, {
+        y: 0, opacity: 1, duration: 0.6, ease: 'power3.out', stagger: 0.15,
+        scrollTrigger: { trigger: '[data-step]', start: 'top 85%' },
       })
 
       gsap.fromTo('[data-pricing-card]', { x: -50, opacity: 0 }, {
@@ -185,18 +191,18 @@ export function LandingPage() {
           {/* Left — copy */}
           <div className="flex-1 py-24 sm:py-32 lg:py-0 flex flex-col justify-center">
             <p data-hero-badge className="text-[12px] font-semibold mb-5 tracking-widest uppercase" style={{ color: t.accent, opacity: 0 }}>
-              Asistente de WhatsApp con IA · Agenda 24/7
+              Contesta, agenda y recuerda · las 24 horas
             </p>
             <h1 data-hero-h1 className="text-[40px] sm:text-[58px] lg:text-[64px] font-bold leading-[1.06] tracking-[-0.03em] mb-6" style={{ color: t.text, opacity: 0 }}>
-              Tu consulta agenda<br />citas sola.
+              Tu WhatsApp contesta<br />y agenda solo.
             </h1>
             <p data-hero-p className="text-[16px] sm:text-[18px] leading-relaxed mb-9 max-w-md" style={{ color: t.muted, opacity: 0 }}>
-              Un asistente de IA responde WhatsApp 24/7, agenda sin errores y
-              muestra todo en un dashboard limpio. Para barberías, consultorios,
+              Mientras tú atiendes, Turno responde los mensajes, agenda las citas
+              y les recuerda a tus clientes que vayan. Para barberías, consultorios,
               clínicas dentales y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
-              <FancyButton href="/register">Activar Turno AI →</FancyButton>
+              <FancyButton href="/register">Pruébalo gratis 14 días →</FancyButton>
               <Link href="/login">
                 <button
                   className="text-[14px] font-medium px-5 py-3 rounded-md transition-colors w-full sm:w-auto"
@@ -207,7 +213,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              $2,799 MXN/mes · Cancela cuando quieras
+              14 días gratis · Sin tarjeta · Cancela cuando quieras
             </p>
           </div>
 
@@ -248,6 +254,34 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Cómo funciona */}
+      <section id="how" style={{ borderTop: `1px solid ${t.border}` }}>
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
+          <div data-section-head className="mb-14 sm:mb-16" style={{ opacity: 0 }}>
+            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Cómo funciona</p>
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>Tres pasos y listo.</h2>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-10">
+            {[
+              { n: '1', title: 'Crea tu cuenta', desc: 'Pon el nombre de tu negocio y tu número de WhatsApp. Toma 2 minutos.' },
+              { n: '2', title: 'Di qué ofreces y cuándo', desc: 'Agrega tus servicios con precios y los horarios en que atiendes tú y tu equipo.' },
+              { n: '3', title: 'Comparte tu WhatsApp', desc: 'Tus clientes escriben como siempre — y Turno les contesta, agenda y les recuerda su cita.' },
+            ].map(({ n, title, desc }) => (
+              <div key={n} data-step style={{ opacity: 0 }}>
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-bold mb-5"
+                  style={{ background: `${t.accent}1a`, color: t.accent, border: `1px solid ${t.accent}55` }}
+                >
+                  {n}
+                </div>
+                <h3 className="font-semibold text-[15px] mb-2" style={{ color: t.text }}>{title}</h3>
+                <p className="text-[14px] leading-relaxed" style={{ color: t.muted }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
@@ -263,24 +297,24 @@ export function LandingPage() {
             <div className="grid sm:grid-cols-3 gap-4 mb-10">
               {[
                 {
-                  name: 'Landing',
+                  name: 'Página web',
                   price: '$899',
-                  desc: 'Presencia digital para tu negocio',
-                  features: ['Página web profesional', 'Formulario de contacto', 'SEO básico', 'Dominio incluido 1 año'],
+                  desc: 'Para que te encuentren en internet',
+                  features: ['Tu página profesional', 'Botón directo a tu WhatsApp', 'Aparece en Google', 'Dominio incluido 1 año'],
                   highlight: false,
                 },
                 {
-                  name: 'Turno Sys',
+                  name: 'Agenda',
                   price: '$1,299',
-                  desc: 'Sistema de agenda sin IA',
-                  features: ['Dashboard de citas', 'Hasta 5 barberos', 'Recordatorios automáticos', 'Sin límite de citas'],
+                  desc: 'Tus citas ordenadas, tú las agendas',
+                  features: ['Calendario de citas', 'Hasta 5 profesionales', 'Recordatorios por WhatsApp', 'Citas ilimitadas'],
                   highlight: false,
                 },
                 {
-                  name: 'Turno AI',
+                  name: 'Agenda + Asistente',
                   price: '$2,799',
-                  desc: 'Agenda con bot de WhatsApp 24/7',
-                  features: ['Todo de Turno Sys', 'Bot IA en WhatsApp', 'Agenda automática', 'Soporte prioritario'],
+                  desc: 'Tu WhatsApp contesta y agenda solo',
+                  features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda las citas por ti', 'Soporte prioritario'],
                   highlight: true,
                 },
               ].map(({ name, price, desc, features, highlight }) => (
@@ -333,16 +367,16 @@ export function LandingPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               {[
                 {
-                  name: 'Landing + Turno Sys',
+                  name: 'Página web + Agenda',
                   price: '$1,799',
                   saving: 'Ahorras $399',
-                  features: ['Página web profesional', 'Dashboard de citas', 'Hasta 5 barberos', 'Recordatorios automáticos'],
+                  features: ['Tu página profesional', 'Calendario de citas', 'Hasta 5 profesionales', 'Recordatorios por WhatsApp'],
                 },
                 {
-                  name: 'Landing + Turno AI',
+                  name: 'Página web + Asistente',
                   price: '$3,299',
                   saving: 'Ahorras $499',
-                  features: ['Página web profesional', 'Bot IA en WhatsApp 24/7', 'Agenda automática', 'Soporte prioritario'],
+                  features: ['Tu página profesional', 'Contesta WhatsApp 24/7', 'Agenda las citas por ti', 'Soporte prioritario'],
                 },
               ].map(({ name, price, saving, features }) => (
                 <div
@@ -382,7 +416,7 @@ export function LandingPage() {
               ))}
             </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
-              $2,799 MXN/mes · Sin contrato · Cancela cuando quieras
+              Todos los planes incluyen 14 días gratis · Sin contrato · Cancela cuando quieras
             </p>
           </div>
         </div>
@@ -413,10 +447,10 @@ export function LandingPage() {
       {/* CTA */}
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
-          <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>$2,799 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
+          <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy, gratis.</h2>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>14 días de prueba. Sin tarjeta. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Psicología · Odontología · Fisioterapia · y más</p>
-          <FancyButton href="/register">Activar Turno AI →</FancyButton>
+          <FancyButton href="/register">Pruébalo gratis 14 días →</FancyButton>
         </div>
       </section>
 
