@@ -65,7 +65,6 @@ const FEATURES = [
 
 const FAQ = [
   { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas: barberías, consultorios de psicología, clínicas dentales, fisioterapia, spas, estéticas y más. Si agendas con clientes o pacientes, Turno funciona para ti.' },
-  { q: '¿Puedo probarlo antes de pagar?', a: 'Sí. Tienes 14 días gratis con todo incluido, sin poner tarjeta. Si no te convence, no pagas nada.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Cuánto cuesta?', a: 'Depende de lo que necesites: desde $899 MXN al mes por tu página web, hasta $2,799 por el asistente que contesta y agenda solo. Sin contratos ni permanencia.' },
@@ -202,7 +201,7 @@ export function LandingPage() {
               clínicas dentales y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
-              <FancyButton href="/register">Pruébalo gratis 14 días →</FancyButton>
+              <FancyButton href="/register">Empieza hoy →</FancyButton>
               <Link href="/login">
                 <button
                   className="text-[14px] font-medium px-5 py-3 rounded-md transition-colors w-full sm:w-auto"
@@ -213,7 +212,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              14 días gratis · Sin tarjeta · Cancela cuando quieras
+              Desde $899 MXN/mes · Sin contrato · Cancela cuando quieras
             </p>
           </div>
 
@@ -416,7 +415,7 @@ export function LandingPage() {
               ))}
             </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
-              Todos los planes incluyen 14 días gratis · Sin contrato · Cancela cuando quieras
+              Sin contrato · Sin permanencia · Cancela cuando quieras
             </p>
           </div>
         </div>
@@ -447,10 +446,10 @@ export function LandingPage() {
       {/* CTA */}
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
-          <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy, gratis.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>14 días de prueba. Sin tarjeta. Cancela cuando quieras.</p>
+          <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>Desde $899 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Psicología · Odontología · Fisioterapia · y más</p>
-          <FancyButton href="/register">Pruébalo gratis 14 días →</FancyButton>
+          <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>
       </section>
 

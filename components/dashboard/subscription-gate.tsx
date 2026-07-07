@@ -1,20 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { AlertTriangle, Clock, XCircle } from 'lucide-react'
+import { AlertTriangle, Sparkles, XCircle } from 'lucide-react'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 
 type SubscriptionStatus = 'trialing' | 'active' | 'suspended' | 'canceled' | 'past_due'
 
 interface Props {
   status: SubscriptionStatus
-  trialEndsAt: string | null
   children: React.ReactNode
-}
-
-function isTrialExpired(trialEndsAt: string | null): boolean {
-  if (!trialEndsAt) return false
-  return new Date(trialEndsAt) < new Date()
 }
 
 function GateScreen({ icon, title, description, cta }: {
@@ -73,16 +67,15 @@ function GateScreen({ icon, title, description, cta }: {
   )
 }
 
-export function SubscriptionGate({ status, trialEndsAt, children }: Props) {
-  const trialExpired = status === 'trialing' && isTrialExpired(trialEndsAt)
-
-  if (trialExpired) {
+export function SubscriptionGate({ status, children }: Props) {
+  // Sin trials: 'trialing' (default post-onboarding) significa que aún no paga
+  if (status === 'trialing') {
     return (
       <GateScreen
-        icon={<Clock size={28} color="#f59e0b" />}
-        title="Tu período de prueba terminó"
-        description="Elige un plan para seguir usando QuickTurno y que tu bot de WhatsApp no deje de contestar."
-        cta="Ver planes →"
+        icon={<Sparkles size={28} color="#7c3aed" />}
+        title="Ya casi está listo"
+        description="Tu cuenta está creada. Elige un plan para activar tu agenda y que tu WhatsApp empiece a contestar solo."
+        cta="Elegir mi plan →"
       />
     )
   }
@@ -103,7 +96,7 @@ export function SubscriptionGate({ status, trialEndsAt, children }: Props) {
       <GateScreen
         icon={<XCircle size={28} color="#6b7280" />}
         title="Suscripción cancelada"
-        description="Tu suscripción fue cancelada. Puedes reactivarla en cualquier momento para volver a usar QuickTurno."
+        description="Tu suscripción fue cancelada. Puedes reactivarla en cualquier momento para volver a usar Turno."
         cta="Reactivar →"
       />
     )

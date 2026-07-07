@@ -43,11 +43,11 @@ export async function POST(req: Request) {
   const baseSlug = slugify(slug || name)
   const finalSlug = await uniqueSlug(db, baseSlug)
 
-  // Create organization with a 14-day trial
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+  // Create organization — queda en 'trialing' (default) hasta que pague; el
+  // SubscriptionGate bloquea el dashboard mientras tanto
   const { data: org, error: orgError } = await db
     .from('organizations')
-    .insert({ name, slug: finalSlug, whatsapp_number: whatsappNumber, business_type: businessType ?? 'barbershop', trial_ends_at: trialEndsAt })
+    .insert({ name, slug: finalSlug, whatsapp_number: whatsappNumber, business_type: businessType ?? 'barbershop' })
     .select()
     .single()
 
