@@ -4,11 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 const PLANS: Record<string, { name: string; amount: number; description: string }> = {
-  'landing':     { name: 'Turno Landing',          amount: 89900,  description: 'Página web profesional para tu negocio' },
-  'turno-sys':   { name: 'Turno Sys',               amount: 129900, description: 'Sistema de agenda sin IA' },
-  'turno-ai':    { name: 'Turno AI',                amount: 279900, description: 'Agenda con bot de WhatsApp 24/7' },
-  'bundle-sys':  { name: 'Landing + Turno Sys',     amount: 179900, description: 'Combo con ahorro de $399/mes' },
-  'bundle-ai':   { name: 'Landing + Turno AI',      amount: 329900, description: 'Combo con ahorro de $499/mes' },
+  'landing':     { name: 'Turno — Página web',              amount: 89900,  description: 'Página web profesional para tu negocio' },
+  'turno-sys':   { name: 'Turno — Agenda',                  amount: 129900, description: 'Calendario de citas y recordatorios por WhatsApp' },
+  'turno-ai':    { name: 'Turno — Agenda + Asistente',      amount: 279900, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
+  'bundle-sys':  { name: 'Turno — Página web + Agenda',     amount: 179900, description: 'Combo con ahorro de $399/mes' },
+  'bundle-ai':   { name: 'Turno — Página web + Asistente',  amount: 329900, description: 'Combo con ahorro de $499/mes' },
 }
 
 export async function POST(req: Request) {
