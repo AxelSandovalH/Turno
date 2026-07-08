@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Check } from 'lucide-react'
+import { Check, MessageSquare, CalendarCheck, BellRing, Users, Smartphone, Zap } from 'lucide-react'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spotlight } from '@/components/ui/spotlight'
@@ -55,12 +55,12 @@ function tokens(isDay: boolean) {
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  { title: 'Nunca pierdas una cita por no contestar', desc: 'Mientras trabajas, Turno responde al instante. Aunque te escriban a las 11 de la noche, la cita queda agendada.' },
-  { title: 'Dos clientes a la misma hora: imposible', desc: 'Turno revisa tu agenda antes de confirmar. Nunca más el "es que a mí me dijeron a las 5".' },
-  { title: 'Se acabaron los plantones', desc: 'Un día antes le recuerda a tu cliente su cita por WhatsApp. Si no puede ir, te avisa y el espacio se libera para otro.' },
-  { title: 'Todo tu equipo, cada quien su agenda', desc: 'Cada barbero o profesional con su propio horario, servicios y precios. Turno sabe con quién agendar a cada cliente.' },
-  { title: 'Tus clientes no instalan nada', desc: 'Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno se encarga del resto.' },
-  { title: 'Listo el mismo día', desc: 'Creas tu cuenta, pones tus servicios y horarios, y tu WhatsApp ya contesta solo. Sin técnicos ni instalaciones.' },
+  { Icon: MessageSquare, title: 'Nunca pierdas una cita por no contestar', desc: 'Mientras trabajas, Turno responde al instante. Aunque te escriban a las 11 de la noche, la cita queda agendada.' },
+  { Icon: CalendarCheck, title: 'Dos clientes a la misma hora: imposible', desc: 'Turno revisa tu agenda antes de confirmar. Nunca más el "es que a mí me dijeron a las 5".' },
+  { Icon: BellRing, title: 'Se acabaron los plantones', desc: 'Un día antes le recuerda a tu cliente su cita por WhatsApp. Si no puede ir, te avisa y el espacio se libera para otro.' },
+  { Icon: Users, title: 'Todo tu equipo, cada quien su agenda', desc: 'Cada barbero o profesional con su propio horario, servicios y precios. Turno sabe con quién agendar a cada cliente.' },
+  { Icon: Smartphone, title: 'Tus clientes no instalan nada', desc: 'Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno se encarga del resto.' },
+  { Icon: Zap, title: 'Listo el mismo día', desc: 'Creas tu cuenta, pones tus servicios y horarios, y tu WhatsApp ya contesta solo. Sin técnicos ni instalaciones.' },
 ]
 
 const FAQ = [
@@ -241,12 +241,22 @@ export function LandingPage() {
             <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>Todo lo que necesitas.</h2>
             <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Diseñado para cualquier negocio de citas. Sin configuraciones complicadas.</p>
           </div>
-          <div data-features-grid className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
-            {FEATURES.map(({ title, desc }) => (
-              <div key={title} data-feature style={{ opacity: 0 }}>
-                <div className="h-1 w-6 rounded-full mb-5" style={{ background: t.accent }} />
-                <h3 className="font-semibold text-[15px] mb-2" style={{ color: t.text }}>{title}</h3>
-                <p className="text-[14px] leading-relaxed" style={{ color: t.muted }}>{desc}</p>
+          <div data-features-grid className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {FEATURES.map(({ Icon, title, desc }) => (
+              <div
+                key={title}
+                data-feature
+                className="rounded-2xl p-6 sm:p-7 transition-colors duration-300"
+                style={{ opacity: 0, background: t.card, border: `1px solid ${t.border}` }}
+              >
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
+                  style={{ background: `${t.accent}14`, color: t.accent }}
+                >
+                  <Icon className="h-5 w-5" strokeWidth={2} />
+                </div>
+                <h3 className="font-semibold text-[15px] mb-2 leading-snug" style={{ color: t.text }}>{title}</h3>
+                <p className="text-[13.5px] leading-relaxed" style={{ color: t.muted }}>{desc}</p>
               </div>
             ))}
           </div>
