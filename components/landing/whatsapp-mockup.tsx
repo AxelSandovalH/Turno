@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 
 interface Props {
@@ -13,20 +13,60 @@ interface Msg {
   time: string
 }
 
-const CONVERSATION: Msg[] = [
-  { from: 'customer', text: 'Hola! ¿Tienen espacio mañana para un corte? ✂️', time: '10:02' },
-  { from: 'bot', text: '¡Hola Luis! 👋 Claro que sí. Mañana tengo estos horarios con Carlos:\n\n1️⃣ 11:00\n2️⃣ 13:30\n3️⃣ 17:00\n\n¿Cuál te acomoda?', time: '10:02' },
-  { from: 'customer', text: 'La 2', time: '10:03' },
-  { from: 'bot', text: '✅ ¡Listo! Tu cita quedó agendada:\n\n💈 Corte de cabello · $180\n📅 Mañana a la 1:30 pm\n👤 Con Carlos\n\nTe mando un recordatorio un día antes 😉', time: '10:03' },
+interface Scenario {
+  emoji: string
+  business: string
+  messages: Msg[]
+}
+
+const SCENARIOS: Scenario[] = [
+  {
+    emoji: '💈',
+    business: 'Barbería Central',
+    messages: [
+      { from: 'customer', text: 'Hola! ¿Tienen espacio mañana para un corte? ✂️', time: '10:02' },
+      { from: 'bot', text: '¡Hola Luis! 👋 Claro que sí. Mañana tengo estos horarios con Carlos:\n\n1️⃣ 11:00\n2️⃣ 13:30\n3️⃣ 17:00\n\n¿Cuál te acomoda?', time: '10:02' },
+      { from: 'customer', text: 'La 2', time: '10:03' },
+      { from: 'bot', text: '✅ ¡Listo! Tu cita quedó agendada:\n\n💈 Corte de cabello · $180\n📅 Mañana a la 1:30 pm\n👤 Con Carlos\n\nTe mando un recordatorio un día antes 😉', time: '10:03' },
+    ],
+  },
+  {
+    emoji: '🦷',
+    business: 'Dental Sonríe',
+    messages: [
+      { from: 'customer', text: 'Buenas, necesito una limpieza dental 🪥', time: '16:20' },
+      { from: 'bot', text: '¡Hola Ana! 😁 Con gusto. La Dra. Ramírez tiene disponible:\n\n1️⃣ Jueves 10:00\n2️⃣ Viernes 12:00\n\n¿Cuál prefieres?', time: '16:20' },
+      { from: 'customer', text: 'El jueves está perfecto', time: '16:21' },
+      { from: 'bot', text: '✅ ¡Agendada!\n\n🦷 Limpieza dental · $600\n📅 Jueves 10:00 am\n👩‍⚕️ Dra. Ramírez\n\nTe esperamos 💙', time: '16:21' },
+    ],
+  },
+  {
+    emoji: '💆',
+    business: 'Fisio Bienestar',
+    messages: [
+      { from: 'customer', text: 'Hola, me lastimé la espalda y quiero una sesión', time: '09:15' },
+      { from: 'bot', text: 'Hola Roberto 🙌 Lamento lo de tu espalda. El Lic. Torres puede atenderte:\n\n1️⃣ Hoy 18:00\n2️⃣ Mañana 11:00\n\n¿Cuándo te viene mejor?', time: '09:15' },
+      { from: 'customer', text: 'Hoy mismo si se puede', time: '09:16' },
+      { from: 'bot', text: '✅ ¡Confirmado!\n\n💆 Sesión de fisioterapia · $500\n📅 Hoy 6:00 pm\n👨‍⚕️ Lic. Torres\n\nMejórate pronto 💪', time: '09:16' },
+    ],
+  },
 ]
 
 export function WhatsappMockup({ isDay }: Props) {
   const root = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(0)
+  const scenario = SCENARIOS[active]
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       const msgs = gsap.utils.toArray<HTMLElement>('[data-wa-msg]')
-      const tl = gsap.timeline({ repeat: -1, repeatDelay: 3.5, delay: 1.2 })
+      const tl = gsap.timeline({
+        delay: 0.6,
+        onComplete: () => {
+          // pasa a la siguiente conversación (rota en círculo)
+          setActive(prev => (prev + 1) % SCENARIOS.length)
+        },
+      })
       msgs.forEach((m, i) => {
         tl.fromTo(m,
           { opacity: 0, y: 14, scale: 0.96 },
@@ -34,10 +74,11 @@ export function WhatsappMockup({ isDay }: Props) {
           i === 0 ? 0 : `+=${i % 2 === 1 ? 1.1 : 0.9}` // pausa como si escribieran
         )
       })
-      tl.to(msgs, { opacity: 0, duration: 0.5, delay: 3 })
+      // mantiene la conversación en pantalla y luego la desvanece antes de rotar
+      tl.to(msgs, { opacity: 0, y: -10, duration: 0.5, stagger: 0.05, delay: 3 })
     }, root)
     return () => ctx.revert()
-  }, [])
+  }, [active])
 
   // WhatsApp palette — independiente del tema del sitio pero con contraste ajustado
   const wa = isDay
@@ -64,9 +105,9 @@ export function WhatsappMockup({ isDay }: Props) {
           width: 34, height: 34, borderRadius: 99, background: '#7c3aed',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 15, flexShrink: 0,
-        }}>💈</div>
+        }}>{scenario.emoji}</div>
         <div style={{ minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>Barbería Central</p>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>{scenario.business}</p>
           <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>en línea</p>
         </div>
       </div>
@@ -77,9 +118,9 @@ export function WhatsappMockup({ isDay }: Props) {
         display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'flex-end',
         transition: 'background .7s',
       }}>
-        {CONVERSATION.map((m, i) => (
+        {scenario.messages.map((m, i) => (
           <div
-            key={i}
+            key={`${active}-${i}`}
             data-wa-msg
             style={{
               alignSelf: m.from === 'customer' ? 'flex-start' : 'flex-end',
