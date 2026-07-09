@@ -5,7 +5,7 @@
 -- ============================================================================
 
 -- Limpieza previa (por si ya existe)
-delete from organizations where slug = 'piedi-carino';
+delete from public.organizations where slug = 'piedi-carino';
 
 do $$
 declare
@@ -16,7 +16,7 @@ declare
   v_cust  uuid[];
   d int; k int; per_day int;
   v_start timestamptz; v_end timestamptz;
-  idx int; v_service_idx int;
+  v_service_idx int;
   v_status text; v_conf text;
   names text[] := array[
     'María Fernanda López','Regina Castro','Ana Sofía Morales','Paulina Vega',
@@ -25,7 +25,7 @@ declare
   nm text;
 begin
   -- 1) Organización
-  insert into organizations (name, slug, business_type, whatsapp_number, phone, email, address, timezone, subscription_status, welcome_message)
+  insert into public.organizations (name, slug, business_type, whatsapp_number, phone, email, address, timezone, subscription_status, welcome_message)
   values (
     'Piedi Carino Beauty & Spa', 'piedi-carino', 'barbershop', '526241050423', '6241050423',
     'demo@quickturno.app',
@@ -36,10 +36,10 @@ begin
   returning id into v_org;
 
   -- 2) Sucursal
-  insert into branches (organization_id, name) values (v_org, 'Puerto Paraíso');
+  insert into public.branches (organization_id, name) values (v_org, 'Puerto Paraíso');
 
   -- 3) Servicios
-  insert into services (organization_id, name, duration_minutes, price, is_active) values
+  insert into public.services (organization_id, name, duration_minutes, price, is_active) values
     (v_org, 'Manicure',          45, 350, true),
     (v_org, 'Pedicure spa',      60, 450, true),
     (v_org, 'Uñas acrílicas',    90, 650, true),
@@ -48,28 +48,28 @@ begin
     (v_org, 'Corte y peinado',   50, 400, true);
 
   select array_agg(id order by name), array_agg(duration_minutes order by name)
-    into v_svc, v_dur from services where organization_id = v_org;
+    into v_svc, v_dur from public.services where organization_id = v_org;
 
   -- 4) Estilistas
-  insert into staff (organization_id, name, role, is_active, specialty) values
+  insert into public.staff (organization_id, name, role, is_active, specialty) values
     (v_org, 'Valeria Núñez', 'owner', true, 'Uñas y manicure'),
     (v_org, 'Daniela Ruiz',  'staff', true, 'Faciales y masaje'),
     (v_org, 'Sofía Herrera', 'staff', true, 'Cabello');
 
-  select array_agg(id order by name) into v_staff from staff where organization_id = v_org;
+  select array_agg(id order by name) into v_staff from public.staff where organization_id = v_org;
 
   -- 5) Horarios: lunes(1) a sábado(6), 10:00–20:00
-  insert into staff_schedules (staff_id, day_of_week, start_time, end_time, is_working)
+  insert into public.staff_schedules (staff_id, day_of_week, start_time, end_time, is_working)
   select s, dow, '10:00', '20:00', true
   from unnest(v_staff) s, generate_series(1, 6) dow;
 
   -- 6) Clientes
   foreach nm in array names loop
-    insert into customers (organization_id, name, phone, is_active)
+    insert into public.customers (organization_id, name, phone, is_active)
     values (v_org, nm, '52624' || lpad((1000000 + floor(random()*8999999))::text, 7, '0'), true);
   end loop;
 
-  select array_agg(id) into v_cust from customers where organization_id = v_org;
+  select array_agg(id) into v_cust from public.customers where organization_id = v_org;
 
   -- 7) Citas repartidas de -14 a +10 días
   for d in -14..10 loop
@@ -91,14 +91,19 @@ begin
         v_conf := case when random() < 0.5 then 'confirmed' else 'pending' end;
       end if;
 
-      insert into appointments (organization_id, customer_id, staff_id, service_id, starts_at, ends_at, status, confirmation_status)
-      values (
-        v_org,
-        v_cust[1 + floor(random() * array_length(v_cust, 1))::int],
-        v_staff[1 + floor(random() * array_length(v_staff, 1))::int],
-        v_svc[v_service_idx],
-        v_start, v_end, v_status::appointment_status, v_conf
-      );
+      begin
+        insert into public.appointments (organization_id, customer_id, staff_id, service_id, starts_at, ends_at, status, confirmation_status)
+        values (
+          v_org,
+          v_cust[1 + floor(random() * array_length(v_cust, 1))::int],
+          v_staff[1 + floor(random() * array_length(v_staff, 1))::int],
+          v_svc[v_service_idx],
+          v_start, v_end, v_status::public.appointment_status, v_conf
+        );
+      exception when unique_violation then
+        -- mismo staff+hora ya usado por otra cita random — se omite y sigue
+        null;
+      end;
     end loop;
   end loop;
 
