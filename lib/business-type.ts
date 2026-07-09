@@ -1,3 +1,6 @@
+import { Scissors, Sparkles, Brain, Smile, Bone, Briefcase } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+
 export type BusinessType = 'barbershop' | 'spa' | 'psychology' | 'dentistry' | 'physiotherapy' | 'other'
 
 interface StaffLabels { singular: string; plural: string }
@@ -14,6 +17,15 @@ const STAFF_LABELS: Record<BusinessType, StaffLabels> = {
 // Giros con expediente clínico (notas SOAP, NOM-004, planes de tratamiento, etc.)
 // Barbería y spa quedan fuera: solo agendan servicios, sin historial médico.
 const CLINICAL_TYPES = new Set<BusinessType>(['psychology', 'dentistry', 'physiotherapy', 'other'])
+
+const STAFF_ICONS: Record<BusinessType, LucideIcon> = {
+  barbershop:    Scissors,
+  spa:           Sparkles,
+  psychology:    Brain,
+  dentistry:     Smile,
+  physiotherapy: Bone,
+  other:         Briefcase,
+}
 
 function normalize(type: string | null | undefined): BusinessType {
   return (type && type in STAFF_LABELS ? type : 'barbershop') as BusinessType
@@ -32,4 +44,8 @@ export function customerLabel(type: string | null | undefined, plural = false): 
   const medical = isMedicalVertical(type)
   if (plural) return medical ? 'Pacientes' : 'Clientes'
   return medical ? 'Paciente' : 'Cliente'
+}
+
+export function staffIcon(type: string | null | undefined): LucideIcon {
+  return STAFF_ICONS[normalize(type)]
 }
