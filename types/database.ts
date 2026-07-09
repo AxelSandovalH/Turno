@@ -15,7 +15,7 @@ export interface Organization {
   id: string
   name: string
   slug: string
-  business_type: 'barbershop' | 'psychology' | 'dentistry' | 'physiotherapy' | 'other' | null
+  business_type: 'barbershop' | 'spa' | 'psychology' | 'dentistry' | 'physiotherapy' | 'other' | null
   whatsapp_number: string
   phone: string | null
   email: string | null

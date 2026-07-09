@@ -1,5 +1,6 @@
 import { requireOrganization } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
+import { isMedicalVertical } from '@/lib/business-type'
 import { ConversationsLayout } from './conversations-layout'
 
 interface Props {
@@ -51,7 +52,7 @@ export default async function ConversationsPage({ searchParams }: Props) {
       selectedId={selectedId ?? null}
       activeConversation={activeConversation ?? null}
       messages={messages ?? []}
-      isMedical={organization.business_type !== 'barbershop'}
+      isMedical={isMedicalVertical(organization.business_type)}
       page={page}
       totalPages={totalPages}
     />

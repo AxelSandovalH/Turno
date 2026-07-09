@@ -13,6 +13,7 @@ import {
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { TurnoLogo } from '@/components/ui/turno-logo'
+import { staffLabel as getStaffLabel, customerLabel as getCustomerLabel } from '@/lib/business-type'
 import type { Organization } from '@/types/database'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -42,9 +43,8 @@ function useDebounce<T>(value: T, delay = 250): T {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function AppSidebar({ organization }: { organization: Organization }) {
-  const isMedical = organization.business_type && organization.business_type !== 'barbershop'
-  const staffLabel   = isMedical ? 'Equipo'     : 'Barberos'
-  const patientLabel = isMedical ? 'Pacientes'  : 'Clientes'
+  const staffLabel   = getStaffLabel(organization.business_type, true)
+  const patientLabel = getCustomerLabel(organization.business_type, true)
 
   const modules: SearchResult[] = [
     { id: 'appointments', type: 'module', title: 'Citas',          subtitle: 'Agenda del día',           breadcrumb: ['Citas'],          href: '/appointments', },
@@ -136,7 +136,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
 
     setResults([...moduleMatches, ...staffResults, ...serviceResults, ...patientResults])
     setLoading(false)
-  }, [organization.id, isMedical]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [organization.id, organization.business_type]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { search(debouncedQuery) }, [debouncedQuery, search])
 

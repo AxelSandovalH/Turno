@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireOrganization } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
+import { isMedicalVertical } from '@/lib/business-type'
 import { PatientDetail } from './patient-detail'
 
 interface Props { params: Promise<{ id: string }> }
@@ -42,7 +43,7 @@ export default async function PatientPage({ params }: Props) {
 
   if (!patient) notFound()
 
-  const isMedical = !!organization.business_type && organization.business_type !== 'barbershop'
+  const isMedical = isMedicalVertical(organization.business_type)
 
   return (
     <PatientDetail

@@ -10,6 +10,7 @@ import { CalendarView } from './calendar-view'
 import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
 import { SetupChecklist } from '@/components/dashboard/setup-checklist'
+import { staffLabel as getStaffLabel } from '@/lib/business-type'
 import type { Appointment } from '@/types/database'
 
 interface Props {
@@ -61,7 +62,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     service.from('conversations').select('id').eq('organization_id', organizationId).limit(1).maybeSingle(),
   ])
 
-  const staffLabel = org?.business_type === 'barbershop' ? 'Barbero' : 'Fisioterapeuta'
+  const staffLabel = getStaffLabel(org?.business_type)
 
   const allApts = (monthApts ?? []) as Appointment[]
   const list = allApts.filter(a => {

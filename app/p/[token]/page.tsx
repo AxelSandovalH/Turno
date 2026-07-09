@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
+import { isMedicalVertical } from '@/lib/business-type'
 import { format, differenceInYears, isAfter } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Metadata } from 'next'
@@ -33,7 +34,7 @@ export default async function PatientPortalPage({ params }: Props) {
   } | null
 
   const accent = org?.primary_color ?? '#7c3aed'
-  const isMedical = org?.business_type && org.business_type !== 'barbershop'
+  const isMedical = isMedicalVertical(org?.business_type)
 
   // Upcoming appointments
   const { data: appointments } = await db

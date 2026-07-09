@@ -6,6 +6,7 @@ import { es } from 'date-fns/locale'
 import { UserRound, Plus, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { isMedicalVertical, customerLabel } from '@/lib/business-type'
 
 const PAGE_SIZE = 50
 
@@ -16,9 +17,9 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const { organization } = await requireOrganization()
   const db = createServiceClient()
 
-  const isMedical = organization.business_type && organization.business_type !== 'barbershop'
-  const label = isMedical ? 'Paciente' : 'Cliente'
-  const labelPlural = isMedical ? 'Pacientes' : 'Clientes'
+  const isMedical = isMedicalVertical(organization.business_type)
+  const label = customerLabel(organization.business_type)
+  const labelPlural = customerLabel(organization.business_type, true)
 
   const from = (page - 1) * PAGE_SIZE
   const { data: patients, count } = await db

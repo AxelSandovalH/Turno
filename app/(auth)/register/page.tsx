@@ -17,6 +17,7 @@ const s = {
 
 const TYPES = [
   { value: 'barbershop',     label: '💈 Barbería' },
+  { value: 'spa',            label: '💅 Spa / Belleza' },
   { value: 'psychology',    label: '🧠 Psicología' },
   { value: 'dentistry',     label: '🦷 Odontología' },
   { value: 'physiotherapy', label: '🏃 Fisioterapia' },

@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale'
 import { TrendingUp, DollarSign, Calendar, AlertCircle, Users, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { isMedicalVertical } from '@/lib/business-type'
 
 type Period = 'day' | 'week' | 'month' | 'all'
 
@@ -54,7 +55,8 @@ const PERIOD_LABELS: Record<Period, string> = {
 
 export function FinanzasClient({ payments, appointments, staff, businessType }: Props) {
   const [period, setPeriod] = useState<Period>('month')
-  const isBarbershop = businessType === 'barbershop'
+  // Barbería y spa: sin comisiones forzadas ni layout clínico
+  const isBarbershop = !isMedicalVertical(businessType)
 
   const periodStart = useMemo(() => {
     const now = new Date()

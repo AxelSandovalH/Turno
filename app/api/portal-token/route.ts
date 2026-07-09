@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireOrganization } from '@/lib/auth'
+import { sendMessage } from '@/lib/ultramsg'
+import { customerLabel } from '@/lib/business-type'
 import { randomBytes } from 'crypto'
 
 export async function POST(req: Request) {
@@ -31,12 +33,7 @@ export async function POST(req: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://quickturno.app'
     const portalUrl = `${baseUrl}/p/${token}`
 
-    // Send WhatsApp
-    const instance = process.env.ULTRAMSG_INSTANCE!
-    const tkn      = process.env.ULTRAMSG_TOKEN!
-
-    const isMedical = organization.business_type && organization.business_type !== 'barbershop'
-    const label = isMedical ? 'paciente' : 'cliente'
+    const label = customerLabel(organization.business_type).toLowerCase()
 
     const message = [
       `👋 Hola ${patient.name ?? label}, aquí puedes consultar tu información en *${organization.name}*:`,
@@ -47,10 +44,9 @@ export async function POST(req: Request) {
     ].join('\n')
 
     if (patient.phone) {
-      await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tkn, to: patient.phone, body: message }),
+      await sendMessage(patient.phone, message, {
+        instance: organization.ultramsg_instance,
+        token: organization.ultramsg_token,
       })
     }
 

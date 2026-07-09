@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
+import { staffLabel as getStaffLabel } from '@/lib/business-type'
 import { ScheduleManager } from './schedule-manager'
 
 export default async function SchedulePage() {
@@ -12,8 +13,7 @@ export default async function SchedulePage() {
   const organizationId = user.user_metadata?.organization_id
 
   const { data: org } = await service.from('organizations').select('business_type').eq('id', organizationId).single()
-  const isMedical = org?.business_type && org.business_type !== 'barbershop'
-  const staffLabel = isMedical ? 'Equipo' : 'Barberos'
+  const staffLabel = getStaffLabel(org?.business_type, true)
 
   const [{ data: staff }, { data: schedules }, { data: blocks }] = await Promise.all([
     service
