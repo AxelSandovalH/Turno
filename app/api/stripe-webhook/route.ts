@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       const sub = event.data.object as Stripe.Subscription
       const orgId = sub.metadata?.organization_id
       if (orgId) {
-        await db.from('organizations').update({ subscription_status: 'cancelled' }).eq('id', orgId)
+        await db.from('organizations').update({ subscription_status: 'canceled' }).eq('id', orgId)
       }
       break
     }
