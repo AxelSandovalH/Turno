@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  CalendarDays, Clock, Settings,
+  CalendarDays, Clock, Settings, Tag,
   LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -289,12 +289,11 @@ export function AppSidebar({ organization }: { organization: Organization }) {
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
               {(query.trim() ? [] : modules).map(({ href, title, id }) => {
-                const VerticalIcon = staffIcon(organization.business_type)
                 const Icon = {
                   appointments: CalendarDays,
                   patients:     FolderHeart,
-                  staff:        VerticalIcon,
-                  services:     VerticalIcon,
+                  staff:        staffIcon(organization.business_type),
+                  services:     Tag,
                   schedule:     Clock,
                   conversations: MessageCircle,
                   finanzas:     DollarSign,
