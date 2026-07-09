@@ -195,7 +195,16 @@ export function AppSidebar({ organization }: { organization: Organization }) {
       <SidebarHeader className="px-4 py-4 border-b border-[var(--sidebar-border)] space-y-3">
         <div className="flex items-center gap-3">
           <div style={{ flexShrink: 0, color: 'var(--sidebar-foreground)' }}>
-            <TurnoLogo height={28} />
+            {organization.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={organization.logo_url}
+                alt={organization.name}
+                className="h-7 w-7 rounded-md object-cover"
+              />
+            ) : (
+              <TurnoLogo height={28} />
+            )}
           </div>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
