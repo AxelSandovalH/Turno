@@ -7,7 +7,7 @@ interface StaffLabels { singular: string; plural: string }
 
 const STAFF_LABELS: Record<BusinessType, StaffLabels> = {
   barbershop:    { singular: 'Barbero',        plural: 'Barberos' },
-  spa:           { singular: 'Estilista',      plural: 'Estilistas' },
+  spa:           { singular: 'Especialista',   plural: 'Especialistas' },
   psychology:    { singular: 'Terapeuta',      plural: 'Terapeutas' },
   dentistry:     { singular: 'Dentista',       plural: 'Dentistas' },
   physiotherapy: { singular: 'Fisioterapeuta', plural: 'Fisioterapeutas' },
