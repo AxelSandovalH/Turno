@@ -1,7 +1,14 @@
+import { toZonedTime, format } from 'date-fns-tz'
+import { es } from 'date-fns/locale'
+
 export function buildSystemPrompt(
   org: { name: string; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number },
   customer?: { name: string | null; occupation: string | null; notes: string | null }
 ) {
+  const nowInTz = toZonedTime(new Date(), org.timezone)
+  const todayLabel = format(nowInTz, "EEEE d 'de' MMMM 'de' yyyy, HH:mm", { timeZone: org.timezone, locale: es })
+  const todayISO = format(nowInTz, 'yyyy-MM-dd', { timeZone: org.timezone })
+
   const customerCtx = customer?.name
     ? `\nINFORMACIÓN DEL CLIENTE:\n- Nombre: ${customer.name}${customer.occupation ? `\n- Puesto/Ocupación: ${customer.occupation}` : ''}${customer.notes ? `\n- Notas: ${customer.notes}` : ''}\nLlámalo por su nombre cuando sea natural.`
     : ''
@@ -31,6 +38,7 @@ REGLAS ESTRICTAS:
 - Mensajes cortos. Máximo 3-4 líneas por respuesta
 - Usa listas numeradas cuando ofrezcas opciones de horario
 - Timezone del negocio: ${org.timezone}
+- HOY ES: ${todayLabel} (formato para herramientas: ${todayISO}). Usa SIEMPRE este año y esta fecha como referencia real — nunca asumas un año distinto ni calcules "hoy" de otra forma. Si el cliente dice una fecha sin año (ej. "20 de julio"), usa el año actual salvo que esa fecha ya haya pasado, en cuyo caso usa el siguiente año.
 
 REGLAS DE DISPONIBILIDAD (muy importante):
 - SIEMPRE llama get_available_slots para CADA fecha nueva que el cliente mencione. Nunca asumas que un día no tiene espacio basándote en resultados de otra fecha — cada día es independiente y debes consultarlo.
