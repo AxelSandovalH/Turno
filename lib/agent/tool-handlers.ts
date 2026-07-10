@@ -1,14 +1,19 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage, type UltramsgCreds } from '@/lib/ultramsg'
+import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
 
+const DEPOSIT_TIMEOUT_MINUTES = 20
+
 interface Context {
   organizationId: string
+  organizationName: string
   branchId: string
   timezone: string
   ownerWhatsapp: string
   ultramsg?: UltramsgCreds
+  deposit?: { enabled: boolean; amount: number }
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -175,17 +180,49 @@ export async function handleTool(toolName: string, input: Record<string, string>
         metadata: { customer_phone, customer_name },
       })
 
+      const { data: svc } = await db.from('services').select('name').eq('id', service_id).single()
+      const { data: stf } = await db.from('staff').select('name').eq('id', staff_id).single()
+      const localTime = format(toZonedTime(parseISO(starts_at), ctx.timezone), "dd/MM/yyyy 'a las' HH:mm", { timeZone: ctx.timezone })
+
+      // Deposit flow: appointment already blocks the slot; generate a Stripe
+      // checkout link and let the cron release it if unpaid within the timeout.
+      let depositResult: { deposit_checkout_url: string; deposit_amount: number; deposit_expires_minutes: number } | null = null
+
+      if (ctx.deposit?.enabled && ctx.deposit.amount > 0) {
+        try {
+          const { url, sessionId } = await createDepositCheckoutSession({
+            organizationId: ctx.organizationId,
+            appointmentId: appointment.id,
+            amountPesos: ctx.deposit.amount,
+            businessName: ctx.organizationName,
+            serviceName: svc?.name ?? 'tu cita',
+          })
+          const expiresAt = new Date(Date.now() + DEPOSIT_TIMEOUT_MINUTES * 60000).toISOString()
+
+          await db.from('appointments').update({
+            deposit_status: 'pending',
+            deposit_amount: ctx.deposit.amount,
+            stripe_checkout_session_id: sessionId,
+            deposit_checkout_url: url,
+            deposit_expires_at: expiresAt,
+          }).eq('id', appointment.id)
+
+          depositResult = { deposit_checkout_url: url, deposit_amount: ctx.deposit.amount, deposit_expires_minutes: DEPOSIT_TIMEOUT_MINUTES }
+        } catch (err) {
+          console.error('[create_appointment] deposit checkout failed:', err)
+          // Sin link de pago la cita sigue existiendo — mejor confirmarla sin anticipo que perderla
+        }
+      }
+
       // Notify owner via WhatsApp (non-blocking)
       if (ctx.ownerWhatsapp) {
-        const { data: svc } = await db.from('services').select('name').eq('id', service_id).single()
-        const { data: stf } = await db.from('staff').select('name').eq('id', staff_id).single()
-        const localTime = format(toZonedTime(parseISO(starts_at), ctx.timezone), "dd/MM/yyyy 'a las' HH:mm", { timeZone: ctx.timezone })
         const ownerTo = `${ctx.ownerWhatsapp}@c.us`
-        const msg = `📅 *Nueva cita agendada*\n👤 ${customer_name} (${customer_phone})\n💆 ${svc?.name ?? 'Servicio'} con ${stf?.name ?? 'Staff'}\n🕐 ${localTime}`
+        const statusLine = depositResult ? '⏳ Esperando anticipo del cliente' : ''
+        const msg = `📅 *Nueva cita agendada*\n👤 ${customer_name} (${customer_phone})\n💆 ${svc?.name ?? 'Servicio'} con ${stf?.name ?? 'Staff'}\n🕐 ${localTime}${statusLine ? `\n${statusLine}` : ''}`
         sendMessage(ownerTo, msg, ctx.ultramsg).catch(() => {})
       }
 
-      return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt })
+      return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, ...depositResult })
     }
 
     case 'get_customer_appointments': {

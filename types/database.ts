@@ -33,6 +33,8 @@ export interface Organization {
   primary_color: string | null
   ultramsg_instance: string | null
   ultramsg_token: string | null
+  deposit_enabled: boolean
+  deposit_amount: number
   created_at: string
   updated_at: string
 }
@@ -231,6 +233,12 @@ export interface Appointment {
   cancellation_reason: string | null
   notes: string | null
   reminder_sent_at: string | null
+  deposit_status: 'none' | 'pending' | 'paid'
+  deposit_amount: number | null
+  stripe_checkout_session_id: string | null
+  deposit_checkout_url: string | null
+  deposit_expires_at: string | null
+  deposit_paid_at: string | null
   created_at: string
   updated_at: string
   // joined

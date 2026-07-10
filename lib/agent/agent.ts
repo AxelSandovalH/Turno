@@ -20,7 +20,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token')
+    .select('id, name, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount')
     .eq('id', organizationId)
     .single()
 
@@ -78,10 +78,12 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
 
   const ctx = {
     organizationId,
+    organizationName: org.name,
     branchId: branch?.id ?? '',
     timezone: org.timezone,
     ownerWhatsapp: org.whatsapp_number,
     ultramsg: { instance: org.ultramsg_instance, token: org.ultramsg_token },
+    deposit: { enabled: org.deposit_enabled, amount: Number(org.deposit_amount ?? 0) },
   }
 
   // Agentic loop

@@ -52,6 +52,8 @@ export function SettingsForm({ organization }: Props) {
     away_message:    organization.away_message    ?? '',
     primary_color:   organization.primary_color   ?? '#7c3aed',
     logo_url:        organization.logo_url        ?? '',
+    deposit_enabled: organization.deposit_enabled ?? false,
+    deposit_amount:  organization.deposit_amount ? String(organization.deposit_amount) : '',
   })
   const [slugError, setSlugError] = useState('')
 
@@ -92,6 +94,10 @@ export function SettingsForm({ organization }: Props) {
       setSlugError('Solo letras minúsculas, números y guiones')
       return
     }
+    const depositAmountNum = parseFloat(form.deposit_amount)
+    if (form.deposit_enabled && (!form.deposit_amount || isNaN(depositAmountNum) || depositAmountNum <= 0)) {
+      return toast.error('Ingresa un monto de anticipo válido')
+    }
     setLoading(true)
 
     // Check slug uniqueness if changed
@@ -118,6 +124,8 @@ export function SettingsForm({ organization }: Props) {
         away_message:    form.away_message    || null,
         primary_color:   form.primary_color   || null,
         logo_url:        form.logo_url        || null,
+        deposit_enabled: form.deposit_enabled,
+        deposit_amount:  form.deposit_enabled ? depositAmountNum : 0,
       })
       .eq('id', organization.id)
 
@@ -297,6 +305,47 @@ export function SettingsForm({ organization }: Props) {
             onChange={e => set('away_message')(e.target.value)}
           />
         </div>
+      </div>
+
+      {/* Anticipos */}
+      <div style={s.section}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <p style={s.sectionTitle}>Anticipo por Stripe</p>
+            <p style={s.sectionDesc}>El bot pide un pago para confirmar cada cita agendada por WhatsApp</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm(p => ({ ...p, deposit_enabled: !p.deposit_enabled }))}
+            style={{
+              flexShrink: 0, width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer',
+              background: form.deposit_enabled ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background .15s',
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 2, left: form.deposit_enabled ? 20 : 2,
+              width: 18, height: 18, borderRadius: 99, background: '#fff', transition: 'left .15s',
+            }} />
+          </button>
+        </div>
+
+        {form.deposit_enabled && (
+          <div>
+            <label style={s.label}>Monto del anticipo (MXN)</label>
+            <input
+              style={s.input}
+              type="number"
+              min="1"
+              step="1"
+              placeholder="100"
+              value={form.deposit_amount}
+              onChange={e => setForm(p => ({ ...p, deposit_amount: e.target.value }))}
+            />
+            <p style={s.hint}>
+              El cliente recibe un link de pago por WhatsApp al agendar. Si no paga en 20 minutos, el horario se libera automáticamente.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Plan */}
