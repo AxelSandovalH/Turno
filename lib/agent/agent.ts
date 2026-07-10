@@ -100,7 +100,9 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     const toolResults = await Promise.all(
       toolUses.map(async block => {
         if (block.type !== 'tool_use') return null
+        console.log(`[agent] tool call: ${block.name}`, JSON.stringify(block.input))
         const result = await handleTool(block.name, block.input as Record<string, string>, ctx)
+        console.log(`[agent] tool result: ${block.name} ->`, result.slice(0, 400))
         return { type: 'tool_result' as const, tool_use_id: block.id, content: result }
       })
     )
