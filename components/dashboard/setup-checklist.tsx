@@ -12,9 +12,10 @@ interface Props {
   hasServices: boolean
   hasSchedules: boolean
   hasConversations: boolean
+  hasSlug: boolean
 }
 
-export function SetupChecklist({ hasServices, hasSchedules, hasConversations }: Props) {
+export function SetupChecklist({ hasServices, hasSchedules, hasConversations, hasSlug }: Props) {
   const steps: Step[] = [
     {
       label: 'Agrega tus servicios',
@@ -27,6 +28,12 @@ export function SetupChecklist({ hasServices, hasSchedules, hasConversations }: 
       description: 'Días y horas en que tu equipo atiende',
       href: '/schedule',
       done: hasSchedules,
+    },
+    {
+      label: 'Configura tu página de reservas',
+      description: 'Define el enlace público de tu negocio en Ajustes',
+      href: '/settings',
+      done: hasSlug,
     },
     {
       label: 'Prueba el bot',
