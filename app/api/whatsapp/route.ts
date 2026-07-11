@@ -68,18 +68,19 @@ export async function POST(req: Request) {
       console.log('[whatsapp] org by instance', instanceId, '->', organization?.id ?? 'not found')
     }
 
-    // Fallback: founder instance (no per-org creds configured yet) — match by sender phone
+    // Fallback: founder instance (org has no dedicated UltraMsg creds configured yet).
+    // The sender's phone is the *customer*, not the org — it can't be used to identify
+    // the tenant. Instead, resolve to whichever org is still relying on the shared
+    // founder credentials (ultramsg_instance IS NULL).
     if (!organization) {
-      const candidates = [phone, `52${phone.slice(-10)}`, `521${phone.slice(-10)}`]
-      for (const candidate of candidates) {
-        const { data, error } = await db
-          .from('organizations')
-          .select(ORG_FIELDS)
-          .eq('whatsapp_number', candidate)
-          .maybeSingle()
-        console.log('[whatsapp] org lookup', candidate, '->', data?.id ?? 'not found', error?.message ?? '')
-        if (data) { organization = data; break }
-      }
+      const { data, error } = await db
+        .from('organizations')
+        .select(ORG_FIELDS)
+        .is('ultramsg_instance', null)
+        .eq('is_active', true)
+        .maybeSingle()
+      console.log('[whatsapp] org by founder fallback ->', data?.id ?? 'not found', error?.message ?? '')
+      if (data) organization = data
     }
 
     if (!organization) {
