@@ -13,8 +13,13 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
       Eventos requeridos: `checkout.session.completed`, `invoice.payment_succeeded`,
       `invoice.payment_failed`, `customer.subscription.deleted`
 - [ ] Agregar variables de entorno en Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+      Sin esto el webhook de anticipo (`checkout.session.completed` con `metadata.type=deposit`)
+      nunca llega — el cliente paga pero el sistema no se entera y el cron `deposit-timeout`
+      termina cancelando la cita igual.
 - [ ] Crear los 5 productos en el dashboard de Stripe con sus precios en MXN:
       `landing` $899, `turno-sys` $1,299, `turno-ai` $2,799, `bundle-sys` $1,799, `bundle-ai` $3,299
+      (Nota: esto es solo para las suscripciones del SaaS — el anticipo de citas usa
+      `price_data` dinámico y no depende de estos productos)
 
 ---
 
@@ -46,6 +51,10 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 - [ ] Portal del paciente end-to-end: generar link → WhatsApp → abrir portal
 - [ ] Booking page end-to-end: seleccionar servicio → fecha → datos → abrir WhatsApp
 - [ ] Anticipo por Stripe al agendar por WhatsApp: checkout → pago → confirmación de cita
+      Feature completo en código, pero nunca se ha ejecutado — ninguna cita en producción
+      tiene `deposit_status` distinto de `none`. Activado en Pie Dicarino ($100 MXN) para
+      poder probarlo; bloqueado hasta que `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` y el
+      webhook de Stripe estén configurados (ver Infraestructura)
 - [ ] Cron deposit-timeout: cancelación real cuando el anticipo no se paga a tiempo
 
 ---
