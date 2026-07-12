@@ -33,6 +33,7 @@ export interface Organization {
   primary_color: string | null
   ultramsg_instance: string | null
   ultramsg_token: string | null
+  is_founder_fallback: boolean
   deposit_enabled: boolean
   deposit_amount: number
   created_at: string
