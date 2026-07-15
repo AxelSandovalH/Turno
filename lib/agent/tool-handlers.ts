@@ -51,7 +51,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const localEnd = fromZonedTime(`${date}T23:59:59`, ctx.timezone)
       const dayOfWeek = toZonedTime(localStart, ctx.timezone).getDay()
 
-      const slots: { starts_at: string; staff_id: string; staff_name: string }[] = []
+      const slots: { starts_at: string; label: string; staff_id: string; staff_name: string }[] = []
 
       for (const staff of staffList) {
         // Get schedule for this day
@@ -110,6 +110,9 @@ export async function handleTool(toolName: string, input: Record<string, string>
           if (!isBooked && !isBlocked && !isPast) {
             slots.push({
               starts_at: formatISO(cursor),
+              // Hora local del negocio ya formateada — el modelo la muestra tal
+              // cual, sin hacer conversiones de zona horaria por su cuenta
+              label: format(toZonedTime(cursor, ctx.timezone), 'h:mm a', { timeZone: ctx.timezone }),
               staff_id: staff.id,
               staff_name: staff.name,
             })
@@ -117,11 +120,24 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
           cursor = addMinutes(cursor, 30)
         }
-
-        if (slots.length >= 10) break
       }
 
-      return JSON.stringify({ slots: slots.slice(0, 10), date, duration_minutes: duration })
+      // Mezcla los slots de todo el staff por hora (antes se llenaba el cupo
+      // con el primer staff alfabético y nunca se ofrecía al resto)
+      slots.sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+
+      // Sin preferencia de staff: un solo slot por horario (evita listar la
+      // misma hora tres veces con distinta persona)
+      const deduped = staff_id
+        ? slots
+        : slots.filter((s, i) => i === 0 || s.starts_at !== slots[i - 1].starts_at)
+
+      return JSON.stringify({
+        slots: deduped.slice(0, 10),
+        date,
+        duration_minutes: duration,
+        timezone_note: 'Los campos "label" ya están en la hora local del negocio. Muéstralos tal cual.',
+      })
     }
 
     case 'create_appointment': {
