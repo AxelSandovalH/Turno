@@ -118,7 +118,7 @@ export function CalendarView({ appointments, onDayClick }: Props) {
                               </div>
                             }
                           />
-                          <TooltipContent side="top" className="pointer-events-none">
+                          <TooltipContent side="right" className="pointer-events-none">
                             <div className="space-y-0.5">
                               <p className="font-semibold">
                                 {format(new Date(a.starts_at), 'HH:mm')} – {a.customer?.name ?? 'Sin nombre'}
