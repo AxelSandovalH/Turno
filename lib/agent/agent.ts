@@ -90,7 +90,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   let response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
-    system: buildSystemPrompt(org, customer ?? undefined),
+    system: buildSystemPrompt(org, customer ?? undefined, customerPhone),
     tools,
     messages,
   })
@@ -113,7 +113,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt(org, customer ?? undefined),
+      system: buildSystemPrompt(org, customer ?? undefined, customerPhone),
       tools,
       messages,
     })

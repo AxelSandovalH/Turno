@@ -1,6 +1,7 @@
 import { requireOrganization } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isMedicalVertical } from '@/lib/business-type'
+import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { ConversationsLayout } from './conversations-layout'
 
 interface Props {
@@ -47,6 +48,8 @@ export default async function ConversationsPage({ searchParams }: Props) {
   }
 
   return (
+    <>
+    <AutoRefresh intervalMs={10000} />
     <ConversationsLayout
       conversations={conversations ?? []}
       selectedId={selectedId ?? null}
@@ -56,5 +59,8 @@ export default async function ConversationsPage({ searchParams }: Props) {
       page={page}
       totalPages={totalPages}
     />
+    </>
   )
 }
+
+export const dynamic = 'force-dynamic'
