@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  CalendarDays, Clock, Settings, Tag,
+  CalendarDays, Clock, Settings, Tag, FlaskConical,
   LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -324,6 +324,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                   finanzas:     DollarSign,
                   analytics:    BarChart2,
                   settings:     Settings,
+                  'lab-tests':  FlaskConical,
                 }[id] ?? CalendarDays
                 return (
                   <SidebarMenuItem key={href}>
