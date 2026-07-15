@@ -269,6 +269,98 @@ export interface Message {
   created_at: string
 }
 
+// ── Laboratorio clínico ────────────────────────────────────────────────────────
+
+export type LabOrderStatus = 'registered' | 'in_process' | 'results_ready' | 'delivered' | 'cancelled'
+
+export interface LabTest {
+  id: string
+  organization_id: string
+  name: string
+  description: string | null
+  price: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LabAnalyte {
+  id: string
+  organization_id: string
+  name: string
+  default_unit: string | null
+  ref_range: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LabTestAnalyte {
+  id: string
+  test_id: string
+  analyte_id: string
+  sort_order: number
+  analyte?: LabAnalyte
+}
+
+export interface LabOrder {
+  id: string
+  organization_id: string
+  customer_id: string
+  created_by: string | null
+  folio: string
+  status: LabOrderStatus
+  subtotal: number
+  discount: number
+  total: number
+  notes: string | null
+  delivered_at: string | null
+  cancelled_at: string | null
+  created_at: string
+  updated_at: string
+  customer?: Customer
+  tests?: LabOrderTest[]
+}
+
+export interface LabOrderTest {
+  id: string
+  order_id: string
+  test_id: string
+  price_at_order: number
+  test?: LabTest
+  results?: LabOrderResult[]
+}
+
+export interface LabOrderResult {
+  id: string
+  order_test_id: string
+  analyte_id: string
+  value: string | null
+  unit: string | null
+  ref_range: string | null
+  captured_by: string | null
+  captured_at: string | null
+  validated_by: string | null
+  validated_at: string | null
+  created_at: string
+  updated_at: string
+  analyte?: LabAnalyte
+}
+
+export interface LabQuote {
+  id: string
+  organization_id: string
+  customer_id: string | null
+  customer_name: string | null
+  created_by: string | null
+  folio: string
+  subtotal: number
+  discount: number
+  total: number
+  valid_until: string | null
+  created_at: string
+}
+
 export interface AuditLog {
   id: string
   organization_id: string
