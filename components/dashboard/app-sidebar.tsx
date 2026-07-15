@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sidebar'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { staffLabel as getStaffLabel, customerLabel as getCustomerLabel, staffIcon } from '@/lib/business-type'
+import { getProfile } from '@/lib/profiles/registry'
 import type { Organization } from '@/types/database'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -42,21 +43,36 @@ function useDebounce<T>(value: T, delay = 250): T {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
+const MODULE_SUBTITLES: Record<string, string> = {
+  appointments:  'Agenda del día',
+  patients:      'Expedientes y perfiles',
+  staff:         'Tu equipo de trabajo',
+  services:      'Catálogo y precios',
+  schedule:      'Disponibilidad y bloqueos',
+  conversations: 'Historial de WhatsApp',
+  finanzas:      'Ingresos, comisiones, cortes',
+  analytics:     'Citas, ingresos, tendencias',
+  settings:      'Negocio, WhatsApp, cuenta',
+}
+
 export function AppSidebar({ organization }: { organization: Organization }) {
+  const profile = getProfile(organization.business_type)
   const staffLabel   = getStaffLabel(organization.business_type, true)
   const patientLabel = getCustomerLabel(organization.business_type, true)
 
-  const modules: SearchResult[] = [
-    { id: 'appointments', type: 'module', title: 'Citas',          subtitle: 'Agenda del día',           breadcrumb: ['Citas'],          href: '/appointments', },
-    { id: 'patients',     type: 'module', title: patientLabel,     subtitle: 'Expedientes y perfiles',   breadcrumb: [patientLabel],     href: '/patients', },
-    { id: 'staff',        type: 'module', title: staffLabel,        subtitle: 'Tu equipo de trabajo',     breadcrumb: [staffLabel],       href: '/staff', },
-    { id: 'services',     type: 'module', title: 'Servicios',       subtitle: 'Catálogo y precios',       breadcrumb: ['Servicios'],      href: '/services', },
-    { id: 'schedule',     type: 'module', title: 'Horarios',        subtitle: 'Disponibilidad y bloqueos',breadcrumb: ['Horarios'],       href: '/schedule', },
-    { id: 'conversations', type: 'module', title: 'Conversaciones',   subtitle: 'Historial de WhatsApp',      breadcrumb: ['Conversaciones'], href: '/conversations', },
-    { id: 'finanzas',     type: 'module', title: 'Finanzas',         subtitle: 'Ingresos, comisiones, cortes', breadcrumb: ['Finanzas'],      href: '/finanzas', },
-    { id: 'analytics',    type: 'module', title: 'Analytics',        subtitle: 'Citas, ingresos, tendencias', breadcrumb: ['Analytics'],     href: '/analytics', },
-    { id: 'settings',     type: 'module', title: 'Configuración',   subtitle: 'Negocio, WhatsApp, cuenta',breadcrumb: ['Configuración'],  href: '/settings', },
-  ]
+  // Los módulos del sidebar los define el perfil del negocio; title: null se
+  // resuelve aquí con el label del perfil (Pacientes/Clientes, Barberos/etc.)
+  const modules: SearchResult[] = profile.modules.map(m => {
+    const title = m.title ?? (m.id === 'patients' ? patientLabel : staffLabel)
+    return {
+      id: m.id,
+      type: 'module' as ResultType,
+      title,
+      subtitle: MODULE_SUBTITLES[m.id],
+      breadcrumb: [title],
+      href: m.href,
+    }
+  })
 
   const pathname = usePathname()
   const router   = useRouter()

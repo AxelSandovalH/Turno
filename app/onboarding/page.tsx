@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
+import { ALL_PROFILES } from '@/lib/profiles/registry'
 
 const s = {
   label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#888', marginBottom: 7, fontFamily: 'inherit' } as React.CSSProperties,
@@ -15,14 +16,7 @@ const s = {
   input: { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#ebebeb', fontSize: 14, height: '100%', paddingRight: 12, fontFamily: 'inherit' } as React.CSSProperties,
 }
 
-const TYPES = [
-  { value: 'barbershop',    label: '💈 Barbería' },
-  { value: 'spa',           label: '💅 Spa / Belleza' },
-  { value: 'psychology',   label: '🧠 Psicología' },
-  { value: 'dentistry',    label: '🦷 Odontología' },
-  { value: 'physiotherapy',label: '🏃 Fisioterapia' },
-  { value: 'other',        label: '✨ Otro' },
-]
+const TYPES = ALL_PROFILES.map(p => ({ value: p.type, label: `${p.emoji} ${p.displayName}` }))
 
 function FocusInput({ label, placeholder, value, onChange, type = 'text', hint }: {
   label: string; placeholder: string; value: string
