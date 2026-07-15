@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  CalendarDays, Clock, Settings, Tag, FlaskConical,
+  CalendarDays, Clock, Settings, Tag, FlaskConical, ClipboardList,
   LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -53,6 +53,8 @@ const MODULE_SUBTITLES: Record<string, string> = {
   finanzas:      'Ingresos, comisiones, cortes',
   analytics:     'Citas, ingresos, tendencias',
   settings:      'Negocio, WhatsApp, cuenta',
+  'lab-orders':  'Recepción y órdenes de laboratorio',
+  'lab-tests':   'Catálogo de estudios y analitos',
 }
 
 export function AppSidebar({ organization }: { organization: Organization }) {
@@ -325,6 +327,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                   analytics:    BarChart2,
                   settings:     Settings,
                   'lab-tests':  FlaskConical,
+                  'lab-orders': ClipboardList,
                 }[id] ?? CalendarDays
                 return (
                   <SidebarMenuItem key={href}>

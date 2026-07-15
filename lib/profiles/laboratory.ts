@@ -10,8 +10,9 @@ export const laboratory: BusinessProfile = {
   // Sin motor de citas: el flujo central son órdenes de laboratorio.
   // 'lab-orders' habilita catálogo de estudios, órdenes y captura de resultados.
   capabilities: new Set(['clinical-records', 'lab-orders']),
-  // Órdenes y lista de trabajo se agregan cuando sus rutas existan (fases 3-5)
+  // La lista de trabajo del químico se agrega en la fase 4
   modules: [
+    { id: 'lab-orders',    href: '/lab/orders',    title: 'Órdenes' },
     { id: 'lab-tests',     href: '/lab/tests',     title: 'Estudios' },
     { id: 'patients',      href: '/patients',      title: null },
     { id: 'staff',         href: '/staff',         title: null },
