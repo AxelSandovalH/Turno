@@ -17,7 +17,11 @@ export default async function LabOrderPage({ params }: Props) {
     .select(`
       *,
       customer:customers(id, name, phone),
-      tests:lab_order_tests(id, test_id, price_at_order, test:lab_tests(name, description))
+      tests:lab_order_tests(
+        id, test_id, price_at_order,
+        test:lab_tests(name, description),
+        results:lab_order_results(analyte_id, value, unit, ref_range, analyte:lab_analytes(name))
+      )
     `)
     .eq('id', id)
     .eq('organization_id', organization.id)

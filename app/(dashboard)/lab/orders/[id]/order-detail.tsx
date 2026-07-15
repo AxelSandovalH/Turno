@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, User, Phone, ArrowRight, Ban } from 'lucide-react'
+import { ChevronLeft, User, Phone, ArrowRight, Ban, FlaskConical } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -18,11 +18,20 @@ import {
 import { LAB_STATUS_LABEL, LAB_STATUS_CLASS, LAB_STATUS_NEXT } from '@/lib/lab/status'
 import type { LabOrderStatus } from '@/types/database'
 
+interface ResultRow {
+  analyte_id: string
+  value: string | null
+  unit: string | null
+  ref_range: string | null
+  analyte: { name: string } | null
+}
+
 interface OrderTestRow {
   id: string
   test_id: string
   price_at_order: number
   test: { name: string; description: string | null } | null
+  results: ResultRow[]
 }
 
 interface OrderData {
@@ -148,9 +157,50 @@ export function OrderDetail({ order }: { order: OrderData }) {
         <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm text-muted-foreground">{order.notes}</div>
       )}
 
+      {/* Resultados capturados */}
+      {order.tests.some(t => t.results.length > 0) && (
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-sm">Resultados</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {order.tests.filter(t => t.results.length > 0).map(t => (
+              <div key={t.id}>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t.test?.name}</p>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30 text-[11px] text-muted-foreground">
+                        <th className="text-left px-3 py-1.5 font-medium">Analito</th>
+                        <th className="text-right px-3 py-1.5 font-medium">Resultado</th>
+                        <th className="text-left px-3 py-1.5 font-medium">Unidad</th>
+                        <th className="text-left px-3 py-1.5 font-medium hidden sm:table-cell">Referencia</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {t.results.map(r => (
+                        <tr key={r.analyte_id}>
+                          <td className="px-3 py-2">{r.analyte?.name ?? '—'}</td>
+                          <td className="px-3 py-2 text-right font-semibold">{r.value ?? '—'}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{r.unit ?? ''}</td>
+                          <td className="px-3 py-2 text-muted-foreground hidden sm:table-cell">{r.ref_range ?? ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Acciones de estado */}
       {(transitions.length > 0 || canCancel) && (
         <div className="flex gap-2 flex-wrap">
+          {(order.status === 'registered' || order.status === 'in_process') && (
+            <Link href={`/lab/orders/${order.id}/capture`}>
+              <Button variant="outline"><FlaskConical className="h-4 w-4 mr-1.5" />Capturar resultados</Button>
+            </Link>
+          )}
           {transitions.map(s => (
             <Button key={s} onClick={() => setStatus(s)} disabled={loading}>
               {NEXT_LABEL[s]}<ArrowRight className="h-4 w-4 ml-1.5" />
