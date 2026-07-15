@@ -37,7 +37,7 @@ interface StaffListProps {
   staffLabel: string
 }
 
-const empty = { name: '', phone: '', role: 'therapist' as StaffRole, commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
+const empty = { name: '', phone: '', role: 'therapist' as StaffRole, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
 
 export function StaffList({ staff, organizationId, staffLabel }: StaffListProps) {
   const router = useRouter()
@@ -60,6 +60,7 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
       name: s.name,
       phone: s.phone ?? '',
       role: s.role,
+      license_number: s.license_number ?? '',
       commission_type: s.commission_type ?? 'percentage',
       commission_value: s.commission_value?.toString() ?? '',
     })
@@ -77,14 +78,14 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
     if (editing) {
       const { error } = await supabase
         .from('staff')
-        .update({ name: form.name, phone: form.phone || null, role: form.role, ...commissionPayload })
+        .update({ name: form.name, phone: form.phone || null, role: form.role, license_number: form.license_number || null, ...commissionPayload })
         .eq('id', editing.id)
       if (error) { toast.error(error.message); setLoading(false); return }
       toast.success(`${staffLabel} actualizado`)
     } else {
       const { error } = await supabase
         .from('staff')
-        .insert({ organization_id: organizationId, name: form.name, phone: form.phone || null, role: form.role, ...commissionPayload })
+        .insert({ organization_id: organizationId, name: form.name, phone: form.phone || null, role: form.role, license_number: form.license_number || null, ...commissionPayload })
       if (error) { toast.error(error.message); setLoading(false); return }
       toast.success(`${staffLabel} agregado`)
     }
@@ -191,6 +192,15 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
                   <SelectItem value="manager">Encargado</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Cédula profesional (opcional)</Label>
+              <Input
+                placeholder="1234567"
+                value={form.license_number}
+                onChange={e => setForm(p => ({ ...p, license_number: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">Aparece en documentos oficiales (ej. reporte de resultados)</p>
             </div>
           </div>
 

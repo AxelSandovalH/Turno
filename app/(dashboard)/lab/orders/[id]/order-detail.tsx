@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, User, Phone, ArrowRight, Ban, FlaskConical, Receipt, FileText } from 'lucide-react'
+import { ChevronLeft, User, Phone, ArrowRight, Ban, FlaskConical, Receipt, FileText, Send, DollarSign } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { LAB_STATUS_LABEL, LAB_STATUS_CLASS, LAB_STATUS_NEXT } from '@/lib/lab/status'
 import type { LabOrderStatus } from '@/types/database'
 
@@ -53,11 +60,59 @@ const NEXT_LABEL: Partial<Record<LabOrderStatus, string>> = {
   delivered:     'Marcar entregada',
 }
 
-export function OrderDetail({ order }: { order: OrderData }) {
+const METHOD_LABEL: Record<string, string> = {
+  cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia', other: 'Otro',
+}
+
+interface PaymentInfo { id: string; amount: number; method: string; paid_at: string | null }
+
+export function OrderDetail({ order, organizationId, payment }: {
+  order: OrderData
+  organizationId: string
+  payment: PaymentInfo | null
+}) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [payOpen, setPayOpen] = useState(false)
+  const [payMethod, setPayMethod] = useState('cash')
+
+  const hasResults = order.tests.some(t => t.results.length > 0)
+
+  async function handleSendReport() {
+    setSending(true)
+    const res = await fetch('/api/lab/send-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: order.id }),
+    })
+    const data = await res.json()
+    setSending(false)
+    if (!res.ok) return toast.error(data.error ?? 'No se pudo enviar')
+    toast.success('Reporte enviado por WhatsApp al paciente')
+  }
+
+  async function handleRegisterPayment() {
+    if (!order.customer) return
+    setLoading(true)
+    const { error } = await supabase.from('payments').insert({
+      organization_id: organizationId,
+      customer_id: order.customer.id,
+      lab_order_id: order.id,
+      amount: order.total,
+      method: payMethod,
+      status: 'paid',
+      paid_at: new Date().toISOString(),
+      concept: `Orden de laboratorio ${order.folio}`,
+    })
+    setLoading(false)
+    if (error) return toast.error(error.message)
+    toast.success('Pago registrado — visible en Finanzas')
+    setPayOpen(false)
+    router.refresh()
+  }
 
   const transitions = LAB_STATUS_NEXT[order.status].filter(s => s !== 'cancelled')
   const canCancel = LAB_STATUS_NEXT[order.status].includes('cancelled')
@@ -193,19 +248,60 @@ export function OrderDetail({ order }: { order: OrderData }) {
         </Card>
       )}
 
-      {/* Documentos */}
+      {/* Documentos y cobro */}
       {order.status !== 'cancelled' && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <Link href={`/lab/orders/${order.id}/receipt`}>
             <Button variant="outline" size="sm"><Receipt className="h-4 w-4 mr-1.5" />Recibo</Button>
           </Link>
-          {order.tests.some(t => t.results.length > 0) && (
-            <Link href={`/lab/orders/${order.id}/report`}>
-              <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-1.5" />Reporte de resultados</Button>
-            </Link>
+          {hasResults && (
+            <>
+              <Link href={`/lab/orders/${order.id}/report`}>
+                <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-1.5" />Reporte de resultados</Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={handleSendReport} disabled={sending}>
+                <Send className="h-4 w-4 mr-1.5" />{sending ? 'Enviando...' : 'Enviar por WhatsApp'}
+              </Button>
+            </>
+          )}
+          {payment ? (
+            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/10">
+              Pagada · ${Number(payment.amount).toLocaleString('es-MX')} ({METHOD_LABEL[payment.method] ?? payment.method})
+            </Badge>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setPayOpen(true)}>
+              <DollarSign className="h-4 w-4 mr-1.5" />Registrar pago
+            </Button>
           )}
         </div>
       )}
+
+      {/* Dialog: registrar pago */}
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Registrar pago</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-border px-4 py-3 text-sm flex justify-between">
+              <span className="text-muted-foreground">Total de la orden</span>
+              <span className="font-semibold">${Number(order.total).toLocaleString('es-MX')}</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Método de pago</Label>
+              <Select value={payMethod} onValueChange={v => setPayMethod(v ?? 'cash')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(METHOD_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">El pago queda ligado a la orden y aparece en Finanzas.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(false)}>Cancelar</Button>
+            <Button onClick={handleRegisterPayment} disabled={loading}>{loading ? 'Guardando...' : 'Registrar pago'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Acciones de estado */}
       {(transitions.length > 0 || canCancel) && (

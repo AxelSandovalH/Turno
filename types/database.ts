@@ -73,6 +73,8 @@ export interface Staff {
   avatar_url: string | null
   role: StaffRole
   is_active: boolean
+  specialty: string | null
+  license_number: string | null
   commission_type: 'percentage' | 'fixed_per_session' | null
   commission_value: number | null
   created_at: string
