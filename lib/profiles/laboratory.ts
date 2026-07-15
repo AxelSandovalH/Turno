@@ -14,6 +14,7 @@ export const laboratory: BusinessProfile = {
     { id: 'lab-orders',    href: '/lab/orders',    title: 'Órdenes' },
     { id: 'lab-worklist',  href: '/lab/worklist',  title: 'Lista de trabajo' },
     { id: 'lab-tests',     href: '/lab/tests',     title: 'Estudios' },
+    { id: 'lab-quotes',    href: '/lab/quotes',    title: 'Cotizaciones' },
     { id: 'patients',      href: '/patients',      title: null },
     { id: 'staff',         href: '/staff',         title: null },
     { id: 'conversations', href: '/conversations', title: 'Conversaciones' },

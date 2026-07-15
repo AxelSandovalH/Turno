@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { ChevronLeft, User, Phone, ArrowRight, Ban, FlaskConical } from 'lucide-react'
+import { ChevronLeft, User, Phone, ArrowRight, Ban, FlaskConical, Receipt, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -191,6 +191,20 @@ export function OrderDetail({ order }: { order: OrderData }) {
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Documentos */}
+      {order.status !== 'cancelled' && (
+        <div className="flex gap-2 flex-wrap">
+          <Link href={`/lab/orders/${order.id}/receipt`}>
+            <Button variant="outline" size="sm"><Receipt className="h-4 w-4 mr-1.5" />Recibo</Button>
+          </Link>
+          {order.tests.some(t => t.results.length > 0) && (
+            <Link href={`/lab/orders/${order.id}/report`}>
+              <Button variant="outline" size="sm"><FileText className="h-4 w-4 mr-1.5" />Reporte de resultados</Button>
+            </Link>
+          )}
+        </div>
       )}
 
       {/* Acciones de estado */}
