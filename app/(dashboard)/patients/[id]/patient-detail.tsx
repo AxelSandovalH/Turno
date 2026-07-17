@@ -391,9 +391,9 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="ficha"><FileText className="h-3.5 w-3.5 mr-1.5" />Ficha</TabsTrigger>
           {isMedical && <TabsTrigger value="planes"><ClipboardList className="h-3.5 w-3.5 mr-1.5" />Planes{plansList.filter(p => p.status === 'active').length > 0 && <span className="ml-1.5 bg-violet-500/20 text-violet-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{plansList.filter(p => p.status === 'active').length}</span>}</TabsTrigger>}
-          <TabsTrigger value="notas"><FileText className="h-3.5 w-3.5 mr-1.5" />Notas SOAP</TabsTrigger>
-          <TabsTrigger value="evolucion"><TrendingUp className="h-3.5 w-3.5 mr-1.5" />Evolución</TabsTrigger>
-          <TabsTrigger value="archivos"><Paperclip className="h-3.5 w-3.5 mr-1.5" />Archivos</TabsTrigger>
+          {isMedical && <TabsTrigger value="notas"><FileText className="h-3.5 w-3.5 mr-1.5" />Notas SOAP</TabsTrigger>}
+          {isMedical && <TabsTrigger value="evolucion"><TrendingUp className="h-3.5 w-3.5 mr-1.5" />Evolución</TabsTrigger>}
+          {isMedical && <TabsTrigger value="archivos"><Paperclip className="h-3.5 w-3.5 mr-1.5" />Archivos</TabsTrigger>}
           <TabsTrigger value="pagos"><CreditCard className="h-3.5 w-3.5 mr-1.5" />Pagos</TabsTrigger>
           <TabsTrigger value="citas"><Calendar className="h-3.5 w-3.5 mr-1.5" />Citas</TabsTrigger>
         </TabsList>
@@ -418,19 +418,21 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm">Datos clínicos</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <Row label="Diagnóstico principal" value={patient.main_diagnosis} />
-                <Row label="Alergias" value={patient.allergies} warn />
-                <Row label="Antecedentes" value={patient.medical_notes} />
-                <Row label="Médico referente" value={patient.referring_doctor} />
-                <Row label="Especialidad" value={patient.referring_doctor_specialty} />
-                <Row label="Tel. médico" value={patient.referring_doctor_phone} />
-                <Row label="Aseguradora" value={patient.insurance_provider} />
-                <Row label="Póliza" value={patient.insurance_policy} />
-              </CardContent>
-            </Card>
+            {isMedical && (
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-sm">Datos clínicos</CardTitle></CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <Row label="Diagnóstico principal" value={patient.main_diagnosis} />
+                  <Row label="Alergias" value={patient.allergies} warn />
+                  <Row label="Antecedentes" value={patient.medical_notes} />
+                  <Row label="Médico referente" value={patient.referring_doctor} />
+                  <Row label="Especialidad" value={patient.referring_doctor_specialty} />
+                  <Row label="Tel. médico" value={patient.referring_doctor_phone} />
+                  <Row label="Aseguradora" value={patient.insurance_provider} />
+                  <Row label="Póliza" value={patient.insurance_policy} />
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader className="pb-3"><CardTitle className="text-sm">Contacto de emergencia</CardTitle></CardHeader>
@@ -440,7 +442,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               </CardContent>
             </Card>
 
-            {plans.length > 0 && (
+            {isMedical && plans.length > 0 && (
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-sm">Planes de tratamiento</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
@@ -591,7 +593,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
         )}
 
         {/* ── NOTAS SOAP ── */}
-        <TabsContent value="notas" className="space-y-4 mt-4">
+        {isMedical && <TabsContent value="notas" className="space-y-4 mt-4">
           <div className="flex justify-end">
             <Button size="sm" onClick={() => setSoapOpen(true)}>
               <Plus className="h-4 w-4 mr-1.5" />Nueva nota SOAP
@@ -639,10 +641,10 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               ))}
             </div>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ── EVOLUCIÓN ── */}
-        <TabsContent value="evolucion" className="space-y-4 mt-4">
+        {isMedical && <TabsContent value="evolucion" className="space-y-4 mt-4">
           {painPoints.length === 0 ? (
             <EmptyState text="Agrega notas SOAP con nivel de dolor para ver la línea de tiempo." />
           ) : (
@@ -685,10 +687,10 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               </div>
             ))}
           </div>
-        </TabsContent>
+        </TabsContent>}
 
         {/* ── ARCHIVOS ── */}
-        <TabsContent value="archivos" className="space-y-4 mt-4">
+        {isMedical && <TabsContent value="archivos" className="space-y-4 mt-4">
           <div className="flex items-center gap-3">
             <Select value={uploadCategory} onValueChange={v => v && setUploadCategory(v)}>
               <SelectTrigger className="w-40 h-9 text-sm">
@@ -735,7 +737,7 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
               ))}
             </div>
           )}
-        </TabsContent>
+        </TabsContent>}
 
         {/* ── PAGOS ── */}
         <TabsContent value="pagos" className="space-y-4 mt-4">
@@ -883,23 +885,23 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
             </div>
 
             {/* Datos clínicos */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Datos clínicos</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 space-y-1.5">
-                  <Label>Alergias</Label>
-                  <Input value={editForm.allergies} onChange={e => setEditForm(p => ({ ...p, allergies: e.target.value }))} placeholder="Penicilina, látex..." />
-                </div>
-                <div className="col-span-2 space-y-1.5">
-                  <Label>Antecedentes médicos</Label>
-                  <textarea
-                    className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                    value={editForm.medical_notes}
-                    onChange={e => setEditForm(p => ({ ...p, medical_notes: e.target.value }))}
-                    placeholder="Diabetes, hipertensión, cirugías previas..."
-                  />
-                </div>
-                {isMedical && <>
+            {isMedical && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Datos clínicos</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Alergias</Label>
+                    <Input value={editForm.allergies} onChange={e => setEditForm(p => ({ ...p, allergies: e.target.value }))} placeholder="Penicilina, látex..." />
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Antecedentes médicos</Label>
+                    <textarea
+                      className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                      value={editForm.medical_notes}
+                      onChange={e => setEditForm(p => ({ ...p, medical_notes: e.target.value }))}
+                      placeholder="Diabetes, hipertensión, cirugías previas..."
+                    />
+                  </div>
                   <div className="space-y-1.5">
                     <Label>Médico referente</Label>
                     <Input value={editForm.referring_doctor} onChange={e => setEditForm(p => ({ ...p, referring_doctor: e.target.value }))} placeholder="Dr. Martínez" />
@@ -920,9 +922,9 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
                     <Label>Número de póliza</Label>
                     <Input value={editForm.insurance_policy} onChange={e => setEditForm(p => ({ ...p, insurance_policy: e.target.value }))} />
                   </div>
-                </>}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Contacto de emergencia */}
             <div>
