@@ -4,6 +4,8 @@ import { requireOrganization } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasCapability } from '@/lib/profiles/registry'
 import { sendMessage } from '@/lib/ultramsg'
+import { resend, FROM } from '@/lib/resend'
+import { labReportEmailHtml, labReportEmailText } from '@/lib/emails/lab-report'
 
 export async function POST(req: Request) {
   try {
@@ -18,17 +20,18 @@ export async function POST(req: Request) {
     const db = createServiceClient()
     const { data: order } = await db
       .from('lab_orders')
-      .select('id, folio, customer:customers(id, name, phone, portal_token)')
+      .select('id, folio, customer:customers(id, name, phone, email, portal_token)')
       .eq('id', orderId)
       .eq('organization_id', organization.id)
       .single()
     if (!order) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
 
     const customer = order.customer as unknown as {
-      id: string; name: string | null; phone: string; portal_token: string | null
+      id: string; name: string | null; phone: string; email: string | null; portal_token: string | null
     } | null
-    if (!customer?.phone || customer.phone === 'sin-telefono') {
-      return NextResponse.json({ error: 'El paciente no tiene teléfono registrado' }, { status: 400 })
+    const hasPhone = !!customer?.phone && customer.phone !== 'sin-telefono'
+    if (!customer || (!hasPhone && !customer.email)) {
+      return NextResponse.json({ error: 'El paciente no tiene teléfono ni correo registrado' }, { status: 400 })
     }
 
     // Verifica que haya resultados antes de mandar el link
@@ -48,25 +51,58 @@ export async function POST(req: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
     const reportUrl = `${baseUrl}/r/${token}/${order.id}`
 
-    const message = [
-      `Hola ${customer.name ?? ''}`.trim() + ',',
-      '',
-      `Tus resultados de laboratorio (orden ${order.folio}) ya están listos. Puedes consultarlos e imprimirlos aquí:`,
-      '',
-      reportUrl,
-      '',
-      `El enlace es personal, no lo compartas. — ${organization.name}`,
-    ].join('\n')
-
-    const result = await sendMessage(customer.phone, message, {
-      instance: organization.ultramsg_instance,
-      token: organization.ultramsg_token,
-    })
-    if (result?.error) {
-      return NextResponse.json({ error: 'No se pudo enviar el WhatsApp (revisa la instancia de UltraMsg)' }, { status: 502 })
+    // WhatsApp (si tiene teléfono)
+    let whatsappOk = false
+    if (hasPhone) {
+      const message = [
+        `Hola ${customer.name ?? ''}`.trim() + ',',
+        '',
+        `Tus resultados de laboratorio (orden ${order.folio}) ya están listos. Puedes consultarlos e imprimirlos aquí:`,
+        '',
+        reportUrl,
+        '',
+        `El enlace es personal, no lo compartas. — ${organization.name}`,
+      ].join('\n')
+      const result = await sendMessage(customer.phone, message, {
+        instance: organization.ultramsg_instance,
+        token: organization.ultramsg_token,
+      })
+      whatsappOk = !result?.error
     }
 
-    return NextResponse.json({ ok: true, reportUrl })
+    // Email (si tiene correo) — Resend
+    let emailOk = false
+    if (customer.email) {
+      try {
+        await resend.emails.send({
+          from: FROM,
+          to: customer.email,
+          subject: `Tus resultados están listos — ${order.folio}`,
+          html: labReportEmailHtml({
+            patientName: customer.name ?? 'paciente',
+            businessName: organization.name,
+            folio: order.folio,
+            reportUrl,
+          }),
+          text: labReportEmailText({
+            patientName: customer.name ?? 'paciente',
+            businessName: organization.name,
+            folio: order.folio,
+            reportUrl,
+          }),
+        })
+        emailOk = true
+      } catch (err) {
+        console.error('[lab/send-report] email failed:', err)
+      }
+    }
+
+    if (!whatsappOk && !emailOk) {
+      return NextResponse.json({ error: 'No se pudo enviar por ningún canal (revisa UltraMsg/Resend)' }, { status: 502 })
+    }
+
+    const channels = [whatsappOk && 'WhatsApp', emailOk && 'correo'].filter(Boolean).join(' y ')
+    return NextResponse.json({ ok: true, reportUrl, channels })
   } catch (err) {
     console.error('[lab/send-report]', err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })

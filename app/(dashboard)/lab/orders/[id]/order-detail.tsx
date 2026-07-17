@@ -91,7 +91,7 @@ export function OrderDetail({ order, organizationId, payment }: {
     const data = await res.json()
     setSending(false)
     if (!res.ok) return toast.error(data.error ?? 'No se pudo enviar')
-    toast.success('Reporte enviado por WhatsApp al paciente')
+    toast.success(`Reporte enviado por ${data.channels ?? 'WhatsApp'} al paciente`)
   }
 
   async function handleRegisterPayment() {
