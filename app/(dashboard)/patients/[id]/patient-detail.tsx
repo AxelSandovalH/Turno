@@ -201,6 +201,9 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
 
   async function handleSendPortal() {
     setSendingPortal(true)
+    // Abrir la pestaña de inmediato (gesto síncrono del click) para que el
+    // navegador no la bloquee como popup; la redirigimos cuando llegue la URL.
+    const portalTab = window.open('', '_blank')
     const res = await fetch('/api/portal-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -208,12 +211,19 @@ export function PatientDetail({ patient, appointments, notes, plans, payments, a
     })
     const data = await res.json()
     setSendingPortal(false)
-    if (!res.ok) return toast.error(data.error ?? 'Error al generar portal')
+    if (!res.ok) {
+      portalTab?.close()
+      return toast.error(data.error ?? 'Error al generar portal')
+    }
     toast.success('Portal enviado por WhatsApp')
     setHasPortal(true)
     if (data.portalUrl) {
+      if (portalTab) portalTab.location.href = data.portalUrl
+      else window.open(data.portalUrl, '_blank')
       await navigator.clipboard.writeText(data.portalUrl).catch(() => null)
       toast.info('Link copiado al portapapeles')
+    } else {
+      portalTab?.close()
     }
   }
 
