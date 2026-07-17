@@ -37,7 +37,7 @@ export function SetupChecklist({ hasServices, hasSchedules, hasConversations, ha
     },
     {
       label: 'Prueba el bot',
-      description: 'Mándale un WhatsApp a tu número de negocio y agenda una cita',
+      description: 'Usa el chat de prueba (abajo a la derecha) o mándale un WhatsApp a tu número de negocio',
       href: '/conversations',
       done: hasConversations,
     },
