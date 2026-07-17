@@ -8,17 +8,10 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 
 ## Infraestructura (operador) — BLOQUEANTE para el lanzamiento
 
-- [ ] Adquirir número de WhatsApp y configurar instancia UltraMsg del primer tenant
+- [ ] Configurar instancia UltraMsg del primer tenant
 - [ ] Verificar dominio `quickturno.app` en Resend y configurar DNS (SPF, DKIM)
       (ahora también lo usa el reporte de laboratorio por email, además de bienvenida y recordatorios)
 - [ ] Agregar variable `CRON_SECRET` en Vercel (generarla con `openssl rand -hex 32`)
-- [ ] Registrar webhook en Stripe apuntando a `https://quickturno.app/api/stripe-webhook`
-      Eventos requeridos: `checkout.session.completed`, `invoice.payment_succeeded`,
-      `invoice.payment_failed`, `customer.subscription.deleted`
-- [ ] Agregar variables de entorno en Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
-      Sin esto el webhook de anticipo (`checkout.session.completed` con `metadata.type=deposit`)
-      nunca llega — el cliente paga pero el sistema no se entera y el cron `deposit-timeout`
-      termina cancelando la cita igual.
 - [ ] Crear los 5 productos en el dashboard de Stripe con sus precios en MXN:
       `landing` $899, `turno-sys` $1,299, `turno-ai` $2,799, `bundle-sys` $1,799, `bundle-ai` $3,299
       (Nota: esto es solo para las suscripciones del SaaS — el anticipo de citas usa
@@ -50,7 +43,7 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 ## Mejoras no bloqueantes (post-primer-tenant)
 
 ### Onboarding
-- [ ] Paso para subir logo y definir color de marca durante el registro (hoy solo post-registro en /settings)
+- [ ] Agregar al wizard checklist subir logo y definir color de tenant (hoy solo post-registro en /settings)
 
 ### Citas
 - [ ] Reagendamiento automático y proactivo cuando confirmation-check marca una cita como `risk`
