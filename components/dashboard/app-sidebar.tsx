@@ -67,7 +67,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
   // Los módulos del sidebar los define el perfil del negocio; title: null se
   // resuelve aquí con el label del perfil (Pacientes/Clientes, Barberos/etc.)
   const modules: SearchResult[] = profile.modules.map(m => {
-    const title = m.title ?? (m.id === 'patients' ? patientLabel : staffLabel)
+    const title = m.title ?? (m.id === 'patients' ? patientLabel : m.id === 'staff' ? 'Equipo' : staffLabel)
     return {
       id: m.id,
       type: 'module' as ResultType,
@@ -132,7 +132,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
       type:       'staff' as ResultType,
       title:      s.name,
       subtitle:   s.is_owner ? 'Dueño' : s.role,
-      breadcrumb: [staffLabel, s.name],
+      breadcrumb: ['Equipo', s.name],
       href:       '/staff',
     }))
 
@@ -203,7 +203,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
       if (!byType[r.type]) byType[r.type] = []
       byType[r.type].push(r)
     }
-    const typeLabel: Record<string, string> = { staff: staffLabel, service: 'Servicios', patient: patientLabel }
+    const typeLabel: Record<string, string> = { staff: 'Equipo', service: 'Servicios', patient: patientLabel }
     for (const [type, items] of Object.entries(byType)) {
       grouped.push({ label: typeLabel[type] ?? type, items })
     }

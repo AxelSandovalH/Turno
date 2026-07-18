@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X, Tag } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -23,47 +23,48 @@ import {
 } from '@/components/ui/alert-dialog'
 import type { Staff, StaffRoleTag } from '@/types/database'
 
-const NEW_TAG_VALUE = '__new_tag__'
-
 interface StaffListProps {
   staff: Staff[]
   roleTags: StaffRoleTag[]
   organizationId: string
   staffLabel: string
-  /** Etiqueta sugerida por default para nuevo staff (ej. "Fisioterapeuta") */
-  defaultRole: string
 }
 
-function emptyForm(defaultRole: string) {
-  return { name: '', phone: '', role: defaultRole, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
+function emptyForm(role: string) {
+  return { name: '', phone: '', role, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
 }
 
-export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, defaultRole }: StaffListProps) {
+export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel }: StaffListProps) {
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Staff | null>(null)
-  const [form, setForm] = useState(emptyForm(defaultRole))
   const [loading, setLoading] = useState(false)
 
-  // Tags disponibles: las de la org + defaultRole si aún no existe + cualquier
-  // rol ya usado por staff existente que no esté en la tabla (datos previos a
-  // esta feature). Se mantiene en estado local para reflejar altas al vuelo.
-  const [roleTags, setRoleTags] = useState<string[]>(() => {
-    const labels = new Set(initialRoleTags.map(t => t.label))
-    labels.add(defaultRole)
-    staff.forEach(s => { if (s.role) labels.add(s.role) })
-    return Array.from(labels).sort((a, b) => a.localeCompare(b, 'es'))
-  })
-  const [addingTag, setAddingTag] = useState(false)
-  const [newTagValue, setNewTagValue] = useState('')
-  const [savingTag, setSavingTag] = useState(false)
+  // Tags persistidas en staff_roles (con id, para poder renombrar/eliminar).
+  // Se re-sincroniza cuando el server manda una lista nueva (router.refresh,
+  // auto-sync de page.tsx) — useState solo tomaría el valor del primer montaje.
+  const [tags, setTags] = useState<StaffRoleTag[]>(initialRoleTags)
+  useEffect(() => { setTags(initialRoleTags) }, [initialRoleTags])
+  // Única fuente de verdad para el selector: las etiquetas realmente
+  // persistidas en staff_roles (page.tsx ya se encarga de sincronizar ahí
+  // cualquier rol que el staff traiga en uso). Nada virtual/inyectado, para
+  // que el selector y el CRUD de "Editar roles" siempre coincidan.
+  const roleTags = tags.map(t => t.label).sort((a, b) => a.localeCompare(b, 'es'))
+
+  const [form, setForm] = useState(emptyForm(roleTags[0] ?? ''))
+
+  const [manageOpen, setManageOpen] = useState(false)
+  const [manageNewTag, setManageNewTag] = useState('')
+  const [renamingTagId, setRenamingTagId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [deleteTagId, setDeleteTagId] = useState<string | null>(null)
+  const [tagBusy, setTagBusy] = useState(false)
 
   function openCreate() {
     setEditing(null)
-    setForm(emptyForm(defaultRole))
-    setAddingTag(false)
+    setForm(emptyForm(roleTags[0] ?? ''))
     setOpen(true)
   }
 
@@ -77,38 +78,87 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       commission_type: s.commission_type ?? 'percentage',
       commission_value: s.commission_value?.toString() ?? '',
     })
-    setAddingTag(false)
     setOpen(true)
   }
 
   function handleRoleSelect(value: string | null) {
     if (!value) return
-    if (value === NEW_TAG_VALUE) {
-      setNewTagValue('')
-      setAddingTag(true)
-      return
-    }
     setForm(p => ({ ...p, role: value }))
   }
 
-  async function handleCreateTag() {
-    const label = newTagValue.trim()
+  // ── Gestión de roles (modal "Editar roles") ────────────────────────────────────
+  async function handleManageCreateTag() {
+    const label = manageNewTag.trim()
     if (!label) return
-    if (roleTags.some(t => t.toLowerCase() === label.toLowerCase())) {
-      setForm(p => ({ ...p, role: label }))
-      setAddingTag(false)
-      return
+    if (tags.some(t => t.label.toLowerCase() === label.toLowerCase())) {
+      return toast.error('Esa etiqueta ya existe')
     }
-    setSavingTag(true)
-    const { error } = await supabase
+    setTagBusy(true)
+    const { data, error } = await supabase
       .from('staff_roles')
       .insert({ organization_id: organizationId, label })
-    setSavingTag(false)
+      .select()
+      .single()
+    setTagBusy(false)
     if (error) { toast.error(error.message); return }
-    setRoleTags(prev => [...prev, label].sort((a, b) => a.localeCompare(b, 'es')))
-    setForm(p => ({ ...p, role: label }))
-    setAddingTag(false)
-    toast.success('Etiqueta creada')
+    setTags(prev => [...prev, data])
+    setManageNewTag('')
+    router.refresh()
+  }
+
+  function startRename(tag: StaffRoleTag) {
+    setRenamingTagId(tag.id)
+    setRenameValue(tag.label)
+  }
+
+  async function handleRenameTag(tag: StaffRoleTag) {
+    const label = renameValue.trim()
+    if (!label || label === tag.label) { setRenamingTagId(null); return }
+    // Evita duplicados que solo difieren en mayúsculas/minúsculas (ej. "Dueño" vs "dueño")
+    if (tags.some(t => t.id !== tag.id && t.label.toLowerCase() === label.toLowerCase())) {
+      toast.error('Ya existe una etiqueta con ese nombre')
+      return
+    }
+    setTagBusy(true)
+    const { error } = await supabase.from('staff_roles').update({ label }).eq('id', tag.id)
+    let cascadeError: string | null = null
+    if (!error) {
+      // Mantener sincronizado el texto que ya trae el staff que usaba la etiqueta vieja
+      const { error: staffError } = await supabase
+        .from('staff')
+        .update({ role: label })
+        .eq('organization_id', organizationId)
+        .eq('role', tag.label)
+      cascadeError = staffError?.message ?? null
+    }
+    setTagBusy(false)
+    if (error) { toast.error(error.message); return }
+    setTags(prev => prev.map(t => t.id === tag.id ? { ...t, label } : t))
+    setRenamingTagId(null)
+    if (cascadeError) {
+      toast.error(`Etiqueta renombrada, pero no se pudo actualizar el staff que la usaba: ${cascadeError}`)
+    } else {
+      toast.success('Etiqueta actualizada')
+    }
+    router.refresh()
+  }
+
+  async function handleDeleteTag() {
+    if (!deleteTagId) return
+    const tag = tags.find(t => t.id === deleteTagId)
+    const inUse = tag ? staff.filter(s => s.role?.toLowerCase() === tag.label.toLowerCase()).length : 0
+    if (inUse > 0) {
+      setDeleteTagId(null)
+      return toast.error(`No se puede eliminar: ${inUse} integrante${inUse > 1 ? 's' : ''} tiene${inUse > 1 ? 'n' : ''} este rol. Reasígnalos primero.`)
+    }
+    setTagBusy(true)
+    const { error } = await supabase.from('staff_roles').delete().eq('id', deleteTagId)
+    setTagBusy(false)
+    if (error) { toast.error(error.message); return }
+    setTags(prev => prev.filter(t => t.id !== deleteTagId))
+    setDeleteTagId(null)
+    toast.success('Etiqueta eliminada')
+    router.refresh()
   }
 
   async function handleSave() {
@@ -150,10 +200,14 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
 
   return (
     <>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => setManageOpen(true)}>
+          <Tag className="h-4 w-4 mr-2" />
+          Editar roles
+        </Button>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4 mr-2" />
-          Agregar {staffLabel.toLowerCase()}
+          Añadir Integrante
         </Button>
       </div>
 
@@ -176,7 +230,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{s.name}</p>
-                    <Badge variant="outline" className="text-xs">{s.is_owner ? 'Dueño' : s.role}</Badge>
+                    <Badge variant="outline" className="text-xs">{s.role}</Badge>
                     {!s.is_active && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                   </div>
                   {s.phone && <p className="text-sm text-muted-foreground">{s.phone}</p>}
@@ -226,38 +280,17 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
             </div>
             <div className="space-y-2">
               <Label>Rol</Label>
-              {addingTag ? (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Ej. Masajista, Gerente..."
-                    value={newTagValue}
-                    onChange={e => setNewTagValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateTag() } }}
-                    autoFocus
-                  />
-                  <Button size="icon" onClick={handleCreateTag} disabled={savingTag || !newTagValue.trim()}>
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => setAddingTag(false)} disabled={savingTag}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Select value={form.role} onValueChange={handleRoleSelect}>
-                  <SelectTrigger>
-                    <SelectValue>{form.role}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roleTags.map(tag => (
-                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                    ))}
-                    <SelectItem value={NEW_TAG_VALUE} className="text-violet-500 font-medium">
-                      <Plus className="h-3.5 w-3.5 mr-1 inline" />Nueva etiqueta...
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-              <p className="text-xs text-muted-foreground">Personaliza los roles de tu equipo: recepcionista, terapeuta, masajista, gerente...</p>
+              <Select value={form.role} onValueChange={handleRoleSelect}>
+                <SelectTrigger>
+                  <SelectValue>{form.role}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {roleTags.map(tag => (
+                    <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Gestiona las etiquetas disponibles desde el botón "Editar roles"</p>
             </div>
             <div className="space-y-2">
               <Label>Cédula profesional (opcional)</Label>
@@ -327,6 +360,91 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Gestión de roles/etiquetas */}
+      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar roles</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {tags.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aún no has creado etiquetas propias. Agrega la primera abajo.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {tags.map(tag => (
+                  <div key={tag.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+                    {renamingTagId === tag.id ? (
+                      <>
+                        <Input
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRenameTag(tag) } }}
+                          autoFocus
+                          className="h-8"
+                        />
+                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => handleRenameTag(tag)} disabled={tagBusy}>
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => setRenamingTagId(null)} disabled={tagBusy}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 text-sm">{tag.label}</span>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => startRename(tag)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTagId(tag.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t border-border">
+              <Input
+                placeholder="Nueva etiqueta, ej. Masajista"
+                value={manageNewTag}
+                onChange={e => setManageNewTag(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleManageCreateTag() } }}
+              />
+              <Button onClick={handleManageCreateTag} disabled={tagBusy || !manageNewTag.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManageOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTagId} onOpenChange={v => !v && setDeleteTagId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta etiqueta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se quita del selector de roles. Si algún integrante todavía la tiene asignada, no se podrá eliminar hasta reasignarlo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTag} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
