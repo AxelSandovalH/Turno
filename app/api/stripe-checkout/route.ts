@@ -3,8 +3,9 @@ import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
+// ⚠️ TEMPORAL — smoke test de Stripe en Live con cargo mínimo. REVERTIR a 89900 después.
 const PLANS: Record<string, { name: string; amount: number; description: string }> = {
-  'landing':     { name: 'Turno — Página web',              amount: 89900,  description: 'Página web profesional para tu negocio' },
+  'landing':     { name: 'Turno — Página web',              amount: 2000,  description: 'Página web profesional para tu negocio' },
   'turno-sys':   { name: 'Turno — Agenda',                  amount: 129900, description: 'Calendario de citas y recordatorios por WhatsApp' },
   'turno-ai':    { name: 'Turno — Agenda + Asistente',      amount: 279900, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
   'bundle-sys':  { name: 'Turno — Página web + Agenda',     amount: 179900, description: 'Combo con ahorro de $399/mes' },
