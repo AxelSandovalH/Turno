@@ -99,7 +99,8 @@ async function seedUser(org: { id: string; name: string }) {
       organization_id: org.id,
       user_id: userId,
       name: 'JL de los Santos',
-      role: 'owner',
+      role: 'Dueño',
+      is_owner: true,
     })
   }
 
@@ -124,8 +125,8 @@ async function seedDemoData(orgId: string) {
 
   // Staff demo
   const { data: staffList } = await service.from('staff').insert([
-    { organization_id: orgId, name: 'Carlos Reyes', role: 'staff', is_active: true },
-    { organization_id: orgId, name: 'Miguel Torres', role: 'staff', is_active: true },
+    { organization_id: orgId, name: 'Carlos Reyes', role: 'Staff', is_active: true },
+    { organization_id: orgId, name: 'Miguel Torres', role: 'Staff', is_active: true },
   ]).select()
 
   // Horarios para cada barbero (lunes a sábado)

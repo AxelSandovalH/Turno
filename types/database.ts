@@ -5,7 +5,8 @@ export type AttachmentCategory = 'xray' | 'mri' | 'lab' | 'prescription' | 'refe
 export type NoteType = 'session' | 'soap' | 'clinical' | 'evolution' | 'intake'
 export type TreatmentPlanStatus = 'active' | 'completed' | 'paused' | 'cancelled'
 export type AppointmentStatus = 'confirmed' | 'completed' | 'cancelled' | 'no_show'
-export type StaffRole = 'owner' | 'manager' | 'staff' | 'therapist' | 'receptionist'
+/** Texto libre: cada tenant define sus propias etiquetas en la tabla staff_roles */
+export type StaffRole = string
 export type ActorType = 'user' | 'bot' | 'system'
 export type MessageRole = 'user' | 'assistant'
 export type ConversationStatus = 'active' | 'closed'
@@ -72,6 +73,7 @@ export interface Staff {
   phone: string | null
   avatar_url: string | null
   role: StaffRole
+  is_owner: boolean
   is_active: boolean
   specialty: string | null
   license_number: string | null
@@ -79,6 +81,13 @@ export interface Staff {
   commission_value: number | null
   created_at: string
   updated_at: string
+}
+
+export interface StaffRoleTag {
+  id: string
+  organization_id: string
+  label: string
+  created_at: string
 }
 
 export interface StaffSchedule {

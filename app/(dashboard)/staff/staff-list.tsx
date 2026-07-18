@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, Trash2, User } from 'lucide-react'
+import { Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -21,36 +21,49 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import type { Staff, StaffRole } from '@/types/database'
+import type { Staff, StaffRoleTag } from '@/types/database'
 
-function getRoleLabel(role: StaffRole): string {
-  if (role === 'owner') return 'Dueño'
-  if (role === 'manager') return 'Encargado'
-  if (role === 'therapist') return 'Terapeuta'
-  if (role === 'receptionist') return 'Recepcionista'
-  return 'Staff'
-}
+const NEW_TAG_VALUE = '__new_tag__'
 
 interface StaffListProps {
   staff: Staff[]
+  roleTags: StaffRoleTag[]
   organizationId: string
   staffLabel: string
+  /** Etiqueta sugerida por default para nuevo staff (ej. "Fisioterapeuta") */
+  defaultRole: string
 }
 
-const empty = { name: '', phone: '', role: 'therapist' as StaffRole, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
+function emptyForm(defaultRole: string) {
+  return { name: '', phone: '', role: defaultRole, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
+}
 
-export function StaffList({ staff, organizationId, staffLabel }: StaffListProps) {
+export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, defaultRole }: StaffListProps) {
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Staff | null>(null)
-  const [form, setForm] = useState(empty)
+  const [form, setForm] = useState(emptyForm(defaultRole))
   const [loading, setLoading] = useState(false)
+
+  // Tags disponibles: las de la org + defaultRole si aún no existe + cualquier
+  // rol ya usado por staff existente que no esté en la tabla (datos previos a
+  // esta feature). Se mantiene en estado local para reflejar altas al vuelo.
+  const [roleTags, setRoleTags] = useState<string[]>(() => {
+    const labels = new Set(initialRoleTags.map(t => t.label))
+    labels.add(defaultRole)
+    staff.forEach(s => { if (s.role) labels.add(s.role) })
+    return Array.from(labels).sort((a, b) => a.localeCompare(b, 'es'))
+  })
+  const [addingTag, setAddingTag] = useState(false)
+  const [newTagValue, setNewTagValue] = useState('')
+  const [savingTag, setSavingTag] = useState(false)
 
   function openCreate() {
     setEditing(null)
-    setForm(empty)
+    setForm(emptyForm(defaultRole))
+    setAddingTag(false)
     setOpen(true)
   }
 
@@ -64,7 +77,38 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
       commission_type: s.commission_type ?? 'percentage',
       commission_value: s.commission_value?.toString() ?? '',
     })
+    setAddingTag(false)
     setOpen(true)
+  }
+
+  function handleRoleSelect(value: string | null) {
+    if (!value) return
+    if (value === NEW_TAG_VALUE) {
+      setNewTagValue('')
+      setAddingTag(true)
+      return
+    }
+    setForm(p => ({ ...p, role: value }))
+  }
+
+  async function handleCreateTag() {
+    const label = newTagValue.trim()
+    if (!label) return
+    if (roleTags.some(t => t.toLowerCase() === label.toLowerCase())) {
+      setForm(p => ({ ...p, role: label }))
+      setAddingTag(false)
+      return
+    }
+    setSavingTag(true)
+    const { error } = await supabase
+      .from('staff_roles')
+      .insert({ organization_id: organizationId, label })
+    setSavingTag(false)
+    if (error) { toast.error(error.message); return }
+    setRoleTags(prev => [...prev, label].sort((a, b) => a.localeCompare(b, 'es')))
+    setForm(p => ({ ...p, role: label }))
+    setAddingTag(false)
+    toast.success('Etiqueta creada')
   }
 
   async function handleSave() {
@@ -132,7 +176,7 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{s.name}</p>
-                    <Badge variant="outline" className="text-xs">{getRoleLabel(s.role)}</Badge>
+                    <Badge variant="outline" className="text-xs">{s.is_owner ? 'Dueño' : s.role}</Badge>
                     {!s.is_active && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
                   </div>
                   {s.phone && <p className="text-sm text-muted-foreground">{s.phone}</p>}
@@ -146,7 +190,7 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
                     variant="ghost"
                     className="text-destructive hover:text-destructive"
                     onClick={() => setDeleteId(s.id)}
-                    disabled={s.role === 'owner'}
+                    disabled={s.is_owner}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -182,16 +226,38 @@ export function StaffList({ staff, organizationId, staffLabel }: StaffListProps)
             </div>
             <div className="space-y-2">
               <Label>Rol</Label>
-              <Select value={form.role} onValueChange={v => setForm(p => ({ ...p, role: v as StaffRole }))}>
-                <SelectTrigger>
-                  <SelectValue>{getRoleLabel(form.role)}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="therapist">Terapeuta</SelectItem>
-                  <SelectItem value="receptionist">Recepcionista</SelectItem>
-                  <SelectItem value="manager">Encargado</SelectItem>
-                </SelectContent>
-              </Select>
+              {addingTag ? (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Ej. Masajista, Gerente..."
+                    value={newTagValue}
+                    onChange={e => setNewTagValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateTag() } }}
+                    autoFocus
+                  />
+                  <Button size="icon" onClick={handleCreateTag} disabled={savingTag || !newTagValue.trim()}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => setAddingTag(false)} disabled={savingTag}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Select value={form.role} onValueChange={handleRoleSelect}>
+                  <SelectTrigger>
+                    <SelectValue>{form.role}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roleTags.map(tag => (
+                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                    ))}
+                    <SelectItem value={NEW_TAG_VALUE} className="text-violet-500 font-medium">
+                      <Plus className="h-3.5 w-3.5 mr-1 inline" />Nueva etiqueta...
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              <p className="text-xs text-muted-foreground">Personaliza los roles de tu equipo: recepcionista, terapeuta, masajista, gerente...</p>
             </div>
             <div className="space-y-2">
               <Label>Cédula profesional (opcional)</Label>

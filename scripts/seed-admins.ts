@@ -90,7 +90,7 @@ async function main() {
         })
         if (error || !newUser.user) { console.error(`  ↳ Create failed:`, error?.message); continue }
         userId = newUser.user.id
-        await service.from('staff').insert({ organization_id: org.id, user_id: userId, name: admin.name, role: 'owner' })
+        await service.from('staff').insert({ organization_id: org.id, user_id: userId, name: admin.name, role: 'Dueño', is_owner: true })
       }
       console.log(`  ✓ Done\n`)
     }

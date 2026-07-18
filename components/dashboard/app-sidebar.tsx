@@ -102,7 +102,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
     const [staffRes, servicesRes, patientsRes] = await Promise.all([
       supabase
         .from('staff')
-        .select('id, name, role')
+        .select('id, name, role, is_owner')
         .eq('organization_id', orgId)
         .eq('is_active', true)
         .ilike('name', like)
@@ -131,7 +131,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
       id:         `staff-${s.id}`,
       type:       'staff' as ResultType,
       title:      s.name,
-      subtitle:   s.role === 'owner' ? 'Dueño' : s.role === 'manager' ? 'Gerente' : 'Staff',
+      subtitle:   s.is_owner ? 'Dueño' : s.role,
       breadcrumb: [staffLabel, s.name],
       href:       '/staff',
     }))

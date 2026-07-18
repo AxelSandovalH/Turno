@@ -57,7 +57,8 @@ export async function POST(req: Request) {
   await db.from('staff').insert({
     organization_id: org.id,
     name: name,
-    role: 'owner',
+    role: 'Dueño',
+    is_owner: true,
     email: email ?? null,
     is_active: true,
   })

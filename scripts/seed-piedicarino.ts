@@ -74,9 +74,9 @@ async function seedCatalog(orgId: string) {
   ]).select()
 
   const { data: staff } = await service.from('staff').insert([
-    { organization_id: orgId, name: 'Valeria Núñez',  role: 'owner', is_active: true, specialty: 'Uñas y manicure' },
-    { organization_id: orgId, name: 'Daniela Ruiz',   role: 'staff', is_active: true, specialty: 'Faciales y masaje' },
-    { organization_id: orgId, name: 'Sofía Herrera',  role: 'staff', is_active: true, specialty: 'Cabello' },
+    { organization_id: orgId, name: 'Valeria Núñez',  role: 'Dueño', is_owner: true, is_active: true, specialty: 'Uñas y manicure' },
+    { organization_id: orgId, name: 'Daniela Ruiz',   role: 'Staff', is_active: true, specialty: 'Faciales y masaje' },
+    { organization_id: orgId, name: 'Sofía Herrera',  role: 'Staff', is_active: true, specialty: 'Cabello' },
   ]).select()
 
   // Horarios: lunes a sábado 10:00–20:00 (spa cierra a las 8pm)
@@ -185,7 +185,7 @@ async function seedUser(org: { id: string; name: string }) {
     .from('staff').select('id').eq('user_id', userId).eq('organization_id', org.id).maybeSingle()
   if (!existingStaff) {
     await service.from('staff').insert({
-      organization_id: org.id, user_id: userId, name: 'Valeria Núñez', role: 'owner', is_active: true,
+      organization_id: org.id, user_id: userId, name: 'Valeria Núñez', role: 'Dueño', is_owner: true, is_active: true,
     })
   }
 
