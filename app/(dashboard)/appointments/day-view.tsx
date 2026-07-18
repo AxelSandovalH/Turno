@@ -10,31 +10,31 @@ import type { Appointment } from '@/types/database'
 const STATUS: Record<string, { bar: string; bg: string; text: string; sub: string; time: string }> = {
   confirmed: {
     bar:  'bg-blue-500',
-    bg:   'bg-blue-500/10 border-blue-500/25 hover:bg-blue-500/15',
-    text: 'text-blue-100',
-    sub:  'text-blue-300/80',
-    time: 'text-blue-400',
+    bg:   'bg-blue-500/10 border-blue-500/25 hover:bg-blue-500/15 light:bg-blue-500/8',
+    text: 'text-blue-100 light:text-blue-950',
+    sub:  'text-blue-300/80 light:text-blue-900/70',
+    time: 'text-blue-400 light:text-blue-700',
   },
   completed: {
     bar:  'bg-emerald-500',
-    bg:   'bg-emerald-500/10 border-emerald-500/25 hover:bg-emerald-500/15',
-    text: 'text-emerald-100',
-    sub:  'text-emerald-300/80',
-    time: 'text-emerald-400',
+    bg:   'bg-emerald-500/10 border-emerald-500/25 hover:bg-emerald-500/15 light:bg-emerald-500/8',
+    text: 'text-emerald-100 light:text-emerald-950',
+    sub:  'text-emerald-300/80 light:text-emerald-900/70',
+    time: 'text-emerald-400 light:text-emerald-700',
   },
   cancelled: {
     bar:  'bg-zinc-500',
     bg:   'bg-zinc-500/10 border-zinc-500/20 hover:bg-zinc-500/15',
-    text: 'text-zinc-400 line-through',
+    text: 'text-zinc-400 light:text-zinc-500 line-through',
     sub:  'text-zinc-500',
     time: 'text-zinc-500',
   },
   no_show: {
     bar:  'bg-red-500',
-    bg:   'bg-red-500/10 border-red-500/25 hover:bg-red-500/15',
-    text: 'text-red-200',
-    sub:  'text-red-400/80',
-    time: 'text-red-400',
+    bg:   'bg-red-500/10 border-red-500/25 hover:bg-red-500/15 light:bg-red-500/8',
+    text: 'text-red-200 light:text-red-950',
+    sub:  'text-red-400/80 light:text-red-900/70',
+    time: 'text-red-400 light:text-red-700',
   },
 }
 
@@ -56,13 +56,13 @@ type ConfStatus = 'pending' | 'confirmed' | 'declined' | 'risk' | null
 function resolveStatus(status: string, conf: ConfStatus): {
   label: string; Icon: React.ElementType; iconClass: string
 } {
-  if (status === 'completed') return { label: 'Completada',            Icon: CircleCheck,   iconClass: 'text-emerald-400' }
-  if (status === 'cancelled') return { label: 'Cancelada',             Icon: Ban,           iconClass: 'text-zinc-400'    }
-  if (status === 'no_show')   return { label: 'No asistió',            Icon: UserX,         iconClass: 'text-red-400'     }
-  if (conf === 'confirmed')   return { label: 'Asistencia confirmada', Icon: CheckCircle,   iconClass: 'text-emerald-400' }
-  if (conf === 'declined')    return { label: 'Declinó asistencia',    Icon: XCircle,       iconClass: 'text-red-400'     }
-  if (conf === 'risk')        return { label: 'Riesgo de cancelación', Icon: AlertTriangle, iconClass: 'text-amber-400'   }
-  return                             { label: 'Sin confirmar',          Icon: Clock,         iconClass: 'text-sky-400/80'  }
+  if (status === 'completed') return { label: 'Completada',            Icon: CircleCheck,   iconClass: 'text-emerald-400 light:text-emerald-600' }
+  if (status === 'cancelled') return { label: 'Cancelada',             Icon: Ban,           iconClass: 'text-zinc-400 light:text-zinc-500'       }
+  if (status === 'no_show')   return { label: 'No asistió',            Icon: UserX,         iconClass: 'text-red-400 light:text-red-600'         }
+  if (conf === 'confirmed')   return { label: 'Asistencia confirmada', Icon: CheckCircle,   iconClass: 'text-emerald-400 light:text-emerald-600' }
+  if (conf === 'declined')    return { label: 'Declinó asistencia',    Icon: XCircle,       iconClass: 'text-red-400 light:text-red-600'         }
+  if (conf === 'risk')        return { label: 'Riesgo de cancelación', Icon: AlertTriangle, iconClass: 'text-amber-400 light:text-amber-600'     }
+  return                             { label: 'Sin confirmar',          Icon: Clock,         iconClass: 'text-sky-400/80 light:text-sky-600'      }
 }
 
 
@@ -90,6 +90,40 @@ export function DayView({ appointments, initialDate }: Props) {
     const mins = (new Date(apt.ends_at).getTime() - new Date(apt.starts_at).getTime()) / 60000
     return Math.max(36, (mins / 60) * HOUR_HEIGHT)
   }
+
+  // Citas que se solapan en horario se reparten en columnas lado a lado
+  // (estilo Google Calendar) en vez de encimarse. Se agrupan en "clusters"
+  // de solape transitivo; dentro de cada cluster, asignación greedy de
+  // columna: la primera libre cuyo último evento ya terminó.
+  const layout = (() => {
+    const result = new Map<string, { col: number; cols: number }>()
+    let cluster: { apt: Apt; col: number }[] = []
+    let colEnds: number[] = []       // fin (ms) del último evento por columna
+    let clusterMaxEnd = -Infinity
+
+    const flush = () => {
+      const cols = colEnds.length
+      cluster.forEach(({ apt, col }) => result.set(apt.id, { col, cols }))
+      cluster = []
+      colEnds = []
+      clusterMaxEnd = -Infinity
+    }
+
+    for (const apt of dayApts) {
+      const start = new Date(apt.starts_at).getTime()
+      const end   = new Date(apt.ends_at).getTime()
+      if (cluster.length > 0 && start >= clusterMaxEnd) flush()
+
+      let col = colEnds.findIndex(e => e <= start)
+      if (col === -1) { col = colEnds.length; colEnds.push(end) }
+      else colEnds[col] = end
+
+      cluster.push({ apt, col })
+      clusterMaxEnd = Math.max(clusterMaxEnd, end)
+    }
+    flush()
+    return result
+  })()
 
   const s = (apt: Apt) => STATUS[apt.status] ?? STATUS.confirmed
 
@@ -151,11 +185,19 @@ export function DayView({ appointments, initialDate }: Props) {
                 </p>
               )
 
+              const { col, cols } = layout.get(apt.id) ?? { col: 0, cols: 1 }
+              const colWidth = 100 / cols
+
               return (
                 <div
                   key={apt.id}
-                  className={`absolute left-0 right-0 rounded-lg border transition-colors cursor-default overflow-hidden flex gap-0 ${st.bg}`}
-                  style={{ top: `${topOffset(apt)}px`, height: `${height}px` }}
+                  className={`absolute rounded-lg border transition-colors cursor-default overflow-hidden flex gap-0 ${st.bg}`}
+                  style={{
+                    top: `${topOffset(apt)}px`,
+                    height: `${height}px`,
+                    left: `calc(${col * colWidth}% + ${col > 0 ? 3 : 0}px)`,
+                    width: `calc(${colWidth}% - ${col > 0 ? 3 : 0}px)`,
+                  }}
                 >
                   {/* Color bar */}
                   <div className={`w-1 shrink-0 rounded-l-lg ${st.bar}`} />

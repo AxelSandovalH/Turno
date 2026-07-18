@@ -3,6 +3,9 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* El tema claro se activa con la clase .light en <html> (dark es el default
+   sin clase) — ver components/ui/theme-switch.tsx */
+@custom-variant light (&:is(.light *));
 
 @theme inline {
   --color-background: var(--background);
