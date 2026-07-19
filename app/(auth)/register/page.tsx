@@ -133,7 +133,7 @@ export default function RegisterPage() {
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>Crea tu cuenta</h1>
-        <p style={{ fontSize: 13, color: '#555' }}>$2,799 MXN/mes · Cancela cuando quieras</p>
+        <p style={{ fontSize: 13, color: '#555' }}>$1,299 MXN/mes los primeros 3 meses · Cancela cuando quieras</p>
       </div>
 
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
