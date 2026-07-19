@@ -4,17 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 const PLANS: Record<string, { name: string; amount: number; description: string }> = {
-  'landing':     { name: 'Turno — Página web',              amount: 89900,  description: 'Página web profesional para tu negocio' },
-  'turno-sys':   { name: 'Turno — Agenda',                  amount: 129900, description: 'Calendario de citas y recordatorios por WhatsApp' },
-  'turno-ai':    { name: 'Turno — Agenda + Asistente',      amount: 279900, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
-  'bundle-sys':  { name: 'Turno — Página web + Agenda',     amount: 179900, description: 'Combo con ahorro de $399/mes' },
-  'bundle-ai':   { name: 'Turno — Página web + Asistente',  amount: 329900, description: 'Combo con ahorro de $499/mes' },
+  'turno-ai': { name: 'Turno — Agenda + Asistente', amount: 249900, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
 }
 
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}))
-  const planKey: string = body.planKey ?? 'turno-ai'
-  const plan = PLANS[planKey] ?? PLANS['turno-ai']
+export async function POST() {
+  const plan = PLANS['turno-ai']
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -56,8 +50,8 @@ export async function POST(req: Request) {
     }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
     cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
-    metadata: { organization_id: orgId, plan: planKey },
-    subscription_data: { metadata: { organization_id: orgId, plan: planKey } },
+    metadata: { organization_id: orgId, plan: 'turno-ai' },
+    subscription_data: { metadata: { organization_id: orgId, plan: 'turno-ai' } },
   })
 
   return NextResponse.json({ url: session.url })
