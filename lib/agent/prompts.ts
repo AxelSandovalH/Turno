@@ -4,7 +4,8 @@ import { es } from 'date-fns/locale'
 export function buildSystemPrompt(
   org: { name: string; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number },
   customer?: { name: string | null; occupation: string | null; notes: string | null },
-  customerPhone?: string
+  customerPhone?: string,
+  isFirstMessage?: boolean
 ) {
   const nowInTz = toZonedTime(new Date(), org.timezone)
   const todayLabel = format(nowInTz, "EEEE d 'de' MMMM 'de' yyyy, HH:mm", { timeZone: org.timezone, locale: es })
@@ -70,5 +71,6 @@ FLUJO DE RESERVA:
 10. Confirma con los detalles completos
 
 ${org.welcome_message ? `MENSAJE DE BIENVENIDA PERSONALIZADO: ${org.welcome_message}` : ''}
+${isFirstMessage ? `\nESTE ES EL PRIMER MENSAJE DE ESTE CLIENTE (sin historial previo). Antes de responder a lo que pregunte, abre tu respuesta con un saludo de bienvenida breve${org.welcome_message ? ', basado en el MENSAJE DE BIENVENIDA PERSONALIZADO de arriba (parafraséalo, sin emojis)' : ` a "${org.name}"`}. Luego continúa atendiendo su mensaje normalmente.` : ''}
 `
 }

@@ -62,6 +62,8 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     .order('created_at', { ascending: false })
     .limit(10)
 
+  const isFirstMessage = !history || history.length === 0
+
   const messages: MessageParam[] = [
     ...(history ?? []).reverse().map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
     { role: 'user', content: incomingMessage },
@@ -90,7 +92,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   let response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
-    system: buildSystemPrompt(org, customer ?? undefined, customerPhone),
+    system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
     tools,
     messages,
   })
@@ -113,7 +115,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt(org, customer ?? undefined, customerPhone),
+      system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
       tools,
       messages,
     })
