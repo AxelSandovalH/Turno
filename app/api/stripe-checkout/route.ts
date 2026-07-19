@@ -7,6 +7,10 @@ const PLANS: Record<string, { name: string; amount: number; description: string 
   'turno-ai': { name: 'Turno — Agenda + Asistente', amount: 249900, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
 }
 
+// ⚠️ Oferta de lanzamiento — $1,299/mes los primeros 3 meses, luego $2,499/mes.
+// Cupón creado en Stripe Live: id 3ZuBBrZd ($1,200 MXN off, repeating x3 meses).
+const LAUNCH_COUPON_ID = '3ZuBBrZd'
+
 export async function POST() {
   const plan = PLANS['turno-ai']
 
@@ -48,6 +52,7 @@ export async function POST() {
         },
       },
     }],
+    discounts: [{ coupon: LAUNCH_COUPON_ID }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
     cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
     metadata: { organization_id: orgId, plan: 'turno-ai' },

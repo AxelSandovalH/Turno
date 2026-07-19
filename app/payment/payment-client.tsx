@@ -7,7 +7,8 @@ import { Spinner } from '@/components/ui/spinner'
 
 const PLAN = {
   name: 'Agenda + Asistente',
-  price: '$2,499',
+  price: '$1,299',
+  regularPrice: '$2,499',
   desc: 'Tu WhatsApp contesta y agenda solo',
   features: ['Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Recordatorios automáticos', 'Hasta 5 profesionales', 'Soporte prioritario'],
 }
@@ -38,13 +39,16 @@ export function PaymentClient() {
 
         {/* Plan card */}
         <div style={{ border: '1.5px solid #7c3aed', background: '#7c3aed12', borderRadius: 12, padding: '20px 20px', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <span style={{ fontSize: 16, fontWeight: 600, color: '#ebebeb' }}>{PLAN.name}</span>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#ebebeb' }}>{PLAN.price}</span>
-              <span style={{ fontSize: 12, color: '#555' }}> MXN/mes</span>
-            </div>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', border: '1px solid #7c3aed55', borderRadius: 99, padding: '2px 8px' }}>Oferta de lanzamiento</span>
           </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+            <span style={{ fontSize: 26, fontWeight: 700, color: '#ebebeb' }}>{PLAN.price}</span>
+            <span style={{ fontSize: 12, color: '#555' }}>MXN/mes</span>
+            <span style={{ fontSize: 13, color: '#555', textDecoration: 'line-through' }}>{PLAN.regularPrice}</span>
+          </div>
+          <p style={{ fontSize: 12, color: '#7c3aed', marginTop: 2, marginBottom: 14 }}>Precio especial los primeros 3 meses, luego {PLAN.regularPrice}/mes</p>
           <p style={{ fontSize: 13, color: '#999', marginBottom: 16 }}>{PLAN.desc}</p>
 
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -65,7 +69,7 @@ export function PaymentClient() {
           disabled={loading}
           style={{ width: '100%', height: 52, background: '#7c3aed', border: 'none', borderRadius: 12, color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', transition: 'opacity .15s' }}
         >
-          {loading ? <Spinner size={20} color="#fff" /> : `Activar — ${PLAN.price} MXN/mes →`}
+          {loading ? <Spinner size={20} color="#fff" /> : `Activar — ${PLAN.price} MXN/mes por 3 meses →`}
         </button>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: '#3d3d3d', marginTop: 14 }}>
