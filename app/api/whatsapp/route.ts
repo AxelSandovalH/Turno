@@ -59,10 +59,15 @@ export async function POST(req: Request) {
     let organization = null
 
     if (instanceId) {
+      // UltraMsg manda solo los dígitos ("173093") pero la instancia se suele
+      // guardar como "instance173093" — aceptamos ambos formatos.
+      const candidates = instanceId.startsWith('instance')
+        ? [instanceId, instanceId.replace(/^instance/, '')]
+        : [instanceId, `instance${instanceId}`]
       const { data } = await db
         .from('organizations')
         .select(ORG_FIELDS)
-        .eq('ultramsg_instance', instanceId)
+        .in('ultramsg_instance', candidates)
         .maybeSingle()
       if (data) organization = data
       console.log('[whatsapp] org by instance', instanceId, '->', organization?.id ?? 'not found')
