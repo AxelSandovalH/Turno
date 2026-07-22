@@ -1,17 +1,41 @@
 import { requireOrganization } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
-import { startOfWeek, subWeeks, startOfMonth, subMonths, format } from 'date-fns'
+import { startOfWeek, subWeeks, startOfMonth, subMonths, endOfMonth, format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AnalyticsClient } from './analytics-client'
 
-export default async function AnalyticsPage() {
+interface Props {
+  searchParams: Promise<{ month?: string }>
+}
+
+export default async function AnalyticsPage({ searchParams }: Props) {
+  const { month: monthParam } = await searchParams
   const { organization } = await requireOrganization()
   const db = createServiceClient()
   const orgId = organization.id
-  const now = new Date()
+  const today = new Date()
+
+  // Mes seleccionado — por default el actual. Si es un mes pasado, todos los
+  // cálculos "trailing" (semanas, nuevos clientes) anclan al final de ese mes
+  // en vez de a hoy, para que el reporte quede completo y no se corte a medias.
+  const isCurrentMonth = !monthParam || monthParam === format(today, 'yyyy-MM')
+  let referenceDate = today
+  if (!isCurrentMonth && monthParam) {
+    const [y, m] = monthParam.split('-').map(Number)
+    if (y && m) referenceDate = endOfMonth(new Date(y, m - 1, 15))
+  }
+  const now = referenceDate
+
+  // Últimos 12 meses (incluyendo el actual) para el selector
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const d = subMonths(today, i)
+    return { value: format(d, 'yyyy-MM'), label: format(d, 'MMMM yyyy', { locale: es }) }
+  })
+  const selectedMonth = isCurrentMonth ? format(today, 'yyyy-MM') : monthParam!
 
   // Date ranges
   const thisMonthStart = startOfMonth(now).toISOString()
+  const thisMonthEnd   = isCurrentMonth ? undefined : endOfMonth(now).toISOString()
   const lastMonthStart = startOfMonth(subMonths(now, 1)).toISOString()
   const last8WeeksStart = subWeeks(startOfWeek(now, { weekStartsOn: 1 }), 7).toISOString()
   const last6MonthsStart = startOfMonth(subMonths(now, 5)).toISOString()
@@ -24,16 +48,23 @@ export default async function AnalyticsPage() {
     { data: serviceList },
     { data: customers },
   ] = await Promise.all([
-    db.from('appointments')
-      .select('id, status, starts_at, ends_at, service_id, staff_id, created_at')
-      .eq('organization_id', orgId)
-      .gte('starts_at', last8WeeksStart)
-      .order('starts_at', { ascending: true }),
+    (() => {
+      let q = db.from('appointments')
+        .select('id, status, starts_at, ends_at, service_id, staff_id, created_at')
+        .eq('organization_id', orgId)
+        .gte('starts_at', last8WeeksStart)
+      if (thisMonthEnd) q = q.lte('starts_at', thisMonthEnd)
+      return q.order('starts_at', { ascending: true })
+    })(),
 
-    db.from('appointments')
-      .select('id, status, confirmation_status, service_id, staff_id')
-      .eq('organization_id', orgId)
-      .gte('starts_at', thisMonthStart),
+    (() => {
+      let q = db.from('appointments')
+        .select('id, status, confirmation_status, service_id, staff_id')
+        .eq('organization_id', orgId)
+        .gte('starts_at', thisMonthStart)
+      if (thisMonthEnd) q = q.lte('starts_at', thisMonthEnd)
+      return q
+    })(),
 
     db.from('appointments')
       .select('id, status, confirmation_status')
@@ -51,10 +82,14 @@ export default async function AnalyticsPage() {
       .eq('organization_id', orgId)
       .eq('is_active', true),
 
-    db.from('customers')
-      .select('id, created_at')
-      .eq('organization_id', orgId)
-      .gte('created_at', last6MonthsStart),
+    (() => {
+      let q = db.from('customers')
+        .select('id, created_at')
+        .eq('organization_id', orgId)
+        .gte('created_at', last6MonthsStart)
+      if (thisMonthEnd) q = q.lte('created_at', thisMonthEnd)
+      return q
+    })(),
   ])
 
   const appts = allAppointments ?? []
@@ -143,6 +178,8 @@ export default async function AnalyticsPage() {
       topStaff={topStaff}
       newByMonth={newByMonth}
       monthLabel={format(now, 'MMMM yyyy', { locale: es })}
+      monthOptions={monthOptions}
+      selectedMonth={selectedMonth}
     />
   )
 }

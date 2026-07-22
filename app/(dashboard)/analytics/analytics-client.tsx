@@ -1,7 +1,12 @@
 'use client'
 
-import { BarChart2, TrendingUp, TrendingDown, Users, CheckCircle2, XCircle, DollarSign } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { BarChart2, TrendingUp, TrendingDown, Users, CheckCircle2, XCircle, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 
 interface KPIs {
   totalThisMonth: number
@@ -15,6 +20,7 @@ interface WeekData { label: string; total: number; completed: number }
 interface ServiceData { name: string; count: number; price: number }
 interface StaffData { name: string; count: number }
 interface MonthData { label: string; count: number }
+interface MonthOption { value: string; label: string }
 
 interface Props {
   kpis: KPIs
@@ -23,6 +29,8 @@ interface Props {
   topStaff: StaffData[]
   newByMonth: MonthData[]
   monthLabel: string
+  monthOptions: MonthOption[]
+  selectedMonth: string
 }
 
 // ── Bar chart (SVG) ───────────────────────────────────────────────────────────
@@ -99,7 +107,8 @@ function KpiCard({ label, value, sub, icon, accent }: {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function AnalyticsClient({ kpis, weeks, topServices, topStaff, newByMonth, monthLabel }: Props) {
+export function AnalyticsClient({ kpis, weeks, topServices, topStaff, newByMonth, monthLabel, monthOptions, selectedMonth }: Props) {
+  const router = useRouter()
   const { totalThisMonth, completedThisMonth, cancelRate, growthPct, estimatedRevenue } = kpis
 
   const weekBars = weeks.map(w => ({ label: w.label, value: w.completed, secondary: w.total - w.completed }))
@@ -115,12 +124,48 @@ export function AnalyticsClient({ kpis, weeks, topServices, topStaff, newByMonth
     : 'Primer mes'
   const growthAccent = growthPct === null ? 'text-muted-foreground' : growthPct >= 0 ? 'text-emerald-400' : 'text-red-400'
 
+  // monthOptions[0] = mes actual, [1] = anterior, ... (más viejo al final)
+  const monthIndex = monthOptions.findIndex(m => m.value === selectedMonth)
+  const prevMonth = monthIndex >= 0 ? monthOptions[monthIndex + 1] : undefined
+  const nextMonth = monthIndex > 0 ? monthOptions[monthIndex - 1] : undefined
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-semibold text-foreground">Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-0.5 capitalize">{monthLabel}</p>
+
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8"
+            disabled={!prevMonth}
+            onClick={() => prevMonth && router.push(`/analytics?month=${prevMonth.value}`)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          <Select
+            value={selectedMonth}
+            onValueChange={v => v && router.push(`/analytics?month=${v}`)}
+          >
+            <SelectTrigger className="w-28 h-8 px-2 capitalize justify-center font-medium text-foreground text-sm [&_svg]:hidden">
+              <SelectValue className="justify-center text-center">{monthOptions.find(m => m.value === selectedMonth)?.label ?? monthLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map(m => (
+                <SelectItem key={m.value} value={m.value} className="capitalize">{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8"
+            disabled={!nextMonth}
+            onClick={() => nextMonth && router.push(`/analytics?month=${nextMonth.value}`)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
