@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Check } from 'lucide-react'
+import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
 
@@ -18,10 +19,21 @@ export function PaymentClient() {
 
   async function handleCheckout() {
     setLoading(true)
-    const res = await fetch('/api/stripe-checkout', { method: 'POST' })
-    const { url, error } = await res.json()
-    if (error || !url) { setLoading(false); return }
-    window.location.href = url
+    try {
+      const res = await fetch('/api/stripe-checkout', { method: 'POST' })
+      // La respuesta puede no ser JSON (ej. página de error HTML de un 500
+      // no manejado) — nunca dejar que eso reviente sin apagar el loading.
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.url) {
+        toast.error(data?.error ?? 'No se pudo iniciar el pago. Intenta de nuevo.')
+        return
+      }
+      window.location.href = data.url
+    } catch {
+      toast.error('No se pudo conectar con el servidor. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

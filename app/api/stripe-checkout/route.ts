@@ -24,40 +24,46 @@ export async function POST() {
   const db = createServiceClient()
   const { data: org } = await db.from('organizations').select('name, stripe_customer_id').eq('id', orgId).single()
 
-  // Crear o reutilizar cliente Stripe
-  let customerId = org?.stripe_customer_id
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: org?.name,
-      metadata: { organization_id: orgId, user_id: user.id },
-    })
-    customerId = customer.id
-    await db.from('organizations').update({ stripe_customer_id: customerId }).eq('id', orgId)
-  }
+  try {
+    // Crear o reutilizar cliente Stripe
+    let customerId = org?.stripe_customer_id
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: org?.name,
+        metadata: { organization_id: orgId, user_id: user.id },
+      })
+      customerId = customer.id
+      await db.from('organizations').update({ stripe_customer_id: customerId }).eq('id', orgId)
+    }
 
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: 'subscription',
-    payment_method_types: ['card'],
-    line_items: [{
-      quantity: 1,
-      price_data: {
-        currency: 'mxn',
-        unit_amount: plan.amount,
-        recurring: { interval: 'month' },
-        product_data: {
-          name: plan.name,
-          description: plan.description,
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'mxn',
+          unit_amount: plan.amount,
+          recurring: { interval: 'month' },
+          product_data: {
+            name: plan.name,
+            description: plan.description,
+          },
         },
-      },
-    }],
-    discounts: [{ coupon: LAUNCH_COUPON_ID }],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
-    cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
-    metadata: { organization_id: orgId, plan: 'turno-ai' },
-    subscription_data: { metadata: { organization_id: orgId, plan: 'turno-ai' } },
-  })
+      }],
+      discounts: [{ coupon: LAUNCH_COUPON_ID }],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
+      cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
+      metadata: { organization_id: orgId, plan: 'turno-ai' },
+      subscription_data: { metadata: { organization_id: orgId, plan: 'turno-ai' } },
+    })
 
-  return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url })
+  } catch (error) {
+    console.error('[stripe-checkout]', error)
+    const message = error instanceof Error ? error.message : 'No se pudo iniciar el pago'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

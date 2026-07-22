@@ -67,32 +67,39 @@ export default function OnboardingPage() {
     if (!userId) return
     setLoading(true)
 
-    const slug = form.businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    const res = await fetch('/api/onboarding', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        name: form.businessName,
-        slug,
-        whatsappNumber: form.whatsapp,
-        email,
-        businessType: form.businessType,
-      }),
-    })
+    try {
+      const slug = form.businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          name: form.businessName,
+          slug,
+          whatsappNumber: form.whatsapp,
+          email,
+          businessType: form.businessType,
+        }),
+      })
 
-    if (!res.ok) {
-      const { error } = await res.json()
-      toast.error(error ?? 'Error al crear el negocio')
+      if (!res.ok) {
+        // La respuesta de error puede no ser JSON (ej. página HTML de un 500
+        // no manejado) — nunca dejar que eso reviente sin apagar el loading.
+        const error = await res.json().catch(() => null)
+        toast.error(error?.error ?? 'Error al crear el negocio')
+        return
+      }
+
+      // Refresh session so new metadata is picked up
+      await supabase.auth.refreshSession()
+      toast.success('¡Negocio creado!')
+      router.push('/payment')
+      router.refresh()
+    } catch {
+      toast.error('No se pudo conectar con el servidor. Intenta de nuevo.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    // Refresh session so new metadata is picked up
-    await supabase.auth.refreshSession()
-    toast.success('¡Negocio creado!')
-    router.push('/payment')
-    router.refresh()
   }
 
   return (
