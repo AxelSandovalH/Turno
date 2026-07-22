@@ -21,11 +21,17 @@ async function main() {
   const trialEndsAt = new Date()
   trialEndsAt.setFullYear(trialEndsAt.getFullYear() + 10) // sin vencimiento práctico
 
+  // Slug propio y sin ambigüedad — 'demo-turno' ya le pertenece a la org de
+  // fisio (Fisio Demo — Turno), y reusar ese slug aquí hacía que el fallback
+  // de abajo enganchara por error usuarios de barbería a la org de fisio.
+  const SLUG = 'demo-turno-barberia'
+  const ORG_NAME = 'Barbería Demo — Turno'
+
   const { data: org, error: orgErr } = await service
     .from('organizations')
     .insert({
-      name: 'Barbería Demo — Turno',
-      slug: 'demo-turno',
+      name: ORG_NAME,
+      slug: SLUG,
       whatsapp_number: '5200000000000',   // número ficticio
       email: 'demo@quickturno.app',
       subscription_status: 'active',
@@ -37,8 +43,15 @@ async function main() {
   if (orgErr) {
     if (orgErr.code === '23505') {
       console.log('  ↳ Org demo ya existe, buscando...')
-      const { data: existing } = await service.from('organizations').select('*').eq('slug', 'demo-turno').single()
-      if (!existing) { console.error('No se pudo encontrar org demo'); process.exit(1) }
+      // Filtra por slug Y nombre — nunca reusar ciegamente lo primero que
+      // matchee el slug, podría ser una org de otro giro/tenant.
+      const { data: existing } = await service
+        .from('organizations')
+        .select('*')
+        .eq('slug', SLUG)
+        .eq('name', ORG_NAME)
+        .maybeSingle()
+      if (!existing) { console.error('No se pudo encontrar la org demo de barbería (slug/nombre no coinciden)'); process.exit(1) }
       await seedUser(existing)
       return
     }

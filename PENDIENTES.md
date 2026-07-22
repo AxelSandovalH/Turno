@@ -9,13 +9,9 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 ## Infraestructura (operador) — BLOQUEANTE para el lanzamiento
 
 - [ ] Configurar instancia UltraMsg del primer tenant
-- [ ] Verificar dominio `quickturno.app` en Resend y configurar DNS (SPF, DKIM)
+- [*] Verificar dominio `quickturno.app` en Resend y configurar DNS (SPF, DKIM)
       (ahora también lo usa el reporte de laboratorio por email, además de bienvenida y recordatorios)
-- [ ] Agregar variable `CRON_SECRET` en Vercel (generarla con `openssl rand -hex 32`)
-- [ ] Crear los 5 productos en el dashboard de Stripe con sus precios en MXN:
-      `landing` $899, `turno-sys` $1,299, `turno-ai` $2,799, `bundle-sys` $1,799, `bundle-ai` $3,299
-      (Nota: esto es solo para las suscripciones del SaaS — el anticipo de citas usa
-      `price_data` dinámico y no depende de estos productos)
+- [*] Agregar variable `CRON_SECRET` en Vercel (generarla con `openssl rand -hex 32`)
 
 ---
 
@@ -24,16 +20,16 @@ Registro de todo lo que falta para que Turno quede al 100% con soporte para tena
 **Probable ya, con el chat de prueba del dashboard (sin WhatsApp):**
 
 - [ ] Flujo del agente: agendar → cancelar → reagendar vía chat de prueba
-- [ ] Anticipo por Stripe en el flujo del agente (requiere `STRIPE_SECRET_KEY` en Vercel;
+- [*] Anticipo por Stripe en el flujo del agente (requiere `STRIPE_SECRET_KEY` en Vercel;
       activado en Piedi Carino con $100 MXN — ninguna cita en producción tiene aún
       `deposit_status` distinto de `none`)
-- [ ] Cron deposit-timeout: cancelación real cuando el anticipo no se paga a tiempo
+- [*] Cron deposit-timeout: cancelación real cuando el anticipo no se paga a tiempo
 
 **Bloqueado hasta tener WhatsApp + Resend activos:**
 
 - [ ] Flujo completo de confirmación: recordatorio → paciente responde SI/NO → estado actualizado
-- [ ] Email de recordatorio real con Resend
-- [ ] Alerta al staff por citas sin confirmar (cron confirmation-check)
+- [*] Email de recordatorio real con Resend
+- [*] Alerta al staff por citas sin confirmar (cron confirmation-check)
 - [ ] Portal del paciente end-to-end: generar link → WhatsApp → abrir portal
 - [ ] Booking page end-to-end: seleccionar servicio → fecha → datos → abrir WhatsApp
 - [ ] Laboratorio: envío del reporte de resultados por WhatsApp y email reales
