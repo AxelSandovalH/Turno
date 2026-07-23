@@ -40,7 +40,9 @@ export async function POST() {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
-      payment_method_types: ['card'],
+      // Sin payment_method_types fijo: Stripe habilita solo los métodos
+      // activos en el dashboard (tarjeta, Apple Pay, Google Pay, Link) —
+      // pagar con wallet es un toque, sin teclear la tarjeta.
       line_items: [{
         quantity: 1,
         price_data: {

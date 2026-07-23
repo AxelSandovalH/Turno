@@ -93,7 +93,7 @@ export default function OnboardingPage() {
       // Refresh session so new metadata is picked up
       await supabase.auth.refreshSession()
       toast.success('¡Negocio creado!')
-      router.push('/payment')
+      router.push('/payment?auto=1')
       router.refresh()
     } catch {
       toast.error('No se pudo conectar con el servidor. Intenta de nuevo.')

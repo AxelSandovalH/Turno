@@ -125,7 +125,7 @@ export default function RegisterPage() {
       }
     }
 
-    router.push('/payment')
+    router.push('/payment?auto=1')
     router.refresh()
   }
 

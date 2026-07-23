@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
@@ -16,6 +16,18 @@ const PLAN = {
 
 export function PaymentClient() {
   const [loading, setLoading] = useState(false)
+  const autoStarted = useRef(false)
+
+  // Viniendo del registro (?auto=1) arranca el checkout solo — un paso menos
+  // entre el anuncio y el pago. Si falla, la página queda usable con el botón.
+  useEffect(() => {
+    if (autoStarted.current) return
+    if (new URLSearchParams(window.location.search).get('auto') === '1') {
+      autoStarted.current = true
+      handleCheckout()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleCheckout() {
     setLoading(true)
