@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -70,10 +70,17 @@ export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [paidSessionId, setPaidSessionId] = useState<string | null>(null)
   const [form, setForm] = useState({
     businessName: '', email: '', password: '', whatsappNumber: '', businessType: 'barbershop',
   })
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
+
+  // Compra directa desde el anuncio: llega de Stripe ya pagado (?session_id=...)
+  useEffect(() => {
+    const sid = new URLSearchParams(window.location.search).get('session_id')
+    if (sid) setPaidSessionId(sid)
+  }, [])
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -103,11 +110,12 @@ export default function RegisterPage() {
         whatsappNumber: form.whatsappNumber,
         email: form.email,
         businessType: form.businessType,
+        stripeSessionId: paidSessionId,
       }),
     })
+    const onboarding = await res.json().catch(() => null)
     if (!res.ok) {
-      const { error } = await res.json()
-      toast.error(error ?? 'Error al configurar el negocio')
+      toast.error(onboarding?.error ?? 'Error al configurar el negocio')
       setLoading(false)
       return
     }
@@ -125,15 +133,22 @@ export default function RegisterPage() {
       }
     }
 
-    router.push('/payment?auto=1')
+    // Si pagó desde el anuncio, la org ya quedó activa — directo al dashboard
+    router.push(onboarding?.alreadyPaid ? '/appointments' : '/payment?auto=1')
     router.refresh()
   }
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>Crea tu cuenta</h1>
-        <p style={{ fontSize: 13, color: '#555' }}>$1,299 MXN/mes los primeros 3 meses · Cancela cuando quieras</p>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>
+          {paidSessionId ? '¡Pago recibido! Crea tu cuenta' : 'Crea tu cuenta'}
+        </h1>
+        <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#555' }}>
+          {paidSessionId
+            ? 'Tu suscripción ya está pagada — este último paso activa tu negocio.'
+            : '$1,299 MXN/mes los primeros 3 meses · Cancela cuando quieras'}
+        </p>
       </div>
 
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

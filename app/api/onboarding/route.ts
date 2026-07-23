@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { stripe } from '@/lib/stripe'
 import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 
@@ -32,7 +33,7 @@ async function uniqueSlug(db: ReturnType<typeof createServiceClient>, base: stri
 }
 
 export async function POST(req: Request) {
-  const { userId, name, slug, whatsappNumber, email, businessType } = await req.json()
+  const { userId, name, slug, whatsappNumber, email, businessType, stripeSessionId } = await req.json()
   if (!userId || !name || !whatsappNumber) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
@@ -70,6 +71,39 @@ export async function POST(req: Request) {
 
   if (metaError) return NextResponse.json({ error: metaError.message }, { status: 500 })
 
+  // Compra directa desde el anuncio (/comprar): el pago ocurrió ANTES de crear
+  // la cuenta. Reclamamos la sesión de Stripe y activamos la org de inmediato.
+  let alreadyPaid = false
+  if (stripeSessionId) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(stripeSessionId)
+      const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id
+      const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
+      // Solo sesiones de compra directa, pagadas y sin org reclamada aún
+      if (session.payment_status === 'paid' && session.metadata?.source === 'direct-ad' && subId) {
+        const { data: claimed } = await db
+          .from('organizations')
+          .select('id')
+          .eq('stripe_subscription_id', subId)
+          .maybeSingle()
+        if (!claimed) {
+          await db.from('organizations').update({
+            subscription_status: 'active',
+            stripe_subscription_id: subId,
+            ...(customerId ? { stripe_customer_id: customerId } : {}),
+          }).eq('id', org.id)
+          // Liga la suscripción a la org para que los webhooks futuros la encuentren
+          await stripe.subscriptions.update(subId, {
+            metadata: { organization_id: org.id, plan: 'turno-ai' },
+          }).catch(err => console.error('[onboarding] sub metadata update failed:', err))
+          alreadyPaid = true
+        }
+      }
+    } catch (err) {
+      console.error('[onboarding] claim stripe session failed:', err)
+    }
+  }
+
   // Send welcome email (non-blocking — don't fail onboarding if email fails)
   if (email) {
     resend.emails.send({
@@ -81,5 +115,5 @@ export async function POST(req: Request) {
     }).catch(err => console.error('[onboarding] welcome email failed:', err))
   }
 
-  return NextResponse.json({ organizationId: org.id })
+  return NextResponse.json({ organizationId: org.id, alreadyPaid })
 }
