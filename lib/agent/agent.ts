@@ -57,12 +57,16 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load recent message history (last 10 messages for context)
   const { data: history } = await db
     .from('messages')
-    .select('role, content')
+    .select('role, content, created_at')
     .eq('conversation_id', conversation.id)
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const isFirstMessage = !history || history.length === 0
+  // Saluda/preséntate en el primer mensaje de la conversación, o cuando el
+  // cliente regresa tras 12+ horas de inactividad (conversación "reabierta").
+  const lastMessageAt = history?.[0]?.created_at ? new Date(history[0].created_at).getTime() : 0
+  const isFirstMessage =
+    !history || history.length === 0 || Date.now() - lastMessageAt > 12 * 60 * 60 * 1000
 
   const messages: MessageParam[] = [
     ...(history ?? []).reverse().map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),

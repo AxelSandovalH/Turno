@@ -71,6 +71,6 @@ FLUJO DE RESERVA:
 10. Confirma con los detalles completos
 
 ${org.welcome_message ? `MENSAJE DE BIENVENIDA PERSONALIZADO: ${org.welcome_message}` : ''}
-${isFirstMessage ? `\nESTE ES EL PRIMER MENSAJE DE ESTE CLIENTE (sin historial previo). Antes de responder a lo que pregunte, abre tu respuesta con un saludo de bienvenida breve${org.welcome_message ? ', basado en el MENSAJE DE BIENVENIDA PERSONALIZADO de arriba (parafraséalo, sin emojis)' : ` a "${org.name}"`}. Luego continúa atendiendo su mensaje normalmente.` : ''}
+${isFirstMessage ? `\nCONVERSACIÓN NUEVA O REABIERTA: antes de responder a lo que pregunte, PRESÉNTATE brevemente — di que eres Turno, la recepcionista virtual de "${org.name}"${org.welcome_message ? ', incorporando el MENSAJE DE BIENVENIDA PERSONALIZADO de arriba (parafraséalo, sin emojis)' : ''} — y luego continúa atendiendo su mensaje normalmente. La presentación es obligatoria en esta respuesta.` : ''}
 `
 }
