@@ -63,8 +63,71 @@ const FEATURES = [
   { Icon: Zap, title: 'Listo el mismo día', desc: 'Creas tu cuenta, pones tus servicios y horarios, y tu WhatsApp ya contesta solo. Sin técnicos ni instalaciones.' },
 ]
 
+const SEGMENTS = [
+  {
+    emoji: '💈',
+    name: 'Barberías y estéticas',
+    pain: 'El cliente que te escribe mientras cortas, no espera: agenda con el de enfrente.',
+    bullets: [
+      'Turno contesta mientras tú sigues con las tijeras en la mano',
+      'Cada barbero con su agenda — se acabó el "a mí me dijeron a las 5"',
+      'Recordatorio automático: menos sillas vacías por plantones',
+    ],
+  },
+  {
+    emoji: '💆',
+    name: 'Spas y bienestar',
+    pain: 'Tu cabina vacía por una cancelación de último minuto es dinero que ya no regresa.',
+    bullets: [
+      'Confirmación un día antes: si no pueden ir, el espacio se libera a tiempo',
+      'Anticipo por Stripe al reservar — quien aparta en serio, llega',
+      'Responde precios y paquetes a las 11 pm, cuando tus clientas planean su semana',
+    ],
+  },
+  {
+    emoji: '🏥',
+    name: 'Consultorios y clínicas',
+    pain: 'Tu asistente no puede contestar WhatsApp, agendar y recibir pacientes al mismo tiempo.',
+    bullets: [
+      'Agenda, reagenda y cancela sin interrumpir la consulta',
+      'Expediente y historial del paciente en un solo lugar',
+      'El paciente confirma con un SI — y tú ves tu día real, no el teórico',
+    ],
+  },
+  {
+    emoji: '🧠',
+    name: 'Psicología y terapia',
+    pain: 'Cobrar la sesión que el paciente olvidó es incómodo; perderla, insostenible.',
+    bullets: [
+      'Recordatorios que cuidan la constancia del tratamiento',
+      'Reagendar es una conversación, no una llamada incómoda',
+      'Tu horario protegido: sin dobles reservas ni huecos sorpresa',
+    ],
+  },
+  {
+    emoji: '🔬',
+    name: 'Laboratorios clínicos',
+    pain: 'Pacientes llamando todo el día para preguntar si ya están sus resultados.',
+    bullets: [
+      'Resultados enviados por WhatsApp y correo con un clic',
+      'Órdenes, captura y reportes con cédula del responsable',
+      'Recepción sin filas: el paciente llega con todo resuelto',
+    ],
+  },
+  {
+    emoji: '⛵',
+    name: 'Charters de yates y pesca',
+    pain: 'Una reserva sin anticipo que no llega al muelle te cuesta el día entero de la embarcación.',
+    bullets: [
+      'Anticipo por Stripe al reservar — la salida queda asegurada',
+      'Contesta a turistas a cualquier hora, en el momento en que planean su viaje',
+      'Cada capitán y embarcación con su propio calendario',
+    ],
+  },
+]
+
 const FAQ = [
-  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas: barberías, consultorios de psicología, clínicas dentales, fisioterapia, spas, estéticas y más. Si agendas con clientes o pacientes, Turno funciona para ti.' },
+  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Cuánto cuesta?', a: '$1,299 MXN al mes los primeros 3 meses (precio de lanzamiento), luego $2,499 MXN/mes. Incluye el asistente que contesta y agenda por WhatsApp 24/7. Sin contratos ni permanencia.' },
@@ -263,6 +326,39 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Segmentos */}
+      <section id="segments" style={{ borderTop: `1px solid ${t.border}` }}>
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
+          <div data-section-head className="mb-14 sm:mb-20" style={{ opacity: 0 }}>
+            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Para tu negocio</p>
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>Hecho para tu giro.</h2>
+            <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Cada negocio pierde citas de forma distinta. Turno ataca el dolor exacto del tuyo.</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {SEGMENTS.map(({ emoji, name, pain, bullets }) => (
+              <div
+                key={name}
+                data-feature
+                className="rounded-2xl p-6 sm:p-7 transition-colors duration-300 flex flex-col"
+                style={{ background: t.card, border: `1px solid ${t.border}` }}
+              >
+                <div className="text-[26px] mb-4">{emoji}</div>
+                <h3 className="font-semibold text-[15px] mb-2 leading-snug" style={{ color: t.text }}>{name}</h3>
+                <p className="text-[13.5px] leading-relaxed mb-4 italic" style={{ color: t.muted }}>{pain}</p>
+                <ul className="space-y-2 mt-auto">
+                  {bullets.map(b => (
+                    <li key={b} className="flex items-start gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: t.accent }} />
+                      <span className="text-[13px] leading-snug" style={{ color: t.muted }}>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Cómo funciona */}
       <section id="how" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
@@ -369,7 +465,7 @@ export function LandingPage() {
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
           <p className="text-[16px] mb-3" style={{ color: t.muted }}>Desde $1,299 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
-          <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Psicología · Odontología · Fisioterapia · y más</p>
+          <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Charters · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>
       </section>
