@@ -176,6 +176,7 @@ function SegmentPicker({ t, active, onSelect }: {
 export function LandingPage() {
   const root = useRef<HTMLDivElement>(null)
   const [isDay, setIsDay] = useState(false) // dark default for SSR
+  const [loginHover, setLoginHover] = useState(false)
   const [activeSegment, setActiveSegment] = useState(0)
 
   useEffect(() => {
@@ -305,10 +306,27 @@ export function LandingPage() {
               <FancyButton href="/register">Empieza hoy →</FancyButton>
               <Link href="/login">
                 <button
-                  className="text-[14px] font-medium px-5 py-3 rounded-md transition-colors w-full sm:w-auto"
-                  style={{ border: `1px solid ${t.border}`, color: t.muted }}
+                  onMouseEnter={() => setLoginHover(true)}
+                  onMouseLeave={() => setLoginHover(false)}
+                  className="relative text-[14px] font-medium px-5 py-3 rounded-md w-full sm:w-auto overflow-hidden"
+                  style={{ border: `1px solid ${t.border}` }}
                 >
-                  Iniciar sesión
+                  <span
+                    className="relative z-10 transition-colors duration-300"
+                    style={{ color: loginHover ? t.accent : t.muted }}
+                  >
+                    Iniciar sesión
+                  </span>
+                  {/* Barra de reveal: entra desde la izquierda al hover, sale hacia la derecha al salir */}
+                  <span
+                    className="absolute left-0 right-0 bottom-0 h-[2px]"
+                    style={{
+                      background: t.accent,
+                      transform: `scaleX(${loginHover ? 1 : 0})`,
+                      transformOrigin: loginHover ? 'left' : 'right',
+                      transition: 'transform 0.35s ease',
+                    }}
+                  />
                 </button>
               </Link>
             </div>
