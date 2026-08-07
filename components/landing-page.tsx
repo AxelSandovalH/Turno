@@ -399,13 +399,17 @@ export function LandingPage() {
               <div
                 key={name}
                 data-feature
-                className="rounded-2xl p-6 sm:p-7 transition-colors duration-300 flex flex-col"
-                style={{ background: t.card, border: `1px solid ${t.border}` }}
+                className="p-6 sm:p-7 flex flex-col items-center text-center"
               >
-                <div className="text-[26px] mb-4">{emoji}</div>
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-[30px] mb-4"
+                  style={{ background: t.card, border: `1px solid ${t.border}` }}
+                >
+                  {emoji}
+                </div>
                 <h3 className="font-semibold text-[15px] mb-2 leading-snug" style={{ color: t.text }}>{name}</h3>
                 <p className="text-[13.5px] leading-relaxed mb-4 italic" style={{ color: t.muted }}>{pain}</p>
-                <ul className="space-y-2 mt-auto">
+                <ul className="space-y-2 text-left">
                   {bullets.map(b => (
                     <li key={b} className="flex items-start gap-2">
                       <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: t.accent }} />
