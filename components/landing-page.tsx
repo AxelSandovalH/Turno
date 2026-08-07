@@ -7,6 +7,8 @@ import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spotlight } from '@/components/ui/spotlight'
 import { WhatsappMockup } from '@/components/landing/whatsapp-mockup'
+import { HowItWorks } from '@/components/landing/how-it-works'
+import { DashboardMockup } from '@/components/landing/dashboard-mockup'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -417,30 +419,33 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Cómo funciona */}
-      <section id="how" style={{ borderTop: `1px solid ${t.border}` }}>
-        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
-          <div data-section-head className="mb-14 sm:mb-16" style={{ opacity: 0 }}>
-            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Cómo funciona</p>
-            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>Tres pasos y listo.</h2>
+      {/* Cómo funciona — narrativa con scroll pineado en desktop */}
+      <HowItWorks t={t} isDay={isDay} />
+
+      {/* El sistema detrás del bot */}
+      <section id="dashboard" style={{ borderTop: `1px solid ${t.border}` }}>
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
+          <div data-section-head style={{ opacity: 0 }}>
+            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>El sistema detrás del bot</p>
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-5" style={{ color: t.text }}>No solo un chatbot. Tu negocio, ordenado.</h2>
+            <p className="text-[16px] leading-relaxed mb-6" style={{ color: t.muted }}>
+              Cada cita que agenda el bot cae directo a tu panel. Ve tu agenda del día, tus ingresos y a tus clientes sin perseguir mensajes.
+            </p>
+            <ul className="space-y-3">
+              {[
+                'Agenda del día por colaborador, sin choques de horario',
+                'Ingresos y citas confirmadas en tiempo real',
+                'Historial de cada cliente y sus citas pasadas',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-[14px]" style={{ color: t.text }}>
+                  <Check size={16} style={{ color: t.accent, marginTop: 3, flexShrink: 0 }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="grid sm:grid-cols-3 gap-10">
-            {[
-              { n: '1', title: 'Crea tu cuenta', desc: 'Pon el nombre de tu negocio y tu número de WhatsApp. Toma 2 minutos.' },
-              { n: '2', title: 'Di qué ofreces y cuándo', desc: 'Agrega tus servicios con precios y los horarios en que atiendes tú y tu equipo.' },
-              { n: '3', title: 'Comparte tu WhatsApp', desc: 'Tus clientes escriben como siempre — y Turno les contesta, agenda y les recuerda su cita.' },
-            ].map(({ n, title, desc }) => (
-              <div key={n} data-step style={{ opacity: 0 }}>
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-bold mb-5"
-                  style={{ background: `${t.accent}1a`, color: t.accent, border: `1px solid ${t.accent}55` }}
-                >
-                  {n}
-                </div>
-                <h3 className="font-semibold text-[15px] mb-2" style={{ color: t.text }}>{title}</h3>
-                <p className="text-[14px] leading-relaxed" style={{ color: t.muted }}>{desc}</p>
-              </div>
-            ))}
+          <div data-feature className="flex justify-center" style={{ opacity: 0 }}>
+            <DashboardMockup isDay={isDay} />
           </div>
         </div>
       </section>
