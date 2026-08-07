@@ -261,9 +261,11 @@ export function LandingPage() {
             <TurnoLogo height={36} variant={isDay ? 'light' : 'dark'} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px]" style={{ color: t.muted }}>
-            <a href="#features" className="transition-colors hover:opacity-80">Funciones</a>
-            <a href="#pricing"  className="transition-colors hover:opacity-80">Precio</a>
-            <a href="#faq"      className="transition-colors hover:opacity-80">FAQ</a>
+            <a href="#features"  className="transition-colors hover:opacity-80">Funciones</a>
+            <a href="#segments"  className="transition-colors hover:opacity-80">Giros</a>
+            <a href="#dashboard" className="transition-colors hover:opacity-80">Sistema</a>
+            <a href="#pricing"   className="transition-colors hover:opacity-80">Precio</a>
+            <a href="#faq"       className="transition-colors hover:opacity-80">FAQ</a>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/login" className="text-[13px] transition-colors hover:opacity-80" style={{ color: t.muted }}>Entrar</Link>
