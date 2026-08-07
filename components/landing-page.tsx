@@ -134,11 +134,49 @@ const FAQ = [
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
+// ── Segment picker (hero) ─────────────────────────────────────────────────────
+// Chips de giro que controlan qué conversación muestra el mockup de WhatsApp —
+// mismo orden/emoji que SEGMENTS, así el índice apunta directo a SCENARIOS.
+
+function SegmentPicker({ t, active, onSelect }: {
+  t: ReturnType<typeof tokens>
+  active: number
+  onSelect: (i: number) => void
+}) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap justify-center max-w-[330px]">
+      {SEGMENTS.map(({ emoji, name }, i) => {
+        const isActive = i === active
+        return (
+          <button
+            key={name}
+            type="button"
+            onClick={() => onSelect(i)}
+            title={name}
+            aria-label={name}
+            aria-pressed={isActive}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[15px] transition-all duration-200"
+            style={{
+              background: isActive ? `${t.accent}22` : 'transparent',
+              border: `1.5px solid ${isActive ? t.accent : t.border}`,
+              transform: isActive ? 'scale(1.08)' : 'scale(1)',
+              opacity: isActive ? 1 : 0.55,
+            }}
+          >
+            {emoji}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function LandingPage() {
   const root = useRef<HTMLDivElement>(null)
   const [isDay, setIsDay] = useState(false) // dark default for SSR
+  const [activeSegment, setActiveSegment] = useState(0)
 
   useEffect(() => {
     setIsDay(getIsDay())
@@ -282,17 +320,19 @@ export function LandingPage() {
           {/* Right — WhatsApp demo */}
           <div
             data-hero-mockup
-            className="hidden lg:flex flex-1 items-center justify-center py-16"
+            className="hidden lg:flex flex-1 flex-col items-center justify-center py-16 gap-5"
             style={{ opacity: 0 }}
           >
-            <WhatsappMockup isDay={isDay} />
+            <SegmentPicker t={t} active={activeSegment} onSelect={setActiveSegment} />
+            <WhatsappMockup isDay={isDay} activeIndex={activeSegment} onScenarioChange={setActiveSegment} />
           </div>
 
         </div>
 
         {/* Mobile — mockup debajo del copy */}
-        <div className="lg:hidden flex justify-center pb-16 px-5 relative z-10">
-          <WhatsappMockup isDay={isDay} />
+        <div className="lg:hidden flex flex-col items-center gap-5 pb-16 px-5 relative z-10">
+          <SegmentPicker t={t} active={activeSegment} onSelect={setActiveSegment} />
+          <WhatsappMockup isDay={isDay} activeIndex={activeSegment} onScenarioChange={setActiveSegment} />
         </div>
       </section>
 

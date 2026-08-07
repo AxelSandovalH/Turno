@@ -5,6 +5,11 @@ import gsap from 'gsap'
 
 interface Props {
   isDay: boolean
+  /** Si se pasa, el mockup queda controlado por el padre (ej. selector de giro
+   *  en el hero) — deja de manejar su propio índice y avisa cada rotación
+   *  automática vía onScenarioChange en vez de avanzarlo internamente. */
+  activeIndex?: number
+  onScenarioChange?: (index: number) => void
 }
 
 interface Msg {
@@ -19,7 +24,10 @@ interface Scenario {
   messages: Msg[]
 }
 
-const SCENARIOS: Scenario[] = [
+// Un escenario por cada giro de la sección "Para tu negocio" — mismo orden
+// y emoji que SEGMENTS en landing-page.tsx, para que el selector de giro
+// pueda apuntar directo por índice.
+export const SCENARIOS: Scenario[] = [
   {
     emoji: '💈',
     business: 'Barbería Central',
@@ -31,8 +39,18 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    emoji: '🦷',
-    business: 'Dental Sonríe',
+    emoji: '💆',
+    business: 'Spa Serenity',
+    messages: [
+      { from: 'customer', text: 'Hola! ¿Tienen espacio para un masaje relajante esta semana? 💆‍♀️', time: '12:10' },
+      { from: 'bot', text: '¡Hola Karla! ✨ Claro que sí. Tenemos disponible:\n\n1️⃣ Jueves 16:00\n2️⃣ Viernes 11:00\n\n¿Cuál te acomoda?', time: '12:10' },
+      { from: 'customer', text: 'El viernes', time: '12:11' },
+      { from: 'bot', text: '✅ ¡Reservado!\n\n💆 Masaje relajante · $650\n📅 Viernes 11:00 am\n💳 Anticipo de $200 para apartar tu lugar\n\nTe mandamos el link de pago 💜', time: '12:11' },
+    ],
+  },
+  {
+    emoji: '🏥',
+    business: 'Clínica Sonríe',
     messages: [
       { from: 'customer', text: 'Buenas, necesito una limpieza dental 🪥', time: '16:20' },
       { from: 'bot', text: '¡Hola Ana! 😁 Con gusto. La Dra. Ramírez tiene disponible:\n\n1️⃣ Jueves 10:00\n2️⃣ Viernes 12:00\n\n¿Cuál prefieres?', time: '16:20' },
@@ -41,20 +59,42 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    emoji: '💆',
-    business: 'Fisio Bienestar',
+    emoji: '🧠',
+    business: 'Terapia Consciente',
     messages: [
-      { from: 'customer', text: 'Hola, me lastimé la espalda y quiero una sesión', time: '09:15' },
-      { from: 'bot', text: 'Hola Roberto 🙌 Lamento lo de tu espalda. El Lic. Torres puede atenderte:\n\n1️⃣ Hoy 18:00\n2️⃣ Mañana 11:00\n\n¿Cuándo te viene mejor?', time: '09:15' },
-      { from: 'customer', text: 'Hoy mismo si se puede', time: '09:16' },
-      { from: 'bot', text: '✅ ¡Confirmado!\n\n💆 Sesión de fisioterapia · $500\n📅 Hoy 6:00 pm\n👨‍⚕️ Lic. Torres\n\nMejórate pronto 💪', time: '09:16' },
+      { from: 'customer', text: 'Hola, quisiera agendar mi sesión de terapia de esta semana', time: '18:02' },
+      { from: 'bot', text: 'Hola Daniel 🙌 Con gusto. La Lic. Fuentes tiene disponible:\n\n1️⃣ Miércoles 18:00\n2️⃣ Jueves 17:00\n\n¿Cuál prefieres?', time: '18:02' },
+      { from: 'customer', text: 'El miércoles, como siempre', time: '18:03' },
+      { from: 'bot', text: '✅ ¡Confirmada!\n\n🧠 Sesión de terapia · $700\n📅 Miércoles 6:00 pm\n👩‍⚕️ Lic. Fuentes\n\nTe recordamos un día antes 💙', time: '18:03' },
+    ],
+  },
+  {
+    emoji: '🔬',
+    business: 'Lab Diagnóstica MX',
+    messages: [
+      { from: 'customer', text: 'Buenas, ¿ya están mis resultados de laboratorio?', time: '09:40' },
+      { from: 'bot', text: 'Hola Mariana 🔬 Déjame checar... ¡Sí! Tu estudio de Química Sanguínea ya está listo.\n\n¿Te lo envío por aquí o prefieres pasar a recogerlo?', time: '09:40' },
+      { from: 'customer', text: 'Mándamelo por aquí porfa', time: '09:41' },
+      { from: 'bot', text: '✅ ¡Enviado!\n\n📄 Resultados_Quimica_Sanguinea.pdf\n\nCualquier duda con tu médico, aquí seguimos 😊', time: '09:41' },
+    ],
+  },
+  {
+    emoji: '⛵',
+    business: 'Charter Pacífico',
+    messages: [
+      { from: 'customer', text: 'Hola! Quiero rentar un yate para pesca este sábado, somos 4', time: '11:05' },
+      { from: 'bot', text: '¡Hola Andrés! 🎣 Perfecto. El Capitán Mendoza tiene disponible:\n\n1️⃣ Sábado 7:00 am (6 hrs)\n2️⃣ Sábado 13:00 (4 hrs)\n\n¿Cuál te late?', time: '11:05' },
+      { from: 'customer', text: 'La de la mañana', time: '11:06' },
+      { from: 'bot', text: '✅ ¡Zarpando!\n\n⛵ Salida de pesca · $4,500\n📅 Sábado 7:00 am · 6 hrs\n👨‍✈️ Capitán Mendoza\n💳 Anticipo de $1,500 para asegurar tu salida', time: '11:06' },
     ],
   },
 ]
 
-export function WhatsappMockup({ isDay }: Props) {
+export function WhatsappMockup({ isDay, activeIndex, onScenarioChange }: Props) {
   const root = useRef<HTMLDivElement>(null)
-  const [active, setActive] = useState(0)
+  const [internalActive, setInternalActive] = useState(0)
+  const controlled = activeIndex !== undefined
+  const active = controlled ? activeIndex! : internalActive
   const scenario = SCENARIOS[active]
 
   useLayoutEffect(() => {
@@ -63,8 +103,11 @@ export function WhatsappMockup({ isDay }: Props) {
       const tl = gsap.timeline({
         delay: 0.6,
         onComplete: () => {
-          // pasa a la siguiente conversación (rota en círculo)
-          setActive(prev => (prev + 1) % SCENARIOS.length)
+          // pasa a la siguiente conversación (rota en círculo) — si el padre
+          // controla el índice, solo avisamos; si no, lo manejamos aquí mismo
+          const next = (active + 1) % SCENARIOS.length
+          if (controlled) onScenarioChange?.(next)
+          else setInternalActive(next)
         },
       })
       msgs.forEach((m, i) => {
@@ -112,9 +155,11 @@ export function WhatsappMockup({ isDay }: Props) {
         </div>
       </div>
 
-      {/* Chat */}
+      {/* Chat — altura fija (no minHeight): con minHeight el contenedor crecía
+          según el escenario activo (515px/479px/497px medidos), empujando el
+          div padre del hero en cada rotación. 520px cubre el más alto con margen. */}
       <div style={{
-        background: wa.chatBg, padding: '16px 12px', minHeight: 380,
+        background: wa.chatBg, padding: '16px 12px', height: 520, overflow: 'hidden',
         display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'flex-end',
         transition: 'background .7s',
       }}>
