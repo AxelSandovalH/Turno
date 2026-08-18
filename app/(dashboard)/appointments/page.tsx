@@ -130,7 +130,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
         ].map(v => (
           <a
             key={v.key}
-            href={`?view=${v.key}`}
+            href={`?view=${v.key}${date ? `&date=${date}` : ''}`}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               view === v.key
                 ? 'border-primary text-primary'
@@ -165,7 +165,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
 
       {/* ── DAY VIEW ── */}
       {view === 'day' && (
-        <DayView appointments={allApts as Parameters<typeof DayView>[0]['appointments']} initialDate={today} />
+        <DayView key={format(today, 'yyyy-MM-dd')} appointments={allApts as Parameters<typeof DayView>[0]['appointments']} initialDate={today} />
       )}
 
       {/* ── CALENDAR VIEW ── */}
