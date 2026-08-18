@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface KPIs {
   totalThisMonth: number
@@ -34,36 +35,57 @@ interface Props {
 }
 
 // ── Bar chart (SVG) ───────────────────────────────────────────────────────────
-function BarChart({ data, colorClass }: {
+function BarChart({ data, colorClass, valueLabel = 'Valor', secondaryLabel = 'Otras' }: {
   data: { label: string; value: number; secondary?: number }[]
   colorClass: string
+  valueLabel?: string
+  secondaryLabel?: string
 }) {
   const max = Math.max(...data.map(d => d.value), 1)
   const H = 80
 
   return (
-    <div className="flex items-end gap-1.5 w-full" style={{ height: H + 28 }}>
-      {data.map((d, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-          <div className="w-full flex flex-col justify-end gap-0.5" style={{ height: H }}>
-            {d.secondary !== undefined && d.secondary > 0 && (
-              <div
-                className="w-full rounded-t-sm bg-violet-500/25"
-                style={{ height: `${(d.secondary / max) * H}px` }}
-              />
-            )}
-            <div
-              className={`w-full rounded-t-sm ${colorClass}`}
-              style={{ height: `${Math.max(2, (d.value / max) * H)}px` }}
-              title={`${d.label}: ${d.value}`}
-            />
+    <TooltipProvider>
+      <div className="flex items-end gap-1.5 w-full" style={{ height: H + 28 }}>
+        {data.map((d, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <div className="w-full flex flex-col justify-end gap-0.5" style={{ height: H }}>
+              {d.secondary !== undefined && d.secondary > 0 && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <div
+                        className="w-full rounded-t-sm bg-violet-500/25 cursor-default"
+                        style={{ height: `${(d.secondary / max) * H}px` }}
+                      />
+                    }
+                  />
+                  <TooltipContent side="top" className="pointer-events-none">
+                    {d.label} — {secondaryLabel}: {d.secondary}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <div
+                      className={`w-full rounded-t-sm cursor-default ${colorClass}`}
+                      style={{ height: `${Math.max(2, (d.value / max) * H)}px` }}
+                    />
+                  }
+                />
+                <TooltipContent side="top" className="pointer-events-none">
+                  {d.label} — {valueLabel}: {d.value}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <span className="text-[9px] text-muted-foreground truncate w-full text-center leading-tight">
+              {d.label}
+            </span>
           </div>
-          <span className="text-[9px] text-muted-foreground truncate w-full text-center leading-tight">
-            {d.label}
-          </span>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </TooltipProvider>
   )
 }
 
@@ -215,7 +237,7 @@ export function AnalyticsClient({ kpis, weeks, topServices, topStaff, newByMonth
             </div>
           </CardHeader>
           <CardContent>
-            <BarChart data={weekBars} colorClass="bg-violet-500" />
+            <BarChart data={weekBars} colorClass="bg-violet-500" valueLabel="Completadas" secondaryLabel="Otras" />
           </CardContent>
         </Card>
 
@@ -228,7 +250,7 @@ export function AnalyticsClient({ kpis, weeks, topServices, topStaff, newByMonth
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <BarChart data={monthBars} colorClass="bg-blue-500" />
+            <BarChart data={monthBars} colorClass="bg-blue-500" valueLabel="Clientes nuevos" />
           </CardContent>
         </Card>
       </div>
