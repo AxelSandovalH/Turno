@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { fromZonedTime, toZonedTime } from 'date-fns-tz'
 import { Suspense } from 'react'
 import { AppointmentsList } from './appointment-list'
 import { NewAppointmentDialog } from './new-appointment-dialog'
@@ -27,10 +28,15 @@ export default async function AppointmentsPage({ searchParams }: Props) {
   const service = createServiceClient()
   const organizationId = user.user_metadata?.organization_id
 
+  const { data: orgTz } = await service.from('organizations').select('timezone').eq('id', organizationId).single()
+  const tz = orgTz?.timezone || 'America/Mexico_City'
+
   // Si viene ?date=YYYY-MM-DD desde el calendario, mostrar ese día; si no, hoy
-  const today = date ? new Date(`${date}T12:00:00`) : new Date()
-  const startOfDay = new Date(today); startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay   = new Date(today); endOfDay.setHours(23, 59, 59, 999)
+  // en la zona horaria del negocio (new Date() del servidor no sirve: en un
+  // host en UTC, "hoy" ya puede ser mañana según la hora local en México).
+  const today = date ? new Date(`${date}T12:00:00`) : toZonedTime(new Date(), tz)
+  const startOfDay = date ? fromZonedTime(`${date}T00:00:00`, tz) : fromZonedTime(format(today, 'yyyy-MM-dd') + 'T00:00:00', tz)
+  const endOfDay   = date ? fromZonedTime(`${date}T23:59:59.999`, tz) : fromZonedTime(format(today, 'yyyy-MM-dd') + 'T23:59:59.999', tz)
 
   // For calendar/day views — fetch whole month
   const monthStart = startOfMonth(today).toISOString()
@@ -159,7 +165,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
 
       {/* ── DAY VIEW ── */}
       {view === 'day' && (
-        <DayView appointments={allApts as Parameters<typeof DayView>[0]['appointments']} />
+        <DayView appointments={allApts as Parameters<typeof DayView>[0]['appointments']} initialDate={today} />
       )}
 
       {/* ── CALENDAR VIEW ── */}
