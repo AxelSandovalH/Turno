@@ -126,10 +126,20 @@ const SEGMENTS = [
       'Cada capitán y embarcación con su propio calendario',
     ],
   },
+  {
+    emoji: '🎨',
+    name: 'Estudios de tatuaje',
+    pain: 'Una sesión de horas apartada sin anticipo, cancelada a última hora, es un día entero perdido.',
+    bullets: [
+      'Anticipo por Stripe al reservar — quien aparta, se compromete',
+      'Cada tatuador con su propia agenda y portafolio de precios',
+      'Contesta consultas a medianoche, cuando el cliente decide animarse',
+    ],
+  },
 ]
 
 const FAQ = [
-  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
+  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Cuánto cuesta?', a: '$2,400 MXN al mes. Incluye el asistente que contesta y agenda por WhatsApp 24/7, recordatorios automáticos y el panel completo. Sin contratos ni permanencia.' },
@@ -528,7 +538,7 @@ export function LandingPage() {
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
           <p className="text-[16px] mb-3" style={{ color: t.muted }}>$2,400 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
-          <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Charters · y más</p>
+          <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>
       </section>

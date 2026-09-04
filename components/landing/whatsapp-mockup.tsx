@@ -88,6 +88,16 @@ export const SCENARIOS: Scenario[] = [
       { from: 'bot', text: '✅ ¡Zarpando!\n\n⛵ Salida de pesca · $4,500\n📅 Sábado 7:00 am · 6 hrs\n👨‍✈️ Capitán Mendoza\n💳 Anticipo de $1,500 para asegurar tu salida', time: '11:06' },
     ],
   },
+  {
+    emoji: '🎨',
+    business: 'Tinta Negra Studio',
+    messages: [
+      { from: 'customer', text: 'Hola! Quiero hacerme un tatuaje mediano, ¿tienen espacio esta semana? 🎨', time: '19:15' },
+      { from: 'bot', text: '¡Hola Sofía! 🖤 Claro. Kenji tiene disponible:\n\n1️⃣ Jueves 16:00\n2️⃣ Sábado 13:00\n\n¿Cuál te acomoda?', time: '19:15' },
+      { from: 'customer', text: 'El sábado', time: '19:16' },
+      { from: 'bot', text: '✅ ¡Apartado!\n\n🎨 Tatuaje mediano · $2,800\n📅 Sábado 1:00 pm\n👤 Con Kenji\n💳 Anticipo de $500 para asegurar tu cita', time: '19:16' },
+    ],
+  },
 ]
 
 export function WhatsappMockup({ isDay, activeIndex, onScenarioChange }: Props) {
