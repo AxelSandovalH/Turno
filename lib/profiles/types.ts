@@ -8,6 +8,7 @@ export type BusinessType =
   | 'physiotherapy'
   | 'laboratory'
   | 'charter'
+  | 'tattoo'
   | 'other'
 
 /**
