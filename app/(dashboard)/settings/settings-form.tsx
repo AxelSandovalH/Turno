@@ -203,7 +203,9 @@ export function SettingsForm({ organization }: Props) {
           <label style={s.label}>Logo del negocio</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {form.logo_url ? (
-              <img src={form.logo_url} alt="Logo" style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }} />
+              <div style={{ width: 52, height: 52, borderRadius: 10, background: '#fff', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <img src={form.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
             ) : (
               <div style={{ width: 52, height: 52, borderRadius: 10, background: `${form.primary_color}22`, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: form.primary_color }}>
                 {form.name.slice(0, 2).toUpperCase() || 'T'}

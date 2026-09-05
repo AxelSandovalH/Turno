@@ -58,7 +58,9 @@ export default async function BookingPage({ params }: Props) {
       <div className="border-b border-zinc-800">
         <div className="max-w-lg mx-auto px-4 py-5 flex items-center gap-3">
           {org.logo_url ? (
-            <img src={org.logo_url} alt={org.name} className="h-10 w-10 rounded-xl object-cover" />
+            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0">
+              <img src={org.logo_url} alt={org.name} className="h-full w-full object-contain" />
+            </div>
           ) : (
             <div
               className="h-10 w-10 rounded-xl flex items-center justify-center text-sm font-bold"

@@ -216,12 +216,14 @@ export function AppSidebar({ organization }: { organization: Organization }) {
         <div className="flex items-center gap-3">
           <div style={{ flexShrink: 0, color: 'var(--sidebar-foreground)' }}>
             {organization.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={organization.logo_url}
-                alt={organization.name}
-                className="h-7 w-7 rounded-md object-cover"
-              />
+              <div className="h-7 w-7 rounded-md overflow-hidden bg-white flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={organization.logo_url}
+                  alt={organization.name}
+                  className="h-full w-full object-contain"
+                />
+              </div>
             ) : (
               <TurnoLogo height={28} />
             )}
