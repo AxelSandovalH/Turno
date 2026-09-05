@@ -35,7 +35,7 @@ export default async function BookingPage({ params }: Props) {
       .select('id, name')
       .eq('organization_id', org.id)
       .eq('is_active', true)
-      .in('role', ['therapist', 'staff']),
+      .order('name'),
   ])
 
   // Evaluación inicial siempre primero
