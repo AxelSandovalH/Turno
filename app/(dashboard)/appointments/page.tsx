@@ -87,18 +87,21 @@ export default async function AppointmentsPage({ searchParams }: Props) {
         <PaymentSuccessToast />
       </Suspense>
 
-      <SetupChecklist
-        hasServices={(services ?? []).length > 0}
-        hasSchedules={!!anySchedule}
-        hasConversations={!!anyConversation}
-        hasSlug={!!org?.slug}
-      />
+      {/* El checklist ocupa demasiada altura en móvil — solo desde tablet */}
+      <div className="hidden md:block">
+        <SetupChecklist
+          hasServices={(services ?? []).length > 0}
+          hasSchedules={!!anySchedule}
+          hasConversations={!!anyConversation}
+          hasSlug={!!org?.slug}
+        />
+      </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
           <h1 className="text-[22px] font-semibold text-foreground tracking-tight">Citas</h1>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex flex-wrap items-center gap-2 mt-0.5">
             <p className="text-[13px] text-muted-foreground capitalize">
               {format(today, "EEEE d 'de' MMMM yyyy", { locale: es })}
             </p>
@@ -122,7 +125,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       </div>
 
       {/* View tabs */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-border overflow-x-auto">
         {[
           { key: 'calendar', label: 'Calendario' },
           { key: 'list',     label: 'Lista' },
@@ -131,7 +134,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
           <a
             key={v.key}
             href={`?view=${v.key}${date ? `&date=${date}` : ''}`}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
               view === v.key
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
@@ -145,7 +148,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       {/* ── LIST VIEW ── */}
       {view === 'list' && (
         <>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: 'Confirmadas',   value: cntConfirmed, color: 'text-emerald-500' },
               { label: 'Sin confirmar', value: cntPending,   color: 'text-sky-500'     },

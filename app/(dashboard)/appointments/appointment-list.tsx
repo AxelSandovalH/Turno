@@ -41,7 +41,8 @@ export function AppointmentsList({ list, staffLabel }: Props) {
             No hay citas programadas para hoy
           </div>
         ) : (
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-border bg-card">
                 {['Hora', 'Paciente', 'Servicio', staffLabel, 'Estado', ''].map((h, i) => (
@@ -86,6 +87,7 @@ export function AppointmentsList({ list, staffLabel }: Props) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

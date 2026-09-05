@@ -34,11 +34,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <ThemeSwitch />
             </div>
           </div>
-          <div className="p-6 max-w-5xl">
+          <div className="p-4 sm:p-6 max-w-5xl">
             {children}
           </div>
         </main>
-        {organization && <BotTester />}
+        {/* El botón flotante tapa contenido en pantallas chicas */}
+        {organization && (
+          <div className="hidden md:contents">
+            <BotTester />
+          </div>
+        )}
       </SidebarProvider>
     </SubscriptionGate>
   )
