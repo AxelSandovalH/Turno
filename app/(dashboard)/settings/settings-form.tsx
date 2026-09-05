@@ -138,7 +138,7 @@ export function SettingsForm({ organization }: Props) {
   const status = organization.subscription_status
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 16, alignItems: 'start' }}>
 
       {/* Datos del negocio */}
       <div style={s.section}>
@@ -371,7 +371,7 @@ export function SettingsForm({ organization }: Props) {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10, gridColumn: '1 / -1' }}>
         <button
           onClick={handleSave}
           disabled={loading}
