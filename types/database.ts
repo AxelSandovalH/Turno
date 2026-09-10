@@ -37,6 +37,7 @@ export interface Organization {
   is_founder_fallback: boolean
   deposit_enabled: boolean
   deposit_amount: number
+  whatsapp_bot_enabled: boolean
   created_at: string
   updated_at: string
 }

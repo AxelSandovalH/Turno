@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </main>
         {/* El botón flotante tapa contenido en pantallas chicas */}
-        {organization && (
+        {organization?.whatsapp_bot_enabled && (
           <div className="hidden md:contents">
             <BotTester />
           </div>

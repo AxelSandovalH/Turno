@@ -66,7 +66,10 @@ export function AppSidebar({ organization }: { organization: Organization }) {
 
   // Los módulos del sidebar los define el perfil del negocio; title: null se
   // resuelve aquí con el label del perfil (Pacientes/Clientes, Barberos/etc.)
-  const modules: SearchResult[] = profile.modules.map(m => {
+  const modules: SearchResult[] = profile.modules
+    // El módulo de conversaciones solo existe si la org tiene el bot activo
+    .filter(m => m.id !== 'conversations' || organization.whatsapp_bot_enabled)
+    .map(m => {
     const title = m.title ?? (m.id === 'patients' ? patientLabel : m.id === 'staff' ? 'Equipo' : staffLabel)
     return {
       id: m.id,

@@ -62,7 +62,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     service.from('staff').select('id, name').eq('organization_id', organizationId).eq('is_active', true),
     service.from('services').select('id, name, duration_minutes, price').eq('organization_id', organizationId).eq('is_active', true),
     service.from('customers').select('id, name, phone').eq('organization_id', organizationId).order('name'),
-    service.from('organizations').select('business_type, slug').eq('id', organizationId).single(),
+    service.from('organizations').select('business_type, slug, whatsapp_bot_enabled').eq('id', organizationId).single(),
     // Setup checklist state (derived from real data, hides itself when complete)
     service.from('staff_schedules').select('id, staff!inner(organization_id)').eq('staff.organization_id', organizationId).limit(1).maybeSingle(),
     service.from('conversations').select('id').eq('organization_id', organizationId).limit(1).maybeSingle(),
@@ -94,6 +94,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
           hasSchedules={!!anySchedule}
           hasConversations={!!anyConversation}
           hasSlug={!!org?.slug}
+          botEnabled={org?.whatsapp_bot_enabled ?? true}
         />
       </div>
 

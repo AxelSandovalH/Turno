@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const ORG_FIELDS = 'id, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token'
+    const ORG_FIELDS = 'id, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token, whatsapp_bot_enabled'
 
     // Find org — primary route: by UltraMsg instance ID (multi-tenant)
     const instanceId: string = body?.instanceId ?? body?.instance_id ?? ''
@@ -90,6 +90,12 @@ export async function POST(req: Request) {
 
     if (!organization) {
       console.log('[whatsapp] no org found — instanceId:', instanceId, 'phone:', phone)
+      return NextResponse.json({ ok: true })
+    }
+
+    // Org sin bot contratado: no respondemos sus mensajes
+    if (organization.whatsapp_bot_enabled === false) {
+      console.log('[whatsapp] bot deshabilitado para org:', organization.id)
       return NextResponse.json({ ok: true })
     }
 

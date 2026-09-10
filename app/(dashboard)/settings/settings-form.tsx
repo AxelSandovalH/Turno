@@ -156,7 +156,7 @@ export function SettingsForm({ organization }: Props) {
       <div style={s.section}>
         <div>
           <p style={s.sectionTitle}>Datos del negocio</p>
-          <p style={s.sectionDesc}>Información general que usa el bot de WhatsApp</p>
+          <p style={s.sectionDesc}>{organization.whatsapp_bot_enabled ? 'Información general que usa el bot de WhatsApp' : 'Información general de tu negocio'}</p>
         </div>
         <div>
           <label style={s.label}>Nombre del negocio</label>
@@ -310,7 +310,8 @@ export function SettingsForm({ organization }: Props) {
         )}
       </div>
 
-      {/* Mensajes del bot */}
+      {/* Mensajes del bot — solo si la org tiene el bot de WhatsApp contratado */}
+      {organization.whatsapp_bot_enabled && (
       <div style={s.section}>
         <div>
           <p style={s.sectionTitle}>Mensajes del bot</p>
@@ -336,13 +337,14 @@ export function SettingsForm({ organization }: Props) {
           />
         </div>
       </div>
+      )}
 
       {/* Anticipos */}
       <div style={s.section}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
           <div>
             <p style={s.sectionTitle}>Anticipo por Stripe</p>
-            <p style={s.sectionDesc}>El bot pide un pago para confirmar cada cita agendada por WhatsApp</p>
+            <p style={s.sectionDesc}>{organization.whatsapp_bot_enabled ? 'El bot pide un pago para confirmar cada cita agendada por WhatsApp' : 'Se pide un pago para confirmar cada cita agendada desde tu página de reservas'}</p>
           </div>
           <button
             type="button"

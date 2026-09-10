@@ -13,9 +13,10 @@ interface Props {
   hasSchedules: boolean
   hasConversations: boolean
   hasSlug: boolean
+  botEnabled?: boolean
 }
 
-export function SetupChecklist({ hasServices, hasSchedules, hasConversations, hasSlug }: Props) {
+export function SetupChecklist({ hasServices, hasSchedules, hasConversations, hasSlug, botEnabled = true }: Props) {
   const steps: Step[] = [
     {
       label: 'Agrega tus servicios',
@@ -35,12 +36,13 @@ export function SetupChecklist({ hasServices, hasSchedules, hasConversations, ha
       href: '/settings',
       done: hasSlug,
     },
-    {
+    // Solo si la org contrató el bot de WhatsApp
+    ...(botEnabled ? [{
       label: 'Prueba el bot',
       description: 'Usa el chat de prueba (abajo a la derecha) o mándale un WhatsApp a tu número de negocio',
       href: '/conversations',
       done: hasConversations,
-    },
+    }] : []),
   ]
 
   const pending = steps.filter(s => !s.done).length
