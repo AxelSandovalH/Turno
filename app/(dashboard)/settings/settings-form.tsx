@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ImageUp } from 'lucide-react'
+import { Check, Copy, ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { BookingQr } from '@/components/dashboard/booking-qr'
@@ -56,6 +56,18 @@ export function SettingsForm({ organization }: Props) {
     deposit_amount:  organization.deposit_amount ? String(organization.deposit_amount) : '',
   })
   const [slugError, setSlugError] = useState('')
+  const [slugCopied, setSlugCopied] = useState(false)
+
+  const copyBookingLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`https://quickturno.app/book/${form.slug}`)
+      setSlugCopied(true)
+      toast.success('Enlace de reservas copiado')
+      setTimeout(() => setSlugCopied(false), 2000)
+    } catch {
+      toast.error('No se pudo copiar el enlace')
+    }
+  }
 
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
@@ -162,6 +174,22 @@ export function SettingsForm({ organization }: Props) {
               value={form.slug}
               onChange={e => handleSlugChange(e.target.value)}
             />
+            <button
+              type="button"
+              onClick={copyBookingLink}
+              disabled={!form.slug || !!slugError}
+              title="Copiar enlace de reservas"
+              aria-label="Copiar enlace de reservas"
+              style={{
+                height: 38, padding: '0 12px', display: 'flex', alignItems: 'center',
+                background: 'transparent', border: 'none', borderLeft: '1px solid var(--border)',
+                color: slugCopied ? '#22c55e' : 'var(--muted-foreground)',
+                cursor: !form.slug || slugError ? 'not-allowed' : 'pointer',
+                opacity: !form.slug || slugError ? 0.5 : 1,
+              }}
+            >
+              {slugCopied ? <Check size={15} /> : <Copy size={15} />}
+            </button>
           </div>
           {slugError
             ? <p style={{ ...s.hint, color: '#ef4444' }}>{slugError}</p>
