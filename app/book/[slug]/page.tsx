@@ -20,7 +20,7 @@ export default async function BookingPage({ params }: Props) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, whatsapp_number, address, logo_url, primary_color, business_type, is_active')
+    .select('id, name, slug, whatsapp_number, address, logo_url, primary_color, business_type, is_active, deposit_enabled, deposit_amount')
     .eq('slug', slug)
     .single()
 
@@ -54,6 +54,7 @@ export default async function BookingPage({ params }: Props) {
   const serviceLabel = isMedical ? 'sesión' : 'servicio'
   const staffTitle = staffLabel(org.business_type)
   const pricesFrom = hasCapability(org.business_type, 'variable-pricing')
+  const depositAmount = org.deposit_enabled && Number(org.deposit_amount) > 0 ? Number(org.deposit_amount) : null
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -95,6 +96,7 @@ export default async function BookingPage({ params }: Props) {
           ctaLabel={ctaLabel}
           staffTitle={staffTitle}
           pricesFrom={pricesFrom}
+          depositAmount={depositAmount}
         />
       </div>
     </div>

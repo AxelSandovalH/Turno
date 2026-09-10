@@ -16,11 +16,12 @@ interface Props {
   ctaLabel: string
   staffTitle: string
   pricesFrom: boolean
+  depositAmount: number | null
 }
 
 const DAYS_AHEAD = 14
 
-export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom }: Props) {
+export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount }: Props) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
@@ -138,6 +139,15 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
       {/* Step 1 — Servicio y profesional */}
       {step === 1 && (
         <div className="space-y-4">
+          {depositAmount != null && (
+            <div
+              className="rounded-xl border px-4 py-3 text-xs text-zinc-300"
+              style={{ borderColor: `${accent}55`, background: `${accent}14` }}
+            >
+              Para apartar tu espacio se cobra un anticipo de{' '}
+              <span className="font-semibold text-white">${depositAmount}</span> al confirmar la cita.
+            </div>
+          )}
           <div className="space-y-2">
             <p className="text-sm font-medium">Servicio</p>
             <div className="grid gap-2">
