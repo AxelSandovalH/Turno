@@ -5,7 +5,7 @@ import { format, addDays, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-interface Service { id: string; name: string; duration_minutes: number; price: number | null }
+interface Service { id: string; name: string; duration_minutes: number; price: number | null; description: string | null }
 interface Staff { id: string; name: string }
 
 interface Props {
@@ -156,6 +156,9 @@ export function BookingForm({ org, services, staff, accent, ctaLabel }: Props) {
                       {s.duration_minutes} min{s.price ? ` · $${s.price}` : ''}
                     </span>
                   </div>
+                  {serviceId === s.id && s.description && (
+                    <p className="mt-1.5 text-xs text-zinc-400">{s.description}</p>
+                  )}
                 </button>
               ))}
             </div>
