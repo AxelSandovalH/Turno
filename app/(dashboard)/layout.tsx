@@ -1,6 +1,5 @@
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
 import { SubscriptionGate } from '@/components/dashboard/subscription-gate'
-import { BotTester } from '@/components/dashboard/bot-tester'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeSwitch } from '@/components/ui/theme-switch'
 import { createClient } from '@/lib/supabase/server'
@@ -38,12 +37,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {children}
           </div>
         </main>
-        {/* El botón flotante tapa contenido en pantallas chicas */}
-        {organization?.whatsapp_bot_enabled && (
-          <div className="hidden md:contents">
-            <BotTester />
-          </div>
-        )}
       </SidebarProvider>
     </SubscriptionGate>
   )
