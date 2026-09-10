@@ -31,6 +31,8 @@ export type Capability =
   | 'deposits'
   /** Módulo de laboratorio: catálogo de estudios, órdenes, captura de resultados */
   | 'lab-orders'
+  /** Precios de catálogo variables: se muestran como "desde $X" y el total se confirma en el negocio */
+  | 'variable-pricing'
 
 /** Entrada del sidebar. El orden del array define el orden en pantalla. */
 export interface ProfileModule {

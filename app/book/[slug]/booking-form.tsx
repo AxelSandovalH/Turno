@@ -14,11 +14,13 @@ interface Props {
   staff: Staff[]
   accent: string
   ctaLabel: string
+  staffTitle: string
+  pricesFrom: boolean
 }
 
 const DAYS_AHEAD = 14
 
-export function BookingForm({ org, services, staff, accent, ctaLabel }: Props) {
+export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom }: Props) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
@@ -153,7 +155,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel }: Props) {
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-sm">{s.name}</span>
                     <span className="text-xs text-zinc-500">
-                      {s.duration_minutes} min{s.price ? ` · $${s.price}` : ''}
+                      {s.duration_minutes} min{s.price ? ` · ${pricesFrom ? 'desde ' : ''}$${s.price}` : ''}
                     </span>
                   </div>
                   {serviceId === s.id && s.description && (
@@ -166,7 +168,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel }: Props) {
 
           {staff.length > 1 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Terapeuta</p>
+              <p className="text-sm font-medium">{staffTitle}</p>
               <div className="flex flex-wrap gap-2">
                 {staff.map(s => (
                   <button

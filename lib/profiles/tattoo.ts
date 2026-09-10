@@ -8,6 +8,6 @@ export const tattoo: BusinessProfile = {
   emoji: '🎨',
   staffLabel: { singular: 'Tatuador', plural: 'Tatuadores' },
   staffIcon: PenTool,
-  capabilities: new Set(['appointments', 'whatsapp-bot', 'booking-page', 'deposits']),
+  capabilities: new Set(['appointments', 'whatsapp-bot', 'booking-page', 'deposits', 'variable-pricing']),
   modules: APPOINTMENT_MODULES,
 }

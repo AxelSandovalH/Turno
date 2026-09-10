@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
-import { isMedicalVertical } from '@/lib/business-type'
+import { isMedicalVertical, staffLabel } from '@/lib/business-type'
+import { hasCapability } from '@/lib/profiles/registry'
 import type { Metadata } from 'next'
 import { BookingForm } from './booking-form'
 
@@ -51,6 +52,8 @@ export default async function BookingPage({ params }: Props) {
   const isMedical = isMedicalVertical(org.business_type)
   const ctaLabel = isMedical ? 'Agendar sesión' : 'Reservar turno'
   const serviceLabel = isMedical ? 'sesión' : 'servicio'
+  const staffTitle = staffLabel(org.business_type)
+  const pricesFrom = hasCapability(org.business_type, 'variable-pricing')
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -90,6 +93,8 @@ export default async function BookingPage({ params }: Props) {
           staff={staff ?? []}
           accent={accent}
           ctaLabel={ctaLabel}
+          staffTitle={staffTitle}
+          pricesFrom={pricesFrom}
         />
       </div>
     </div>
