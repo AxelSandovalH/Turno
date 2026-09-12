@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
+import { resend, FROM } from '@/lib/resend'
+import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 import type Stripe from 'stripe'
 
 export async function POST(req: Request) {
@@ -32,10 +34,39 @@ export async function POST(req: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const subId = (session as any).subscription as string | null
       if (orgId) {
-        await db.from('organizations').update({
-          subscription_status: 'active',
-          ...(subId ? { stripe_subscription_id: subId } : {}),
-        }).eq('id', orgId)
+        const { data: org } = await db
+          .from('organizations')
+          .update({
+            subscription_status: 'active',
+            ...(subId ? { stripe_subscription_id: subId } : {}),
+          })
+          .eq('id', orgId)
+          .select('name, whatsapp_number')
+          .single()
+
+        // Bienvenida hasta que el cobro está confirmado — antes salía al crear
+        // la cuenta y llegaba mientras el usuario seguía en el checkout.
+        if (org) {
+          const { data: owner } = await db
+            .from('staff')
+            .select('email')
+            .eq('organization_id', orgId)
+            .eq('is_owner', true)
+            .limit(1)
+            .maybeSingle()
+
+          const to = owner?.email ?? session.customer_details?.email
+          if (to) {
+            const props = { businessName: org.name, whatsappNumber: org.whatsapp_number ?? '' }
+            resend.emails.send({
+              from: FROM,
+              to,
+              subject: `¡Bienvenido a QuickTurno, ${org.name}!`,
+              html: welcomeEmailHtml(props),
+              text: welcomeEmailText(props),
+            }).catch(err => console.error('[stripe-webhook] welcome email failed:', err))
+          }
+        }
       }
       break
     }

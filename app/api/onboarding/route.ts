@@ -104,8 +104,10 @@ export async function POST(req: Request) {
     }
   }
 
-  // Send welcome email (non-blocking — don't fail onboarding if email fails)
-  if (email) {
+  // Correo de bienvenida: solo en la compra directa (/comprar), donde el pago
+  // ya ocurrió. En el registro normal lo manda el webhook al confirmarse el
+  // cobro — si se enviara aquí llegaría mientras el usuario sigue en Stripe.
+  if (email && alreadyPaid) {
     resend.emails.send({
       from: FROM,
       to: email,
