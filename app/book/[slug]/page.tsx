@@ -62,12 +62,14 @@ export default async function BookingPage({ params }: Props) {
       <div className="border-b border-zinc-800">
         <div className="max-w-lg mx-auto px-4 py-5 flex items-center gap-3">
           {org.logo_url ? (
-            <div className="h-10 w-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0">
-              <img src={org.logo_url} alt={org.name} className="h-full w-full object-contain" />
+            // Alto fijo y ancho según la proporción del logo: los logos horizontales
+            // se veían diminutos dentro de un cuadrado de 40px
+            <div className="h-16 sm:h-20 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0 px-2">
+              <img src={org.logo_url} alt={org.name} className="h-full w-auto max-w-[180px] sm:max-w-[240px] object-contain" />
             </div>
           ) : (
             <div
-              className="h-10 w-10 rounded-xl flex items-center justify-center text-sm font-bold"
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl flex items-center justify-center text-lg font-bold"
               style={{ background: `${accent}22`, color: accent }}
             >
               {org.name.slice(0, 2).toUpperCase()}
