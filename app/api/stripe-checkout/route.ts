@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 
 const PLANS: Record<string, { name: string; amount: number; description: string }> = {
-  'turno-ai': { name: 'Turno — Agenda + Asistente', amount: 240000, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
+  'turno-ai': { name: 'Turno — Agenda + Asistente', amount: 190000, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
 }
 
 export async function POST() {

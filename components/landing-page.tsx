@@ -142,7 +142,7 @@ const FAQ = [
   { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
-  { q: '¿Cuánto cuesta?', a: '$2,400 MXN al mes. Incluye el asistente que contesta y agenda por WhatsApp 24/7, recordatorios automáticos y el panel completo. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: '$1,900 MXN al mes. Incluye el asistente que contesta y agenda por WhatsApp 24/7, recordatorios automáticos y el panel completo. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -345,7 +345,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              $2,400 MXN/mes · Sin contrato · Cancela cuando quieras
+              $1,900 MXN/mes · Sin contrato · Cancela cuando quieras
             </p>
           </div>
 
@@ -484,7 +484,7 @@ export function LandingPage() {
               <p className="text-[15px] font-semibold mb-1" style={{ color: t.text }}>Agenda + Asistente</p>
               <p className="text-[12px] mb-5" style={{ color: t.muted }}>Tu WhatsApp contesta y agenda solo, 24/7</p>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-[40px] font-bold tracking-tight" style={{ color: t.text }}>$2,400</span>
+                <span className="text-[40px] font-bold tracking-tight" style={{ color: t.text }}>$1,900</span>
                 <span className="text-[14px]" style={{ color: t.muted }}>MXN/mes</span>
               </div>
               <ul className="space-y-2.5 mb-7">
@@ -537,7 +537,7 @@ export function LandingPage() {
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>$2,400 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>$1,900 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>

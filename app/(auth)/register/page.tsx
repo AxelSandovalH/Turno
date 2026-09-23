@@ -147,7 +147,7 @@ export default function RegisterPage() {
         <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#555' }}>
           {paidSessionId
             ? 'Tu suscripción ya está pagada — este último paso activa tu negocio.'
-            : '$2,400 MXN/mes · Cancela cuando quieras'}
+            : '$1,900 MXN/mes · Cancela cuando quieras'}
         </p>
       </div>
 

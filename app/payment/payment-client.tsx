@@ -8,7 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 
 const PLAN = {
   name: 'Agenda + Asistente',
-  price: '$2,400',
+  price: '$1,900',
   desc: 'Tu WhatsApp contesta y agenda solo',
   features: ['Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Recordatorios automáticos', 'Hasta 5 profesionales', 'Soporte prioritario'],
 }
