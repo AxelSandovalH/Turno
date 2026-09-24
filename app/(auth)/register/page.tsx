@@ -71,15 +71,20 @@ export default function RegisterPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [paidSessionId, setPaidSessionId] = useState<string | null>(null)
+  const [planKey, setPlanKey] = useState<string | null>(null)
   const [form, setForm] = useState({
     businessName: '', email: '', password: '', whatsappNumber: '', businessType: 'barbershop',
   })
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
-  // Compra directa desde el anuncio: llega de Stripe ya pagado (?session_id=...)
+  // Compra directa desde el anuncio: llega de Stripe ya pagado (?session_id=...).
+  // Desde la landing puede venir el plan elegido (?plan=agenda|asistente).
   useEffect(() => {
-    const sid = new URLSearchParams(window.location.search).get('session_id')
+    const params = new URLSearchParams(window.location.search)
+    const sid = params.get('session_id')
     if (sid) setPaidSessionId(sid)
+    const plan = params.get('plan')
+    if (plan === 'agenda' || plan === 'asistente') setPlanKey(plan)
   }, [])
 
   async function handleRegister(e: React.FormEvent) {
@@ -133,8 +138,13 @@ export default function RegisterPage() {
       }
     }
 
-    // Si pagó desde el anuncio, la org ya quedó activa — directo al dashboard
-    router.push(onboarding?.alreadyPaid ? '/appointments' : '/payment?auto=1')
+    // Si pagó desde el anuncio, la org ya quedó activa — directo al dashboard.
+    // Si ya eligió plan en la landing, va directo a Stripe; si no, al selector.
+    router.push(
+      onboarding?.alreadyPaid ? '/appointments'
+      : planKey ? `/payment?auto=1&plan=${planKey}`
+      : '/payment'
+    )
     router.refresh()
   }
 
@@ -147,7 +157,7 @@ export default function RegisterPage() {
         <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#555' }}>
           {paidSessionId
             ? 'Tu suscripción ya está pagada — este último paso activa tu negocio.'
-            : '$1,900 MXN/mes · Cancela cuando quieras'}
+            : 'Desde $1,500 MXN/mes · Cancela cuando quieras'}
         </p>
       </div>
 

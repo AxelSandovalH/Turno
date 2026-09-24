@@ -2,13 +2,11 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { resolvePlan } from '@/lib/plans'
 
-const PLANS: Record<string, { name: string; amount: number; description: string }> = {
-  'turno-ai': { name: 'Turno — Agenda + Asistente', amount: 190000, description: 'Tu WhatsApp contesta y agenda solo, 24/7' },
-}
-
-export async function POST() {
-  const plan = PLANS['turno-ai']
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}))
+  const plan = resolvePlan(body?.planKey)
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -53,8 +51,9 @@ export async function POST() {
       }],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
       cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
-      metadata: { organization_id: orgId, plan: 'turno-ai' },
-      subscription_data: { metadata: { organization_id: orgId, plan: 'turno-ai' } },
+      // El webhook usa `plan` para prender/apagar el bot de WhatsApp de la org
+      metadata: { organization_id: orgId, plan: plan.key },
+      subscription_data: { metadata: { organization_id: orgId, plan: plan.key } },
     })
 
     return NextResponse.json({ url: session.url })

@@ -142,7 +142,7 @@ const FAQ = [
   { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
-  { q: '¿Cuánto cuesta?', a: '$1,900 MXN al mes. Incluye el asistente que contesta y agenda por WhatsApp 24/7, recordatorios automáticos y el panel completo. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,000 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -345,7 +345,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              $1,900 MXN/mes · Sin contrato · Cancela cuando quieras
+              Desde $1,500 MXN/mes · Sin contrato · Cancela cuando quieras
             </p>
           </div>
 
@@ -475,34 +475,67 @@ export function LandingPage() {
             <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Sin comisiones. Sin contratos. Sin letra chica.</p>
           </div>
 
-          {/* Single plan */}
-          <div data-pricing-card style={{ opacity: 0 }} className="max-w-md mx-auto">
-            <div
-              className="rounded-xl p-8"
-              style={{ border: `1px solid ${t.accent}`, background: `${t.accent}0d` }}
-            >
-              <p className="text-[15px] font-semibold mb-1" style={{ color: t.text }}>Agenda + Asistente</p>
-              <p className="text-[12px] mb-5" style={{ color: t.muted }}>Tu WhatsApp contesta y agenda solo, 24/7</p>
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-[40px] font-bold tracking-tight" style={{ color: t.text }}>$1,900</span>
-                <span className="text-[14px]" style={{ color: t.muted }}>MXN/mes</span>
-              </div>
-              <ul className="space-y-2.5 mb-7">
-                {['Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Recordatorios automáticos', 'Hasta 5 profesionales', 'Soporte prioritario'].map(f => (
-                  <li key={f} className="flex items-center gap-2.5">
-                    <Check className="h-3.5 w-3.5 shrink-0" style={{ color: t.accent }} />
-                    <span className="text-[13px]" style={{ color: t.muted }}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register" className="block">
-                <button
-                  className="w-full py-2.5 rounded-md text-[13px] font-medium transition-colors"
-                  style={{ background: t.accent, color: '#fff' }}
+          {/* Dos planes: Agenda (sin bot) y Agenda + Asistente (con bot) */}
+          <div data-pricing-card style={{ opacity: 0 }} className="max-w-3xl mx-auto">
+            <div className="grid sm:grid-cols-2 gap-4">
+              {[
+                {
+                  key: 'agenda',
+                  name: 'Agenda',
+                  price: '$1,500',
+                  desc: 'Tu agenda en orden, sin bot de WhatsApp',
+                  features: ['Calendario de citas', 'Página pública de reservas', 'Anticipos por Stripe', 'Recordatorios automáticos', 'Hasta 5 profesionales'],
+                  highlight: false,
+                },
+                {
+                  key: 'asistente',
+                  name: 'Agenda + Asistente',
+                  price: '$2,000',
+                  desc: 'Tu WhatsApp contesta y agenda solo, 24/7',
+                  features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Conversaciones en tu panel', 'Soporte prioritario'],
+                  highlight: true,
+                },
+              ].map(({ key, name, price, desc, features, highlight }) => (
+                <div
+                  key={key}
+                  className="rounded-xl p-7 flex flex-col"
+                  style={{
+                    border: `1px solid ${highlight ? t.accent : t.border}`,
+                    background: highlight ? `${t.accent}0d` : t.card,
+                  }}
                 >
-                  Activar ahora
-                </button>
-              </Link>
+                  {highlight && (
+                    <span
+                      className="inline-block self-start text-[10px] font-semibold uppercase tracking-widest rounded-full px-2.5 py-0.5 mb-3"
+                      style={{ color: t.accent, border: `1px solid ${t.accent}66` }}
+                    >Popular</span>
+                  )}
+                  <p className="text-[15px] font-semibold mb-1" style={{ color: t.text }}>{name}</p>
+                  <p className="text-[12px] mb-5" style={{ color: t.muted }}>{desc}</p>
+                  <div className="flex items-baseline gap-2 mb-6">
+                    <span className="text-[36px] font-bold tracking-tight" style={{ color: t.text }}>{price}</span>
+                    <span className="text-[14px]" style={{ color: t.muted }}>MXN/mes</span>
+                  </div>
+                  <ul className="space-y-2.5 mb-7 flex-1">
+                    {features.map(f => (
+                      <li key={f} className="flex items-center gap-2.5">
+                        <Check className="h-3.5 w-3.5 shrink-0" style={{ color: t.accent }} />
+                        <span className="text-[13px]" style={{ color: t.muted }}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href={`/register?plan=${key}`} className="block">
+                    <button
+                      className="w-full py-2.5 rounded-md text-[13px] font-medium transition-colors"
+                      style={highlight
+                        ? { background: t.accent, color: '#fff' }
+                        : { border: `1px solid ${t.border}`, color: t.text }}
+                    >
+                      Activar ahora
+                    </button>
+                  </Link>
+                </div>
+              ))}
             </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
               Sin contrato · Sin permanencia · Cancela cuando quieras
@@ -537,7 +570,7 @@ export function LandingPage() {
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>$1,900 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>Desde $1,500 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>

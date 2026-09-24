@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
 import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
+import { planHasBot } from '@/lib/plans'
 import type Stripe from 'stripe'
 
 export async function POST(req: Request) {
@@ -38,6 +39,8 @@ export async function POST(req: Request) {
           .from('organizations')
           .update({
             subscription_status: 'active',
+            // El plan 'agenda' no incluye el bot de WhatsApp
+            whatsapp_bot_enabled: planHasBot(session.metadata?.plan),
             ...(subId ? { stripe_subscription_id: subId } : {}),
           })
           .eq('id', orgId)

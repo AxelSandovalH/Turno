@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe'
+import { planHasBot } from '@/lib/plans'
 import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 
@@ -87,14 +88,17 @@ export async function POST(req: Request) {
           .eq('stripe_subscription_id', subId)
           .maybeSingle()
         if (!claimed) {
+          const planKey = session.metadata?.plan
           await db.from('organizations').update({
             subscription_status: 'active',
+            // El plan 'agenda' no incluye el bot de WhatsApp
+            whatsapp_bot_enabled: planHasBot(planKey),
             stripe_subscription_id: subId,
             ...(customerId ? { stripe_customer_id: customerId } : {}),
           }).eq('id', org.id)
           // Liga la suscripción a la org para que los webhooks futuros la encuentren
           await stripe.subscriptions.update(subId, {
-            metadata: { organization_id: org.id, plan: 'turno-ai' },
+            metadata: { organization_id: org.id, plan: planKey ?? 'asistente' },
           }).catch(err => console.error('[onboarding] sub metadata update failed:', err))
           alreadyPaid = true
         }

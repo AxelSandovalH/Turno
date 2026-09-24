@@ -385,8 +385,12 @@ export function SettingsForm({ organization }: Props) {
         <p style={s.sectionTitle}>Plan</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>Turno AI</p>
-            <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>$1,900 MXN / mes</p>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>
+              {organization.whatsapp_bot_enabled ? 'Agenda + Asistente' : 'Agenda'}
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
+              {organization.whatsapp_bot_enabled ? '$2,000' : '$1,500'} MXN / mes
+            </p>
           </div>
           {status === 'active' && (
             <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 10px', borderRadius: 99 }}>Activo</span>

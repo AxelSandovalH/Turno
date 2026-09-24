@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
+import { resolvePlan } from '@/lib/plans'
 
 // Compra directa desde el anuncio: 1 clic → Stripe Checkout, sin cuenta previa.
+// /comprar → plan con asistente; /comprar?plan=agenda → solo agenda.
 // Al pagar, el success_url manda a /register?session_id=... y el onboarding
 // reclama la sesión (ver app/api/onboarding/route.ts) para activar la org.
-// Mantener plan y cupón en sync con app/api/stripe-checkout/route.ts.
-const PLAN = { name: 'Turno — Agenda + Asistente', amount: 190000, description: 'Tu WhatsApp contesta y agenda solo, 24/7' }
-
-export async function GET() {
+export async function GET(req: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+  const plan = resolvePlan(new URL(req.url).searchParams.get('plan'))
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -16,15 +16,15 @@ export async function GET() {
         quantity: 1,
         price_data: {
           currency: 'mxn',
-          unit_amount: PLAN.amount,
+          unit_amount: plan.amount,
           recurring: { interval: 'month' },
-          product_data: { name: PLAN.name, description: PLAN.description },
+          product_data: { name: plan.name, description: plan.description },
         },
       }],
       phone_number_collection: { enabled: true },
       success_url: `${baseUrl}/register?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/`,
-      metadata: { source: 'direct-ad', plan: 'turno-ai' },
+      metadata: { source: 'direct-ad', plan: plan.key },
     })
     return NextResponse.redirect(session.url!, 303)
   } catch (err) {
