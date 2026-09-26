@@ -20,6 +20,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
   }
 
+  // E.164 permite hasta 15 dígitos; menos de 8 no es un número real
+  const phoneDigits = String(customer_phone).replace(/\D/g, '')
+  if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+    return NextResponse.json({ error: 'El número de WhatsApp no es válido' }, { status: 400 })
+  }
+
   const db = createServiceClient()
 
   const { data: org } = await db
@@ -61,7 +67,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Ese horario ya pasó, elige otro' }, { status: 400 })
   }
 
-  const phone = customer_phone.replace(/\D/g, '')
+  const phone = phoneDigits
 
   // Confirma que el slot sigue libre justo antes de reservar (evita doble booking)
   const { data: conflict } = await db

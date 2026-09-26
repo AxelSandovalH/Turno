@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { format, addDays, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { COUNTRIES, DEFAULT_COUNTRY, buildPhone, displayPhone, to12h } from '@/lib/booking-format'
 
 interface Service { id: string; name: string; duration_minutes: number; price: number | null; description: string | null }
 interface Staff { id: string; name: string }
@@ -30,6 +31,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
   const [slots, setSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [name, setName] = useState('')
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY)
   const [phone, setPhone] = useState('')
   const [weekOffset, setWeekOffset] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -37,6 +39,9 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
 
   const selectedService = services.find(s => s.id === serviceId)
   const selectedStaff   = staff.find(s => s.id === staffId)
+
+  // Teléfono completo en dígitos (lada + número) — '' mientras no sea válido
+  const fullPhone = buildPhone(countryCode, phone)
 
   // Available dates grid (14 days from today)
   const today = startOfDay(new Date())
@@ -72,7 +77,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
   }, [selectedDate, serviceId, staffId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConfirm() {
-    if (!selectedDate || !selectedSlot || !serviceId || !staffId || !name.trim() || !phone.trim()) return
+    if (!selectedDate || !selectedSlot || !serviceId || !staffId || !name.trim() || !fullPhone) return
     setSubmitting(true)
     setSubmitError('')
 
@@ -87,7 +92,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
           date: format(selectedDate, 'yyyy-MM-dd'),
           slot: selectedSlot,
           customer_name: name.trim(),
-          customer_phone: phone.trim(),
+          customer_phone: fullPhone,
         }),
       })
       const data = await res.json().catch(() => null)
@@ -109,7 +114,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
 
   const canGoNext1 = !!serviceId && !!staffId
   const canGoNext2 = !!selectedDate && !!selectedSlot
-  const canSubmit  = !!name.trim() && !!phone.trim() && !submitting
+  const canSubmit  = !!name.trim() && !!fullPhone && !submitting
 
   return (
     <div className="space-y-6">
@@ -269,7 +274,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               ) : slots.length === 0 ? (
                 <p className="text-sm text-zinc-500">Sin horarios disponibles para este día. Elige otra fecha.</p>
               ) : (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {slots.map(slot => (
                     <button
                       key={slot}
@@ -279,7 +284,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
                       }`}
                       style={selectedSlot === slot ? { borderColor: accent, background: `${accent}22`, color: 'white' } : {}}
                     >
-                      {slot}
+                      {to12h(slot)}
                     </button>
                   ))}
                 </div>
@@ -303,14 +308,14 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
         <div className="space-y-4">
           <button onClick={() => setStep(2)} className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300">
             <ChevronLeft className="h-4 w-4" />
-            {selectedDate && `${format(selectedDate, "EEE d MMM", { locale: es })} a las ${selectedSlot}`}
+            {selectedDate && `${format(selectedDate, "EEE d MMM", { locale: es })} a las ${to12h(selectedSlot)}`}
           </button>
 
           {/* Resumen */}
           <div className="rounded-xl border border-zinc-800 p-4 space-y-1 text-sm">
             <p className="font-medium">{selectedService?.name}</p>
             <p className="text-zinc-500">
-              {selectedDate && format(selectedDate, "EEEE d 'de' MMMM", { locale: es })} · {selectedSlot} hrs
+              {selectedDate && format(selectedDate, "EEEE d 'de' MMMM", { locale: es })} · {to12h(selectedSlot)}
               {selectedStaff ? ` · ${selectedStaff.name}` : ''}
             </p>
           </div>
@@ -329,14 +334,34 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
             </div>
             <div>
               <p className="text-sm font-medium mb-1.5">Tu WhatsApp</p>
-              <input
-                type="tel"
-                placeholder="+52 55 1234 5678"
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1"
-                style={{ '--tw-ring-color': accent } as React.CSSProperties}
-              />
+              <div className="flex gap-2">
+                <select
+                  aria-label="Lada del país"
+                  value={countryCode}
+                  onChange={e => setCountryCode(e.target.value)}
+                  className="w-[8.5rem] shrink-0 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:ring-1"
+                  style={{ '--tw-ring-color': accent } as React.CSSProperties}
+                >
+                  {COUNTRIES.map(c => (
+                    <option key={c.code} value={c.code}>+{c.code} {c.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  placeholder={countryCode === '52' ? '312 226 5985' : 'Número'}
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  className="min-w-0 flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1"
+                  style={{ '--tw-ring-color': accent } as React.CSSProperties}
+                />
+              </div>
+              {phone.trim() && !fullPhone && (
+                <p className="mt-1.5 text-xs text-amber-400">
+                  {countryCode === '52' ? 'Escribe los 10 dígitos de tu número.' : 'Revisa que el número esté completo.'}
+                </p>
+              )}
             </div>
           </div>
 
@@ -373,12 +398,12 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
           <div>
             <p className="text-lg font-semibold text-white">¡Cita confirmada!</p>
             <p className="text-sm text-zinc-400 mt-1">
-              {selectedService?.name} · {selectedDate && format(selectedDate, "EEEE d 'de' MMMM", { locale: es })} a las {selectedSlot}
+              {selectedService?.name} · {selectedDate && format(selectedDate, "EEEE d 'de' MMMM", { locale: es })} a las {to12h(selectedSlot)}
               {selectedStaff ? ` · ${selectedStaff.name}` : ''}
             </p>
           </div>
           <p className="text-xs text-zinc-600">
-            Te mandamos la confirmación por WhatsApp al {phone}.
+            Te mandamos la confirmación por WhatsApp al {displayPhone(countryCode, phone)}.
           </p>
         </div>
       )}
