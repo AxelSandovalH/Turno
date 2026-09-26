@@ -3,6 +3,7 @@ import { sendMessage, type UltramsgCreds } from '@/lib/ultramsg'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
+import { es } from 'date-fns/locale'
 
 const DEPOSIT_TIMEOUT_MINUTES = 20
 
@@ -198,7 +199,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
       const { data: svc } = await db.from('services').select('name').eq('id', service_id).single()
       const { data: stf } = await db.from('staff').select('name').eq('id', staff_id).single()
-      const localTime = format(toZonedTime(parseISO(starts_at), ctx.timezone), "dd/MM/yyyy 'a las' HH:mm", { timeZone: ctx.timezone })
+      const localTime = format(toZonedTime(parseISO(starts_at), ctx.timezone), "dd/MM/yyyy 'a las' h:mm a", { timeZone: ctx.timezone })
 
       // Deposit flow: appointment already blocks the slot; generate a Stripe
       // checkout link and let the cron release it if unpaid within the timeout.
@@ -261,7 +262,14 @@ export async function handleTool(toolName: string, input: Record<string, string>
         .gte('starts_at', new Date().toISOString())
         .order('starts_at')
 
-      return JSON.stringify({ appointments })
+      // Etiqueta en hora local del negocio y formato de 12 h — el modelo la muestra
+      // tal cual (starts_at viene en UTC; no debe convertirlo por su cuenta)
+      const withLabels = (appointments ?? []).map(a => ({
+        ...a,
+        label: format(toZonedTime(parseISO(a.starts_at), ctx.timezone), "EEEE d 'de' MMMM, h:mm a", { timeZone: ctx.timezone, locale: es }),
+      }))
+
+      return JSON.stringify({ appointments: withLabels })
     }
 
     case 'cancel_appointment': {
@@ -296,7 +304,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         const c = appt.customer as unknown as { name: string | null; phone: string } | null
         const s = appt.service as unknown as { name: string } | null
         const st = appt.staff as unknown as { name: string } | null
-        const localTime = format(toZonedTime(parseISO(appt.starts_at), ctx.timezone), "dd/MM/yyyy 'a las' HH:mm", { timeZone: ctx.timezone })
+        const localTime = format(toZonedTime(parseISO(appt.starts_at), ctx.timezone), "dd/MM/yyyy 'a las' h:mm a", { timeZone: ctx.timezone })
         const msg = `❌ *Cita cancelada por el cliente*\n👤 ${c?.name ?? c?.phone ?? 'Cliente'}\n💆 ${s?.name ?? 'Servicio'}${st?.name ? ` con ${st.name}` : ''}\n🕐 ${localTime}${reason ? `\n📝 Motivo: ${reason}` : ''}\nEl horario quedó libre.`
         sendMessage(`${ctx.ownerWhatsapp}@c.us`, msg, ctx.ultramsg).catch(() => {})
       }
@@ -353,7 +361,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       if (ctx.ownerWhatsapp) {
         const c = appt.customer as unknown as { name: string | null; phone: string } | null
         const s = appt.service as unknown as { name: string } | null
-        const fmt = (iso: string) => format(toZonedTime(parseISO(iso), ctx.timezone), "dd/MM 'a las' HH:mm", { timeZone: ctx.timezone })
+        const fmt = (iso: string) => format(toZonedTime(parseISO(iso), ctx.timezone), "dd/MM 'a las' h:mm a", { timeZone: ctx.timezone })
         const msg = `🔄 *Cita reagendada por el cliente*\n👤 ${c?.name ?? c?.phone ?? 'Cliente'}\n💆 ${s?.name ?? 'Servicio'}\n🕐 ${fmt(appt.starts_at)} → *${fmt(new_starts_at)}*`
         sendMessage(`${ctx.ownerWhatsapp}@c.us`, msg, ctx.ultramsg).catch(() => {})
       }

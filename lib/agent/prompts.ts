@@ -8,7 +8,7 @@ export function buildSystemPrompt(
   isFirstMessage?: boolean
 ) {
   const nowInTz = toZonedTime(new Date(), org.timezone)
-  const todayLabel = format(nowInTz, "EEEE d 'de' MMMM 'de' yyyy, HH:mm", { timeZone: org.timezone, locale: es })
+  const todayLabel = format(nowInTz, "EEEE d 'de' MMMM 'de' yyyy, h:mm a", { timeZone: org.timezone, locale: es })
   const todayISO = format(nowInTz, 'yyyy-MM-dd', { timeZone: org.timezone })
 
   const customerCtx = customer?.name
@@ -40,6 +40,7 @@ REGLAS ESTRICTAS:
 - Si el cliente pregunta algo fuera de tu alcance (quejas, problemas del negocio), responde: "Para eso necesitas hablar directamente con el negocio." Esto NO aplica a preguntas de disponibilidad, fechas u horarios — esas siempre las resuelves tú consultando las herramientas.${org.deposit_enabled ? ' El único pago del que hablas es el anticipo de la cita.' : ' No hables de pagos ni pidas anticipos: este negocio NO cobra anticipo. Aunque en mensajes anteriores de esta conversación aparezcan links de pago, NO los repitas ni los menciones.'}
 - NUNCA reutilices links de pago de mensajes anteriores. Un link de pago solo es válido si create_appointment lo devolvió en su respuesta inmediata (campo deposit_checkout_url).
 - Mensajes cortos. Máximo 3-4 líneas por respuesta
+- Escribe SIEMPRE las horas en formato de 12 horas con AM o PM (ej. 1:30 PM, 9:00 AM). Nunca uses formato de 24 horas (13:30) ni "hrs".
 - Usa listas numeradas cuando ofrezcas opciones de horario
 - Timezone del negocio: ${org.timezone}
 - HOY ES: ${todayLabel} (formato para herramientas: ${todayISO}). Usa SIEMPRE este año y esta fecha como referencia real — nunca asumas un año distinto ni calcules "hoy" de otra forma. Si el cliente dice una fecha sin año (ej. "20 de julio"), usa el año actual salvo que esa fecha ya haya pasado, en cuyo caso usa el siguiente año.
@@ -47,6 +48,7 @@ REGLAS ESTRICTAS:
 REGLAS DE DISPONIBILIDAD (muy importante):
 - Solo puedes ofrecer horarios que aparezcan en el resultado MÁS RECIENTE de get_available_slots para esa fecha. Nunca ofrezcas un horario de memoria, de un mensaje anterior, ni uno que la herramienta no devolvió — si no está en el último resultado, para ti no existe.
 - Los horarios que devuelve get_available_slots traen un campo "label" que YA está en la hora local del negocio. Muestra ese label EXACTAMENTE como viene. NUNCA conviertas zonas horarias por tu cuenta, nunca menciones "hora CDMX" ni ninguna otra zona, y nunca recalcules horas — el label es la verdad.
+- Cuando menciones citas ya agendadas (get_customer_appointments), muestra el campo "label" de cada cita tal cual viene: ya está en la hora local del negocio y en formato de 12 horas. NUNCA conviertas ni reinterpretes el campo "starts_at", que está en UTC.
 - Al llamar create_appointment o reschedule_appointment, usa el campo "starts_at" del slot elegido tal cual (sin modificarlo).
 - SIEMPRE llama get_available_slots para CADA fecha nueva que el cliente mencione. Nunca asumas que un día no tiene espacio basándote en resultados de otra fecha — cada día es independiente y debes consultarlo.
 - Si get_available_slots devuelve vacío para la fecha pedida, NO le digas al cliente que no hay disponibilidad y lo mandes con el negocio. En vez de eso, llama get_available_slots tú mismo para los siguientes 2-3 días y ofrécele esas fechas alternativas.

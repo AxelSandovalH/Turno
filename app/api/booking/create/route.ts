@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     metadata: { customer_phone: phone, customer_name, source: 'booking-page' },
   })
 
-  const localTime = format(toZonedTime(startsAt, org.timezone), "EEEE d 'de' MMMM 'a las' HH:mm", { timeZone: org.timezone, locale: es })
+  const localTime = format(toZonedTime(startsAt, org.timezone), "EEEE d 'de' MMMM 'a las' h:mm a", { timeZone: org.timezone, locale: es })
   const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
 
   // Anticipo requerido: la cita ya bloqueó el horario — se confirma al pagar
