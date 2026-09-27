@@ -29,6 +29,11 @@ interface Props {
   onDayClick?: (date: Date) => void
 }
 
+// Altura mínima de cada celda del mes: crece con la pantalla
+const CELL_H = 'min-h-[110px] lg:min-h-[140px] 2xl:min-h-[160px]'
+// Citas visibles por día antes del "+N más" (más espacio = más citas)
+const MAX_VISIBLE = 4
+
 export function CalendarView({ appointments, onDayClick }: Props) {
   const router = useRouter()
   const [current, setCurrent] = useState(new Date())
@@ -56,7 +61,7 @@ export function CalendarView({ appointments, onDayClick }: Props) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="font-medium capitalize text-foreground">
+        <h3 className="text-lg font-semibold capitalize text-foreground">
           {format(current, 'MMMM yyyy', { locale: es })}
         </h3>
         <div className="flex gap-1">
@@ -77,7 +82,7 @@ export function CalendarView({ appointments, onDayClick }: Props) {
         {/* Day names */}
         <div className="grid grid-cols-7 border-b border-border bg-muted/30">
           {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
-            <div key={d} className="py-2 text-center text-[11px] font-medium text-muted-foreground">{d}</div>
+            <div key={d} className="py-2.5 text-center text-xs font-medium text-muted-foreground">{d}</div>
           ))}
         </div>
 
@@ -85,7 +90,7 @@ export function CalendarView({ appointments, onDayClick }: Props) {
         <TooltipProvider>
           <div className="grid grid-cols-7">
             {cells.map((day, i) => {
-              if (!day) return <div key={`pad-${i}`} className="min-h-[80px] border-b border-r border-border last:border-r-0 bg-muted/10" />
+              if (!day) return <div key={`pad-${i}`} className={`${CELL_H} border-b border-r border-border last:border-r-0 bg-muted/10`} />
               const dayApts = aptsByDay.get(format(day, 'yyyy-MM-dd')) ?? []
               const today = isToday(day)
               const inMonth = isSameMonth(day, current)
@@ -97,21 +102,21 @@ export function CalendarView({ appointments, onDayClick }: Props) {
                     onDayClick?.(day)
                     router.push(`?view=list&date=${format(day, 'yyyy-MM-dd')}`)
                   }}
-                  className={`min-h-[80px] p-2 border-b border-r border-border last:border-r-0 transition-colors cursor-pointer hover:bg-muted/20 ${!inMonth ? 'opacity-30' : ''}`}
+                  className={`${CELL_H} p-2.5 border-b border-r border-border last:border-r-0 transition-colors cursor-pointer hover:bg-muted/20 ${!inMonth ? 'opacity-30' : ''}`}
                 >
-                  <span className={`inline-flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full mb-1 ${today ? 'bg-primary text-white' : 'text-foreground'}`}>
+                  <span className={`inline-flex items-center justify-center w-7 h-7 text-sm font-medium rounded-full mb-1.5 ${today ? 'bg-primary text-white' : 'text-foreground'}`}>
                     {format(day, 'd')}
                   </span>
 
                   {dayApts.length > 0 && (
-                    <div className="space-y-0.5">
-                      {dayApts.slice(0, 3).map(a => (
+                    <div className="space-y-1">
+                      {dayApts.slice(0, MAX_VISIBLE).map(a => (
                         <Tooltip key={a.id}>
                           <TooltipTrigger
                             render={
-                              <div className="flex items-center gap-1 min-w-0 rounded px-0.5 -mx-0.5 hover:bg-muted/40">
-                                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[a.status] ?? 'bg-muted'}`} />
-                                <span className="text-[10px] text-muted-foreground truncate">
+                              <div className="flex items-center gap-1.5 min-w-0 rounded px-1 py-0.5 -mx-1 hover:bg-muted/40">
+                                <div className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[a.status] ?? 'bg-muted'}`} />
+                                <span className="text-xs text-muted-foreground truncate">
                                   {format(new Date(a.starts_at), 'HH:mm')}
                                   {a.customer?.name ? ` · ${a.customer.name}` : ''}
                                 </span>
@@ -131,8 +136,8 @@ export function CalendarView({ appointments, onDayClick }: Props) {
                           </TooltipContent>
                         </Tooltip>
                       ))}
-                      {dayApts.length > 3 && (
-                        <p className="text-[10px] text-muted-foreground">+{dayApts.length - 3} más</p>
+                      {dayApts.length > MAX_VISIBLE && (
+                        <p className="text-xs text-muted-foreground">+{dayApts.length - MAX_VISIBLE} más</p>
                       )}
                     </div>
                   )}

@@ -33,7 +33,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <ThemeSwitch />
             </div>
           </div>
-          <div className="p-4 sm:p-6 max-w-5xl">
+          {/* Ancho por defecto 1024px; una página que necesite más lo pide con
+              data-wide en su raíz (ej. Citas) y sube a 1600px */}
+          <div className="p-4 sm:p-6 max-w-5xl has-[[data-wide]]:max-w-[1600px]">
             {children}
           </div>
         </main>

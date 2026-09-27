@@ -76,7 +76,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
   const cntCancelled  = list.filter(a => a.status === 'cancelled' || (a.status === 'confirmed' && a.confirmation_status === 'declined')).length
 
   return (
-    <div className="space-y-6">
+    <div data-wide className="space-y-6">
       <Suspense fallback={null}>
         <PaymentSuccessToast />
       </Suspense>
