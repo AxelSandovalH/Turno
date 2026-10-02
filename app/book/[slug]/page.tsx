@@ -65,7 +65,7 @@ export default async function BookingPage({ params }: Props) {
             // Alto fijo y ancho según la proporción del logo: los logos horizontales
             // se veían diminutos dentro de un cuadrado de 40px
             <div className="h-20 sm:h-28 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0">
-              <img src={org.logo_url} alt={org.name} className="h-full w-auto max-w-[220px] sm:max-w-[320px] object-contain" />
+              <img src={org.logo_url} alt={org.name} className="h-full w-auto max-w-[220px] sm:max-w-[320px] object-contain rounded-xl" />
             </div>
           ) : (
             <div
