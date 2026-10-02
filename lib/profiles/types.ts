@@ -9,6 +9,7 @@ export type BusinessType =
   | 'laboratory'
   | 'charter'
   | 'tattoo'
+  | 'consulting'
   | 'other'
 
 /**

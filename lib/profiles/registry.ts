@@ -7,6 +7,7 @@ import { physiotherapy } from './physiotherapy'
 import { laboratory } from './laboratory'
 import { charter } from './charter'
 import { tattoo } from './tattoo'
+import { consulting } from './consulting'
 import { other } from './other'
 
 const REGISTRY: Record<BusinessType, BusinessProfile> = {
@@ -18,12 +19,13 @@ const REGISTRY: Record<BusinessType, BusinessProfile> = {
   laboratory,
   charter,
   tattoo,
+  consulting,
   other,
 }
 
 /** Perfiles en el orden en que aparecen en registro/onboarding. */
 export const ALL_PROFILES: readonly BusinessProfile[] = [
-  barbershop, spa, psychology, dentistry, physiotherapy, laboratory, charter, tattoo, other,
+  barbershop, spa, psychology, dentistry, physiotherapy, laboratory, charter, tattoo, consulting, other,
 ]
 
 /**
