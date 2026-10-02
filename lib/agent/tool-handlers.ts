@@ -10,7 +10,7 @@ const DEPOSIT_TIMEOUT_MINUTES = 20
 interface Context {
   organizationId: string
   organizationName: string
-  branchId: string
+  branchId: string | null
   timezone: string
   ownerWhatsapp: string
   ultramsg?: UltramsgCreds

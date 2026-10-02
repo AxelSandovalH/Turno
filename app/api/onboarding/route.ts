@@ -55,6 +55,10 @@ export async function POST(req: Request) {
 
   if (orgError) return NextResponse.json({ error: orgError.message }, { status: 500 })
 
+  // Sucursal por defecto — sin esta fila, el bot de WhatsApp no puede crear
+  // citas (create_appointment necesita un branch_id válido)
+  await db.from('branches').insert({ organization_id: org.id, name, is_active: true })
+
   // Create staff record as owner
   await db.from('staff').insert({
     organization_id: org.id,
