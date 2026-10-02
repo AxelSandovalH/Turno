@@ -170,7 +170,9 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-sm">{s.name}</span>
                     <span className="text-xs text-zinc-500">
-                      {s.duration_minutes} min{s.price ? ` · ${pricesFrom ? 'desde ' : ''}$${s.price}` : ''}
+                      {/* services.price es numeric — Supabase lo manda como string ("0.00"),
+                          así que un chequeo truthy no detecta servicios gratis */}
+                      {s.duration_minutes} min{Number(s.price) > 0 ? ` · ${pricesFrom ? 'desde ' : ''}$${Number(s.price)}` : ''}
                     </span>
                   </div>
                   {serviceId === s.id && s.description && (

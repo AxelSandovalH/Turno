@@ -58,47 +58,77 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
   const [blockForm, setBlockForm] = useState({ staff_id: '', starts_at: '', ends_at: '', reason: '' })
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-  function getSchedule(staffId: string, day: number) {
-    return schedules.find(s => s.staff_id === staffId && s.day_of_week === day)
+  // Un staff puede tener varios bloques el mismo día (horario partido, ej.
+  // 10:00-13:00 y 17:00-19:00) — cada fila de staff_schedules es un bloque.
+  function getBlocksForDay(staffId: string, day: number) {
+    return schedules
+      .filter(s => s.staff_id === staffId && s.day_of_week === day && s.is_working)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))
   }
 
   function isWorking(staffId: string, day: number) {
     const key = `${staffId}-${day}`
     if (key in optimistic) return optimistic[key]
-    return getSchedule(staffId, day)?.is_working ?? false
+    return getBlocksForDay(staffId, day).length > 0
   }
 
   function formatHours(staffId: string, day: number) {
-    const s = getSchedule(staffId, day)
-    if (!s?.is_working) return null
-    return `${s.start_time?.slice(0, 5)} – ${s.end_time?.slice(0, 5)}`
+    const blocks = getBlocksForDay(staffId, day)
+    if (blocks.length === 0) return null
+    return blocks.map(b => `${b.start_time?.slice(0, 5)} – ${b.end_time?.slice(0, 5)}`).join(', ')
   }
 
   // ── Toggle day ───────────────────────────────────────────────────────────────
+  // Encendido sin bloques → crea el primero (09:00-18:00). Apagado → borra
+  // todos los bloques del día (evita arrastrar horarios viejos ocultos).
   async function toggleDay(staffId: string, day: number, checked: boolean) {
     const key = `${staffId}-${day}`
     setOptimistic(prev => ({ ...prev, [key]: checked }))
-    const existing = getSchedule(staffId, day)
-    if (existing) {
-      await supabase.from('staff_schedules').update({ is_working: checked }).eq('id', existing.id)
+    const existing = getBlocksForDay(staffId, day)
+    if (checked) {
+      if (existing.length === 0) {
+        await supabase.from('staff_schedules').insert({
+          staff_id: staffId,
+          day_of_week: day,
+          start_time: '09:00',
+          end_time: '18:00',
+          is_working: true,
+          organization_id: organizationId,
+        })
+      }
     } else {
-      await supabase.from('staff_schedules').insert({
-        staff_id: staffId,
-        day_of_week: day,
-        start_time: '09:00',
-        end_time: '18:00',
-        is_working: checked,
-        organization_id: organizationId,
-      })
+      await supabase.from('staff_schedules').delete().in('id', existing.map(b => b.id))
     }
     router.refresh()
   }
 
-  // ── Update time ──────────────────────────────────────────────────────────────
-  async function updateTime(staffId: string, day: number, field: 'start_time' | 'end_time', value: string) {
-    const existing = getSchedule(staffId, day)
-    if (!existing) return
-    await supabase.from('staff_schedules').update({ [field]: value }).eq('id', existing.id)
+  // ── Bloques de horario (varios por día) ───────────────────────────────────────
+  async function updateBlockTime(blockId: string, field: 'start_time' | 'end_time', value: string) {
+    await supabase.from('staff_schedules').update({ [field]: value }).eq('id', blockId)
+    router.refresh()
+  }
+
+  async function addScheduleBlock(staffId: string, day: number) {
+    const existing = getBlocksForDay(staffId, day)
+    // Arranca donde terminó el último bloque, 2h de duración por default
+    const lastEnd = existing.length > 0 ? existing[existing.length - 1].end_time.slice(0, 5) : '09:00'
+    const [h] = lastEnd.split(':').map(Number)
+    const nextStart = h >= 22 ? '09:00' : lastEnd
+    const nextEndHour = Math.min(Number(nextStart.split(':')[0]) + 2, 23)
+    const nextEnd = `${String(nextEndHour).padStart(2, '0')}:00`
+    await supabase.from('staff_schedules').insert({
+      staff_id: staffId,
+      day_of_week: day,
+      start_time: nextStart,
+      end_time: nextEnd,
+      is_working: true,
+      organization_id: organizationId,
+    })
+    router.refresh()
+  }
+
+  async function removeScheduleBlock(blockId: string) {
+    await supabase.from('staff_schedules').delete().eq('id', blockId)
     router.refresh()
   }
 
@@ -178,7 +208,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
                   {staff.map(s => {
                     const working = isWorking(s.id, day.value)
                     const hours   = formatHours(s.id, day.value)
-                    const sched   = getSchedule(s.id, day.value)
+                    const dayBlocks = getBlocksForDay(s.id, day.value)
                     const isEdit  = editing === s.id
 
                     return (
@@ -191,29 +221,51 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
                               onCheckedChange={c => toggleDay(s.id, day.value, c)}
                             />
                             {working && (
-                              <div className="flex flex-col gap-1">
-                                <Select
-                                  value={sched?.start_time?.slice(0, 5) ?? '09:00'}
-                                  onValueChange={v => v && updateTime(s.id, day.value, 'start_time', v)}
+                              <div className="flex flex-col gap-2">
+                                {dayBlocks.map(b => (
+                                  <div key={b.id} className="flex items-center gap-1">
+                                    <Select
+                                      value={b.start_time?.slice(0, 5) ?? '09:00'}
+                                      onValueChange={v => v && updateBlockTime(b.id, 'start_time', v)}
+                                    >
+                                      <SelectTrigger className="w-20 h-7 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {HOURS.map(h => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                                      </SelectContent>
+                                    </Select>
+                                    <Select
+                                      value={b.end_time?.slice(0, 5) ?? '18:00'}
+                                      onValueChange={v => v && updateBlockTime(b.id, 'end_time', v)}
+                                    >
+                                      <SelectTrigger className="w-20 h-7 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {HOURS.map(h => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                                      </SelectContent>
+                                    </Select>
+                                    {/* Solo se puede quitar un bloque si queda al menos otro — si no,
+                                        usa el switch de arriba para apagar el día completo */}
+                                    {dayBlocks.length > 1 && (
+                                      <button
+                                        onClick={() => removeScheduleBlock(b.id)}
+                                        className="text-muted-foreground hover:text-destructive shrink-0"
+                                        title="Quitar bloque"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                                <button
+                                  onClick={() => addScheduleBlock(s.id, day.value)}
+                                  className="flex items-center justify-center gap-1 text-[10px] text-primary hover:underline"
                                 >
-                                  <SelectTrigger className="w-20 h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {HOURS.map(h => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
-                                <Select
-                                  value={sched?.end_time?.slice(0, 5) ?? '18:00'}
-                                  onValueChange={v => v && updateTime(s.id, day.value, 'end_time', v)}
-                                >
-                                  <SelectTrigger className="w-20 h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {HOURS.map(h => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
+                                  <Plus className="h-2.5 w-2.5" />
+                                  Agregar bloque
+                                </button>
                               </div>
                             )}
                           </div>
