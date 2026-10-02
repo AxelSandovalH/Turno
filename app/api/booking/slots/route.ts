@@ -43,13 +43,12 @@ export async function GET(req: Request) {
   const localEnd = fromZonedTime(`${date}T23:59:59`, tz)
   const dayOfWeek = toZonedTime(localStart, tz).getDay()
 
-  const [{ data: schedule }, { data: existing }, { data: blocks }] = await Promise.all([
+  const [{ data: schedules }, { data: existing }, { data: blocks }] = await Promise.all([
     db.from('staff_schedules')
       .select('start_time, end_time')
       .eq('staff_id', staffId)
       .eq('day_of_week', dayOfWeek)
-      .eq('is_working', true)
-      .maybeSingle(),
+      .eq('is_working', true),
     db.from('appointments')
       .select('starts_at, ends_at')
       .eq('staff_id', staffId)
@@ -64,32 +63,37 @@ export async function GET(req: Request) {
       .gte('ends_at', localStart.toISOString()),
   ])
 
-  if (!schedule) return NextResponse.json({ slots: [] })
-
-  // Postgres time comes as "09:00:00" — normalize to HH:mm
-  const startTime = schedule.start_time.slice(0, 5)
-  const endTime = schedule.end_time.slice(0, 5)
-  const workStart = fromZonedTime(`${date}T${startTime}:00`, tz)
-  const workEnd = fromZonedTime(`${date}T${endTime}:00`, tz)
+  if (!schedules || schedules.length === 0) return NextResponse.json({ slots: [] })
 
   const slots: string[] = []
-  let cursor = workStart
   const now = new Date()
 
-  while (cursor < workEnd) {
-    const slotEnd = addMinutes(cursor, service.duration_minutes)
-    if (slotEnd > workEnd) break
+  // Un staff puede tener varios bloques el mismo día (ej. horario partido:
+  // mañana y tarde) — cada fila de staff_schedules es un bloque independiente.
+  for (const schedule of schedules) {
+    // Postgres time comes as "09:00:00" — normalize to HH:mm
+    const startTime = schedule.start_time.slice(0, 5)
+    const endTime = schedule.end_time.slice(0, 5)
+    const workStart = fromZonedTime(`${date}T${startTime}:00`, tz)
+    const workEnd = fromZonedTime(`${date}T${endTime}:00`, tz)
 
-    const isBooked = (existing ?? []).some(a =>
-      cursor < parseISO(a.ends_at) && slotEnd > parseISO(a.starts_at))
-    const isBlocked = (blocks ?? []).some(b =>
-      cursor < parseISO(b.ends_at) && slotEnd > parseISO(b.starts_at))
+    let cursor = workStart
+    while (cursor < workEnd) {
+      const slotEnd = addMinutes(cursor, service.duration_minutes)
+      if (slotEnd > workEnd) break
 
-    if (!isBooked && !isBlocked && cursor > now) {
-      slots.push(format(toZonedTime(cursor, tz), 'HH:mm', { timeZone: tz }))
+      const isBooked = (existing ?? []).some(a =>
+        cursor < parseISO(a.ends_at) && slotEnd > parseISO(a.starts_at))
+      const isBlocked = (blocks ?? []).some(b =>
+        cursor < parseISO(b.ends_at) && slotEnd > parseISO(b.starts_at))
+
+      if (!isBooked && !isBlocked && cursor > now) {
+        slots.push(format(toZonedTime(cursor, tz), 'HH:mm', { timeZone: tz }))
+      }
+      cursor = addMinutes(cursor, SLOT_INTERVAL)
     }
-    cursor = addMinutes(cursor, SLOT_INTERVAL)
   }
 
+  slots.sort()
   return NextResponse.json({ slots })
 }

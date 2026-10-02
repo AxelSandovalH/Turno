@@ -55,16 +55,16 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const slots: { starts_at: string; label: string; staff_id: string; staff_name: string }[] = []
 
       for (const staff of staffList) {
-        // Get schedule for this day
-        const { data: schedule } = await db
+        // Horario del día — puede tener varios bloques (ej. horario partido:
+        // mañana y tarde), cada fila de staff_schedules es independiente
+        const { data: daySchedules } = await db
           .from('staff_schedules')
           .select('start_time, end_time')
           .eq('staff_id', staff.id)
           .eq('day_of_week', dayOfWeek)
           .eq('is_working', true)
-          .single()
 
-        if (!schedule) continue
+        if (!daySchedules || daySchedules.length === 0) continue
 
         // Get existing appointments
         const { data: existing } = await db
@@ -84,42 +84,44 @@ export async function handleTool(toolName: string, input: Record<string, string>
           .lte('starts_at', localEnd.toISOString())
           .gte('ends_at', localStart.toISOString())
 
-        // Generate slots every 30 minutes within working hours
+        // Generate slots every 30 minutes within working hours, per bloque
         // Postgres time comes as "09:00:00" — normalize to HH:mm or fromZonedTime gets "T09:00:00:00" (Invalid Date)
-        const workStart = fromZonedTime(`${date}T${schedule.start_time.slice(0, 5)}:00`, ctx.timezone)
-        const workEnd = fromZonedTime(`${date}T${schedule.end_time.slice(0, 5)}:00`, ctx.timezone)
+        for (const schedule of daySchedules) {
+          const workStart = fromZonedTime(`${date}T${schedule.start_time.slice(0, 5)}:00`, ctx.timezone)
+          const workEnd = fromZonedTime(`${date}T${schedule.end_time.slice(0, 5)}:00`, ctx.timezone)
 
-        let cursor = workStart
-        while (cursor < workEnd) {
-          const slotEnd = addMinutes(cursor, duration)
-          if (slotEnd > workEnd) break
+          let cursor = workStart
+          while (cursor < workEnd) {
+            const slotEnd = addMinutes(cursor, duration)
+            if (slotEnd > workEnd) break
 
-          const isBooked = (existing ?? []).some(a => {
-            const aStart = parseISO(a.starts_at)
-            const aEnd = parseISO(a.ends_at)
-            return cursor < aEnd && slotEnd > aStart
-          })
-
-          const isBlocked = (blocks ?? []).some(b => {
-            const bStart = parseISO(b.starts_at)
-            const bEnd = parseISO(b.ends_at)
-            return cursor < bEnd && slotEnd > bStart
-          })
-
-          const isPast = cursor < new Date()
-
-          if (!isBooked && !isBlocked && !isPast) {
-            slots.push({
-              starts_at: formatISO(cursor),
-              // Hora local del negocio ya formateada — el modelo la muestra tal
-              // cual, sin hacer conversiones de zona horaria por su cuenta
-              label: format(toZonedTime(cursor, ctx.timezone), 'h:mm a', { timeZone: ctx.timezone }),
-              staff_id: staff.id,
-              staff_name: staff.name,
+            const isBooked = (existing ?? []).some(a => {
+              const aStart = parseISO(a.starts_at)
+              const aEnd = parseISO(a.ends_at)
+              return cursor < aEnd && slotEnd > aStart
             })
-          }
 
-          cursor = addMinutes(cursor, 30)
+            const isBlocked = (blocks ?? []).some(b => {
+              const bStart = parseISO(b.starts_at)
+              const bEnd = parseISO(b.ends_at)
+              return cursor < bEnd && slotEnd > bStart
+            })
+
+            const isPast = cursor < new Date()
+
+            if (!isBooked && !isBlocked && !isPast) {
+              slots.push({
+                starts_at: formatISO(cursor),
+                // Hora local del negocio ya formateada — el modelo la muestra tal
+                // cual, sin hacer conversiones de zona horaria por su cuenta
+                label: format(toZonedTime(cursor, ctx.timezone), 'h:mm a', { timeZone: ctx.timezone }),
+                staff_id: staff.id,
+                staff_name: staff.name,
+              })
+            }
+
+            cursor = addMinutes(cursor, 30)
+          }
         }
       }
 
