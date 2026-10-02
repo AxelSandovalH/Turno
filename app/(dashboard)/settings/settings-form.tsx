@@ -57,6 +57,10 @@ export function SettingsForm({ organization }: Props) {
   })
   const [slugError, setSlugError] = useState('')
   const [slugCopied, setSlugCopied] = useState(false)
+  // Lo que tenía el formulario al abrir (o tras el último guardado). Al guardar
+  // solo se mandan los campos que el usuario cambió respecto a esto — así una
+  // pestaña abierta desde antes no pisa cambios hechos por fuera.
+  const savedRef = useRef(form)
 
   const copyBookingLink = async () => {
     try {
@@ -81,9 +85,19 @@ export function SettingsForm({ organization }: Props) {
     const { error } = await supabase.storage.from('org-assets').upload(path, file, { upsert: true })
     if (error) { toast.error('Error al subir logo'); setUploadingLogo(false); return }
     const { data: { publicUrl } } = supabase.storage.from('org-assets').getPublicUrl(path)
-    setForm(p => ({ ...p, logo_url: publicUrl }))
+    // El path es fijo por organización (upsert): sin ?v= el navegador seguiría
+    // mostrando el logo anterior desde caché
+    const logoUrl = `${publicUrl}?v=${Date.now()}`
+    // Se guarda de inmediato y solo este campo — no depende de "Guardar cambios"
+    // ni reenvía el resto del formulario
+    const { error: saveError } = await supabase
+      .from('organizations').update({ logo_url: logoUrl }).eq('id', organization.id)
     setUploadingLogo(false)
-    toast.success('Logo cargado')
+    if (saveError) { toast.error('El logo se subió pero no se pudo guardar'); return }
+    setForm(p => ({ ...p, logo_url: logoUrl }))
+    savedRef.current = { ...savedRef.current, logo_url: logoUrl }
+    toast.success('Logo actualizado')
+    router.refresh()
   }
 
   async function handleSubscribe() {
@@ -123,26 +137,44 @@ export function SettingsForm({ organization }: Props) {
       }
     }
 
-    const { error } = await supabase
-      .from('organizations')
-      .update({
-        name:            form.name,
-        slug:            form.slug            || null,
-        whatsapp_number: form.whatsapp_number || null,
-        phone:           form.phone           || null,
-        address:         form.address         || null,
-        timezone:        form.timezone,
-        welcome_message: form.welcome_message || null,
-        away_message:    form.away_message    || null,
-        primary_color:   form.primary_color   || null,
-        logo_url:        form.logo_url        || null,
-        deposit_enabled: form.deposit_enabled,
-        deposit_amount:  form.deposit_enabled ? depositAmountNum : 0,
-      })
-      .eq('id', organization.id)
+    const all = {
+      name:            form.name,
+      slug:            form.slug            || null,
+      whatsapp_number: form.whatsapp_number || null,
+      phone:           form.phone           || null,
+      address:         form.address         || null,
+      timezone:        form.timezone,
+      welcome_message: form.welcome_message || null,
+      away_message:    form.away_message    || null,
+      primary_color:   form.primary_color   || null,
+      logo_url:        form.logo_url        || null,
+      deposit_enabled: form.deposit_enabled,
+      deposit_amount:  form.deposit_enabled ? depositAmountNum : 0,
+    }
+    // Solo los campos que el usuario tocó desde que abrió/guardó el formulario
+    const saved = savedRef.current
+    const changes = Object.fromEntries(
+      (Object.keys(all) as (keyof typeof all)[])
+        .filter(k => form[k] !== saved[k])
+        .map(k => [k, all[k]])
+    )
+    // El monto depende del switch: si cambió uno, se mandan los dos juntos
+    if ('deposit_enabled' in changes || 'deposit_amount' in changes) {
+      changes.deposit_enabled = all.deposit_enabled
+      changes.deposit_amount = all.deposit_amount
+    }
+
+    if (Object.keys(changes).length === 0) {
+      setLoading(false)
+      toast.success('No hay cambios por guardar')
+      return
+    }
+
+    const { error } = await supabase.from('organizations').update(changes).eq('id', organization.id)
 
     setLoading(false)
     if (error) { toast.error(error.message); return }
+    savedRef.current = form
     toast.success('Configuración guardada')
     router.refresh()
   }
