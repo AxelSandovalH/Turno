@@ -14,6 +14,7 @@ const TIMEZONES = [
   { value: 'America/Mexico_City',            label: 'Ciudad de México (CST)' },
   { value: 'America/Monterrey',              label: 'Monterrey (CST)' },
   { value: 'America/Tijuana',                label: 'Tijuana (PST)' },
+  { value: 'America/Mazatlan',               label: 'La Paz / Los Cabos / Mazatlán (MST)' },
   { value: 'America/Cancun',                 label: 'Cancún (EST)' },
   { value: 'America/Bogota',                 label: 'Bogotá (COT)' },
   { value: 'America/Lima',                   label: 'Lima (PET)' },
