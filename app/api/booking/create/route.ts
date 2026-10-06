@@ -139,7 +139,7 @@ export async function POST(req: Request) {
       }).eq('id', appointment.id)
 
       if (org.whatsapp_number) {
-        sendMessage(
+        await sendMessage(
           `${org.whatsapp_number}@c.us`,
           `📅 *Nueva cita desde la página de reservas*\n👤 ${customer_name} (${phone})\n💆 ${service.name} con ${staff.name}\n🕐 ${localTime}\n⏳ Esperando anticipo del cliente`,
           creds
@@ -155,13 +155,13 @@ export async function POST(req: Request) {
 
   // Sin anticipo: la cita queda confirmada de inmediato
   if (org.whatsapp_number) {
-    sendMessage(
+    await sendMessage(
       `${org.whatsapp_number}@c.us`,
       `📅 *Nueva cita desde la página de reservas*\n👤 ${customer_name} (${phone})\n💆 ${service.name} con ${staff.name}\n🕐 ${localTime}`,
       creds
     ).catch(() => {})
   }
-  sendMessage(
+  await sendMessage(
     phone,
     `✅ ¡Tu cita quedó confirmada!\n\n💆 ${service.name}\n📅 ${localTime}\n👤 Con ${staff.name}\n\nTe esperamos en *${org.name}*.`,
     creds

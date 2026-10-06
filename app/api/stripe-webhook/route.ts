@@ -147,17 +147,17 @@ async function handleDepositPaid(db: ReturnType<typeof createServiceClient>, app
   // se notifica para que el negocio lo resuelva a mano.
   if (appt.status === 'cancelled') {
     if (customer?.phone) {
-      sendMessage(
+      await sendMessage(
         customer.phone,
         `Recibimos tu pago, pero tu horario ya se había liberado por falta de confirmación a tiempo. Escríbenos para reagendar tu cita. 🙏`,
         creds
-      ).catch(() => {})
+      ).catch(e => console.error('[deposit] whatsapp failed', e))
     }
-    sendMessage(
+    await sendMessage(
       `${org.whatsapp_number}@c.us`,
       `⚠️ *Anticipo pagado tarde*\n👤 ${customer?.name ?? customer?.phone ?? 'Cliente'}\nEl horario ya se había liberado. Contáctalo para reagendar.`,
       creds
-    ).catch(() => {})
+    ).catch(e => console.error('[deposit] whatsapp failed', e))
     return
   }
 
@@ -166,15 +166,15 @@ async function handleDepositPaid(db: ReturnType<typeof createServiceClient>, app
   })
 
   if (customer?.phone) {
-    sendMessage(
+    await sendMessage(
       customer.phone,
       `✅ ¡Anticipo recibido! Tu cita de *${svc?.name ?? 'tu servicio'}* el ${localTime} quedó confirmada. Te esperamos en *${org.name}*.`,
       creds
-    ).catch(() => {})
+    ).catch(e => console.error('[deposit] whatsapp failed', e))
   }
-  sendMessage(
+  await sendMessage(
     `${org.whatsapp_number}@c.us`,
     `💰 *Anticipo pagado*\n👤 ${customer?.name ?? customer?.phone ?? 'Cliente'}\n🕐 ${localTime}\nLa cita quedó confirmada.`,
     creds
-  ).catch(() => {})
+  ).catch(e => console.error('[deposit] whatsapp failed', e))
 }
