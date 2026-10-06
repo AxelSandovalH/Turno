@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { COUNTRIES, DEFAULT_COUNTRY, buildPhone, displayPhone, to12h } from '@/lib/booking-format'
 
-interface Service { id: string; name: string; duration_minutes: number; price: number | null; description: string | null }
+interface Service { id: string; name: string; duration_minutes: number; price: number | null; description: string | null; image_url?: string | null }
 interface Staff { id: string; name: string }
 
 interface Props {
@@ -160,24 +160,30 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
                 <button
                   key={s.id}
                   onClick={() => setServiceId(s.id)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                  className={`w-full text-left rounded-xl border transition-colors overflow-hidden flex items-stretch ${
                     serviceId === s.id
                       ? 'border-opacity-100 text-white'
                       : 'border-zinc-800 text-zinc-300 hover:border-zinc-600'
                   }`}
                   style={serviceId === s.id ? { borderColor: accent, background: `${accent}18` } : {}}
                 >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-sm">{s.name}</span>
-                    <span className="text-xs text-zinc-500">
-                      {/* services.price es numeric — Supabase lo manda como string ("0.00"),
-                          así que un chequeo truthy no detecta servicios gratis */}
-                      {s.duration_minutes} min{Number(s.price) > 0 ? ` · ${pricesFrom ? 'desde ' : ''}$${Number(s.price)}` : ''}
-                    </span>
-                  </div>
-                  {serviceId === s.id && s.description && (
-                    <p className="mt-1.5 text-xs text-zinc-400">{s.description}</p>
+                  {s.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.image_url} alt={s.name} className="w-24 sm:w-28 object-cover shrink-0" />
                   )}
+                  <div className="flex-1 min-w-0 px-4 py-3">
+                    <div className="flex justify-between items-center gap-3">
+                      <span className="font-medium text-sm">{s.name}</span>
+                      <span className="text-xs text-zinc-500 shrink-0">
+                        {/* services.price es numeric — Supabase lo manda como string ("0.00"),
+                            así que un chequeo truthy no detecta servicios gratis */}
+                        {s.duration_minutes} min{Number(s.price) > 0 ? ` · ${pricesFrom ? 'desde ' : ''}$${Number(s.price)}` : ''}
+                      </span>
+                    </div>
+                    {serviceId === s.id && s.description && (
+                      <p className="mt-1.5 text-xs text-zinc-400">{s.description}</p>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>

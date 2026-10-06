@@ -2,7 +2,7 @@ import { toZonedTime, format } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
 
 export function buildSystemPrompt(
-  org: { name: string; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number },
+  org: { name: string; slug?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number },
   customer?: { name: string | null; occupation: string | null; notes: string | null },
   customerPhone?: string,
   isFirstMessage?: boolean
@@ -23,7 +23,17 @@ export function buildSystemPrompt(
 4. NO digas que la cita está "confirmada" todavía — di que quedó "apartada" hasta que se reciba el pago`
     : ''
 
-  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}
+  // Link público de reservas del negocio (página con fotos y todos los servicios)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+  const bookingUrl = org.slug ? `${baseUrl}/book/${org.slug}` : null
+  const bookingLinkCtx = bookingUrl
+    ? `\nLINK PÚBLICO DE RESERVAS: ${bookingUrl}
+- Si el cliente pide el link, quiere reservar por su cuenta, o quiere ver las fotos o el catálogo completo de servicios, envíaselo tal cual (la URL completa, sin modificarla) con una frase corta, por ejemplo: "Aquí puedes ver todo y reservar en un minuto: ${bookingUrl}".
+- No lo ofrezcas por tu cuenta mientras estés agendando una cita por chat con el cliente. Es solo cuando él lo pide o lo necesita.
+- Nunca inventes ni acortes otros links; este es el único.`
+    : ''
+
+  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}
 
 Tu único trabajo es ayudar a los clientes a:
 1. Agendar citas

@@ -20,7 +20,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount')
+    .select('id, name, slug, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount')
     .eq('id', organizationId)
     .single()
 

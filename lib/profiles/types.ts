@@ -10,6 +10,7 @@ export type BusinessType =
   | 'charter'
   | 'tattoo'
   | 'consulting'
+  | 'tours'
   | 'other'
 
 /**
@@ -34,6 +35,8 @@ export type Capability =
   | 'lab-orders'
   /** Precios de catálogo variables: se muestran como "desde $X" y el total se confirma en el negocio */
   | 'variable-pricing'
+  /** Foto por servicio: se sube en Servicios y se muestra en la página pública de reservas */
+  | 'service-photos'
 
 /** Entrada del sidebar. El orden del array define el orden en pantalla. */
 export interface ProfileModule {

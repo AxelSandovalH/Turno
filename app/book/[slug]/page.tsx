@@ -28,7 +28,7 @@ export default async function BookingPage({ params }: Props) {
 
   const [{ data: servicesRaw }, { data: staff }] = await Promise.all([
     db.from('services')
-      .select('id, name, duration_minutes, price, description')
+      .select('id, name, duration_minutes, price, description, image_url')
       .eq('organization_id', org.id)
       .eq('is_active', true)
       .order('name'),
