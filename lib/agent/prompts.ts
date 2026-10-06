@@ -1,8 +1,9 @@
 import { toZonedTime, format } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
+import { hasCapability } from '@/lib/profiles/registry'
 
 export function buildSystemPrompt(
-  org: { name: string; slug?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number },
+  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number },
   customer?: { name: string | null; occupation: string | null; notes: string | null },
   customerPhone?: string,
   isFirstMessage?: boolean
@@ -23,13 +24,17 @@ export function buildSystemPrompt(
 4. NO digas que la cita está "confirmada" todavía — di que quedó "apartada" hasta que se reciba el pago`
     : ''
 
-  // Link público de reservas del negocio (página con fotos y todos los servicios)
+  // Link público de reservas del negocio (página con fotos y todos los servicios).
+  // Solo para giros con página de reservas (el laboratorio no tiene).
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
-  const bookingUrl = org.slug ? `${baseUrl}/book/${org.slug}` : null
+  const bookingUrl = org.slug && hasCapability(org.business_type, 'booking-page') ? `${baseUrl}/book/${org.slug}` : null
   const bookingLinkCtx = bookingUrl
     ? `\nLINK PÚBLICO DE RESERVAS: ${bookingUrl}
-- Si el cliente pide el link, quiere reservar por su cuenta, o quiere ver las fotos o el catálogo completo de servicios, envíaselo tal cual (la URL completa, sin modificarla) con una frase corta, por ejemplo: "Aquí puedes ver todo y reservar en un minuto: ${bookingUrl}".
-- No lo ofrezcas por tu cuenta mientras estés agendando una cita por chat con el cliente. Es solo cuando él lo pide o lo necesita.
+El cliente tiene dos caminos y debe quedarle claro desde el primer mensaje, sin que lo pregunte: (1) tú le ayudas a hacer toda su reserva aquí mismo en el chat, o (2) si prefiere ver todo con fotos y reservar por su cuenta, lo hace en el link.
+- En tu mensaje de presentación, después de presentarte, ofrece ambos caminos en una sola frase corta e incluye el link completo, sin modificarlo. Adáptalo al negocio; guía de tono: "Puedo ayudarte a hacer toda tu reserva aquí mismo, o si prefieres ver todo con fotos y reservar por tu cuenta, entra aquí: ${bookingUrl}".
+- Si en ese mismo primer mensaje el cliente ya pidió algo concreto (un servicio, una fecha), atiéndelo primero y deja el link en una sola línea al final.
+- Después de ese primer mensaje no repitas el link, salvo que el cliente lo pida o quiera ver fotos o el catálogo completo.
+- Si el cliente dice que reservará por el link, respóndele breve que perfecto y que al terminar le llega la confirmación por este mismo WhatsApp. No sigas con el flujo de reserva por chat salvo que cambie de opinión.
 - Nunca inventes ni acortes otros links; este es el único.`
     : ''
 
