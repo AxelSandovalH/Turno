@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { MessageCircle, Phone, User } from 'lucide-react'
+import { MessageCircle, Phone, Trash2, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { Conversation, Message, Customer } from '@/types/database'
 
@@ -91,6 +93,19 @@ function DateSep({ date }: { date: string }) {
 // ── Main layout ───────────────────────────────────────────────────────────────
 export function ConversationsLayout({ conversations, selectedId, activeConversation, messages, isMedical, page, totalPages }: Props) {
   const label = isMedical ? 'Paciente' : 'Cliente'
+  const router = useRouter()
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!activeConversation) return
+    if (!window.confirm('¿Eliminar esta conversación y todos sus mensajes? No se puede deshacer. Si el cliente vuelve a escribir, empezará una conversación nueva.')) return
+    setDeleting(true)
+    const res = await fetch(`/api/conversations/${activeConversation.id}`, { method: 'DELETE' })
+    setDeleting(false)
+    if (!res.ok) { window.alert('No se pudo eliminar la conversación.'); return }
+    router.push('/conversations')
+    router.refresh()
+  }
 
   // Group messages by date for separators
   const grouped: { date: string; msgs: Message[] }[] = []
@@ -176,6 +191,14 @@ export function ConversationsLayout({ conversations, selectedId, activeConversat
                 Ver {label.toLowerCase()}
               </Link>
             )}
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition-colors shrink-0 border border-red-500/30 rounded-lg px-2.5 py-1.5 disabled:opacity-50"
+            >
+              <Trash2 className="h-3 w-3" />
+              {deleting ? 'Eliminando…' : 'Eliminar'}
+            </button>
           </div>
 
           {/* Messages */}
