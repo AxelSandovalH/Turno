@@ -8,6 +8,6 @@ export const spa: BusinessProfile = {
   emoji: '💅',
   staffLabel: { singular: 'Especialista', plural: 'Especialistas' },
   staffIcon: Sparkles,
-  capabilities: new Set(['appointments', 'whatsapp-bot', 'booking-page', 'deposits']),
+  capabilities: new Set(['appointments', 'whatsapp-bot', 'booking-page', 'deposits', 'service-photos']),
   modules: APPOINTMENT_MODULES,
 }
