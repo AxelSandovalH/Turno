@@ -142,7 +142,7 @@ const FAQ = [
   { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
-  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,000 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -490,7 +490,7 @@ export function LandingPage() {
                 {
                   key: 'asistente',
                   name: 'Agenda + Asistente',
-                  price: '$2,000',
+                  price: '$2,700',
                   desc: 'Tu WhatsApp contesta y agenda solo, 24/7',
                   features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Conversaciones en tu panel', 'Soporte prioritario'],
                   highlight: true,

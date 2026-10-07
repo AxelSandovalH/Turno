@@ -422,7 +422,7 @@ export function SettingsForm({ organization }: Props) {
               {organization.whatsapp_bot_enabled ? 'Agenda + Asistente' : 'Agenda'}
             </p>
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
-              {organization.whatsapp_bot_enabled ? '$2,000' : '$1,500'} MXN / mes
+              {organization.whatsapp_bot_enabled ? '$2,700' : '$1,500'} MXN / mes
             </p>
           </div>
           {status === 'active' && (

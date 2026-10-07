@@ -28,8 +28,8 @@ export const PLANS: Record<PlanKey, Plan> = {
   asistente: {
     key: 'asistente',
     name: 'Turno — Agenda + Asistente',
-    amount: 200000,
-    priceLabel: '$2,000',
+    amount: 270000,
+    priceLabel: '$2,700',
     description: 'Tu WhatsApp contesta y agenda solo, 24/7',
     features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Conversaciones en tu panel', 'Soporte prioritario'],
     bot: true,
