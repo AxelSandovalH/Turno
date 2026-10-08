@@ -2,13 +2,16 @@
 
 import { useLayoutEffect, useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Check, MessageSquare, CalendarCheck, BellRing, Users, Smartphone, Zap } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spotlight } from '@/components/ui/spotlight'
 import { WhatsappMockup } from '@/components/landing/whatsapp-mockup'
 import { HowItWorks } from '@/components/landing/how-it-works'
 import { DashboardMockup } from '@/components/landing/dashboard-mockup'
+import { FeaturesBento } from '@/components/landing/features-bento'
+import { SegmentShowcase } from '@/components/landing/segment-showcase'
+import { SEGMENTS } from '@/components/landing/segments-data'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -55,93 +58,13 @@ function tokens(isDay: boolean) {
 }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
-
-const FEATURES = [
-  { Icon: MessageSquare, title: 'Nunca pierdas una cita por no contestar', desc: 'Mientras trabajas, Turno responde al instante. Aunque te escriban a las 11 de la noche, la cita queda agendada.' },
-  { Icon: CalendarCheck, title: 'Dos clientes a la misma hora: imposible', desc: 'Turno revisa tu agenda antes de confirmar. Nunca más el "es que a mí me dijeron a las 5".' },
-  { Icon: BellRing, title: 'Se acabaron los plantones', desc: 'Un día antes le recuerda a tu cliente su cita por WhatsApp. Si no puede ir, te avisa y el espacio se libera para otro.' },
-  { Icon: Users, title: 'Todo tu equipo, cada quien su agenda', desc: 'Cada barbero o profesional con su propio horario, servicios y precios. Turno sabe con quién agendar a cada cliente.' },
-  { Icon: Smartphone, title: 'Tus clientes no instalan nada', desc: 'Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno se encarga del resto.' },
-  { Icon: Zap, title: 'Listo el mismo día', desc: 'Creas tu cuenta, pones tus servicios y horarios, y tu WhatsApp ya contesta solo. Sin técnicos ni instalaciones.' },
-]
-
-const SEGMENTS = [
-  {
-    emoji: '💈',
-    name: 'Barberías y estéticas',
-    pain: 'El cliente que te escribe mientras cortas, no espera: agenda con el de enfrente.',
-    bullets: [
-      'Turno contesta mientras tú sigues con las tijeras en la mano',
-      'Cada barbero con su agenda — se acabó el "a mí me dijeron a las 5"',
-      'Recordatorio automático: menos sillas vacías por plantones',
-    ],
-  },
-  {
-    emoji: '💆',
-    name: 'Spas y bienestar',
-    pain: 'Tu cabina vacía por una cancelación de último minuto es dinero que ya no regresa.',
-    bullets: [
-      'Confirmación un día antes: si no pueden ir, el espacio se libera a tiempo',
-      'Anticipo por Stripe al reservar — quien aparta en serio, llega',
-      'Responde precios y paquetes a las 11 pm, cuando tus clientas planean su semana',
-    ],
-  },
-  {
-    emoji: '🏥',
-    name: 'Consultorios y clínicas',
-    pain: 'Tu asistente no puede contestar WhatsApp, agendar y recibir pacientes al mismo tiempo.',
-    bullets: [
-      'Agenda, reagenda y cancela sin interrumpir la consulta',
-      'Expediente y historial del paciente en un solo lugar',
-      'El paciente confirma con un SI — y tú ves tu día real, no el teórico',
-    ],
-  },
-  {
-    emoji: '🧠',
-    name: 'Psicología y terapia',
-    pain: 'Cobrar la sesión que el paciente olvidó es incómodo; perderla, insostenible.',
-    bullets: [
-      'Recordatorios que cuidan la constancia del tratamiento',
-      'Reagendar es una conversación, no una llamada incómoda',
-      'Tu horario protegido: sin dobles reservas ni huecos sorpresa',
-    ],
-  },
-  {
-    emoji: '🔬',
-    name: 'Laboratorios clínicos',
-    pain: 'Pacientes llamando todo el día para preguntar si ya están sus resultados.',
-    bullets: [
-      'Resultados enviados por WhatsApp y correo con un clic',
-      'Órdenes, captura y reportes con cédula del responsable',
-      'Recepción sin filas: el paciente llega con todo resuelto',
-    ],
-  },
-  {
-    emoji: '⛵',
-    name: 'Charters de yates y pesca',
-    pain: 'Una reserva sin anticipo que no llega al muelle te cuesta el día entero de la embarcación.',
-    bullets: [
-      'Anticipo por Stripe al reservar — la salida queda asegurada',
-      'Contesta a turistas a cualquier hora, en el momento en que planean su viaje',
-      'Cada capitán y embarcación con su propio calendario',
-    ],
-  },
-  {
-    emoji: '🎨',
-    name: 'Estudios de tatuaje',
-    pain: 'Una sesión de horas apartada sin anticipo, cancelada a última hora, es un día entero perdido.',
-    bullets: [
-      'Anticipo por Stripe al reservar — quien aparta, se compromete',
-      'Cada tatuador con su propia agenda y portafolio de precios',
-      'Contesta consultas a medianoche, cuando el cliente decide animarse',
-    ],
-  },
-]
+// FEATURES vive ahora en features-bento.tsx y SEGMENTS en segments-data.ts
 
 const FAQ = [
   { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
+  { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
   { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
@@ -368,82 +291,18 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" style={{ borderTop: `1px solid ${t.border}` }}>
-        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
-          <div data-section-head className="mb-14 sm:mb-20" style={{ opacity: 0 }}>
-            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Funciones</p>
-            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>Todo lo que necesitas.</h2>
-            <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Diseñado para cualquier negocio de citas. Sin configuraciones complicadas.</p>
-          </div>
-          <div data-features-grid className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {FEATURES.map(({ Icon, title, desc }) => (
-              <div
-                key={title}
-                data-feature
-                className="rounded-2xl p-6 sm:p-7 transition-colors duration-300"
-                style={{ opacity: 0, background: t.card, border: `1px solid ${t.border}` }}
-              >
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
-                  style={{ background: `${t.accent}14`, color: t.accent }}
-                >
-                  <Icon className="h-5 w-5" strokeWidth={2} />
-                </div>
-                <h3 className="font-semibold text-[15px] mb-2 leading-snug" style={{ color: t.text }}>{title}</h3>
-                <p className="text-[13.5px] leading-relaxed" style={{ color: t.muted }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Funciones — bento asimétrico, las celdas grandes muestran producto real */}
+      <FeaturesBento t={t} isDay={isDay} />
 
-      {/* Segmentos */}
-      <section id="segments" style={{ borderTop: `1px solid ${t.border}` }}>
-        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
-          <div data-section-head className="mb-14 sm:mb-20" style={{ opacity: 0 }}>
-            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Para tu negocio</p>
-            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>Hecho para tu giro.</h2>
-            <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Cada negocio pierde citas de forma distinta. Turno ataca el dolor exacto del tuyo.</p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {SEGMENTS.map(({ emoji, name, pain, bullets }) => (
-              <div
-                key={name}
-                data-feature
-                className="p-6 sm:p-7 flex flex-col items-center text-center"
-              >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-[30px] mb-4"
-                  style={{ background: t.card, border: `1px solid ${t.border}` }}
-                >
-                  {emoji}
-                </div>
-                <h3 className="font-semibold text-[15px] mb-2 leading-snug" style={{ color: t.text }}>{name}</h3>
-                <p className="text-[13.5px] leading-relaxed mb-4 italic" style={{ color: t.muted }}>{pain}</p>
-                <ul className="space-y-2 text-left">
-                  {bullets.map(b => (
-                    <li key={b} className="flex items-start gap-2">
-                      <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: t.accent }} />
-                      <span className="text-[13px] leading-snug" style={{ color: t.muted }}>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Cómo funciona — narrativa con scroll pineado en desktop */}
-      <HowItWorks t={t} isDay={isDay} />
+      {/* Segmentos — un solo panel por giro en vez de 7 columnas de bullets */}
+      <SegmentShowcase t={t} isDay={isDay} />
 
       {/* El sistema detrás del bot */}
       <section id="dashboard" style={{ borderTop: `1px solid ${t.border}` }}>
         <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
           <div data-section-head style={{ opacity: 0 }}>
-            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>El sistema detrás del bot</p>
-            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-5" style={{ color: t.text }}>No solo un chatbot. Tu negocio, ordenado.</h2>
+            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>No solo un bot</p>
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-5" style={{ color: t.text }}>Tu negocio, ordenado.</h2>
             <p className="text-[16px] leading-relaxed mb-6" style={{ color: t.muted }}>
               Cada cita que agenda el bot cae directo a tu panel. Ve tu agenda del día, tus ingresos y a tus clientes sin perseguir mensajes.
             </p>
@@ -465,6 +324,9 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Cómo funciona — narrativa con scroll pineado en desktop */}
+      <HowItWorks t={t} isDay={isDay} />
 
       {/* Pricing */}
       <section id="pricing" style={{ borderTop: `1px solid ${t.border}` }}>
