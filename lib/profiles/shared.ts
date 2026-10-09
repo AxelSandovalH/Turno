@@ -1,5 +1,13 @@
 import type { ProfileModule } from './types'
 
+/** Módulos para negocios de pedidos y delivery (sin agenda de citas). */
+export const ORDER_MODULES: readonly ProfileModule[] = [
+  { id: 'orders',        href: '/orders',        title: 'Pedidos' },
+  { id: 'menu',          href: '/menu',          title: 'Menú' },
+  { id: 'conversations', href: '/conversations', title: 'Conversaciones' },
+  { id: 'settings',      href: '/settings',      title: 'Configuración' },
+]
+
 /**
  * Módulos del dashboard para perfiles basados en citas (barbería, spa,
  * consultorios). title: null = el label lo resuelve el perfil (staff/patients).

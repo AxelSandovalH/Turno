@@ -11,6 +11,7 @@ export type BusinessType =
   | 'tattoo'
   | 'consulting'
   | 'tours'
+  | 'restaurant'
   | 'other'
 
 /**
@@ -37,6 +38,8 @@ export type Capability =
   | 'variable-pricing'
   /** Foto por servicio: se sube en Servicios y se muestra en la página pública de reservas */
   | 'service-photos'
+  /** Pedidos y delivery: menú, carrito público, tablero de pedidos y bot que toma pedidos */
+  | 'orders'
 
 /** Entrada del sidebar. El orden del array define el orden en pantalla. */
 export interface ProfileModule {

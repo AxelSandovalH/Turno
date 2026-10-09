@@ -7,7 +7,7 @@ import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
 import { PLANS, DEFAULT_PLAN, isPlanKey, type PlanKey } from '@/lib/plans'
 
-const PLAN_LIST = [PLANS.agenda, PLANS.asistente]
+const PLAN_LIST = [PLANS.agenda, PLANS.asistente, PLANS.pedidos]
 
 export function PaymentClient() {
   const [selected, setSelected] = useState<PlanKey>(DEFAULT_PLAN)

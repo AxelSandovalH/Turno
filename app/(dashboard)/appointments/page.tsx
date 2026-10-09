@@ -11,6 +11,7 @@ import { CalendarView } from './calendar-view'
 import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
 import { staffLabel as getStaffLabel } from '@/lib/business-type'
+import { hasCapability } from '@/lib/profiles/registry'
 import type { Appointment } from '@/types/database'
 
 interface Props {
@@ -23,6 +24,10 @@ export default async function AppointmentsPage({ searchParams }: Props) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // Negocios de pedidos y delivery no usan agenda: su pantalla principal es Pedidos
+  const { data: orgType } = await createServiceClient().from('organizations').select('business_type').eq('id', user.user_metadata?.organization_id).single()
+  if (orgType && !hasCapability(orgType.business_type, 'appointments')) redirect('/orders')
 
   const service = createServiceClient()
   const organizationId = user.user_metadata?.organization_id

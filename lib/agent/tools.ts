@@ -84,3 +84,46 @@ export const tools: Tool[] = [
     },
   },
 ]
+
+// Herramientas para negocios de pedidos y delivery (capacidad 'orders')
+export const orderTools: Tool[] = [
+  {
+    name: 'get_menu',
+    description: 'Obtiene el menú completo con categorías, platillos, precios, extras y disponibilidad, más las reglas de entrega (costo de envío, pedido mínimo, formas de pago). Llámala antes de mostrar o recomendar cualquier platillo y antes de armar un pedido.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+  {
+    name: 'create_order',
+    description: 'Registra el pedido del cliente. Llámala SOLO después de que el cliente confirmó explícitamente el resumen y el total. Los precios los calcula el sistema.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        customer_name: { type: 'string', description: 'Nombre del cliente' },
+        fulfillment: { type: 'string', enum: ['delivery', 'pickup'], description: 'delivery = a domicilio, pickup = pasa a recoger' },
+        address: { type: 'string', description: 'Dirección completa de entrega (obligatoria si es delivery)' },
+        payment_method: { type: 'string', enum: ['cash', 'transfer'], description: 'cash = efectivo al recibir, transfer = transferencia' },
+        notes: { type: 'string', description: 'Notas generales del pedido (opcional)' },
+        items: {
+          type: 'array',
+          description: 'Productos del pedido',
+          items: {
+            type: 'object',
+            properties: {
+              menu_item_id: { type: 'string', description: 'ID del platillo, tal cual lo devolvió get_menu' },
+              quantity: { type: 'number', description: 'Cantidad' },
+              extras: { type: 'array', items: { type: 'string' }, description: 'Nombres exactos de los extras elegidos (opcional)' },
+              notes: { type: 'string', description: 'Nota para ese platillo, ej. sin cebolla (opcional)' },
+            },
+            required: ['menu_item_id', 'quantity'],
+          },
+        },
+      },
+      required: ['customer_name', 'fulfillment', 'payment_method', 'items'],
+    },
+  },
+  {
+    name: 'get_order_status',
+    description: 'Consulta el estado de los pedidos recientes del cliente que escribe.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+]

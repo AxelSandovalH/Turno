@@ -4,6 +4,7 @@ import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
+import { createOrder, type OrderLineInput } from '@/lib/orders'
 
 const DEPOSIT_TIMEOUT_MINUTES = 20
 
@@ -15,12 +16,71 @@ interface Context {
   ownerWhatsapp: string
   ultramsg?: UltramsgCreds
   deposit?: { enabled: boolean; amount: number }
+  customerPhone?: string
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
   const db = createServiceClient()
 
   switch (toolName) {
+    case 'get_menu': {
+      const [{ data: org }, { data: categories }, { data: items }] = await Promise.all([
+        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info').eq('id', ctx.organizationId).single(),
+        db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
+        db.from('menu_items').select('id, category_id, name, description, price, extras, is_available').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
+      ])
+      return JSON.stringify({
+        accepting_orders: org?.order_accepting ?? true,
+        delivery: { enabled: org?.order_delivery_enabled ?? true, fee: Number(org?.order_delivery_fee) || 0 },
+        pickup_enabled: org?.order_pickup_enabled ?? true,
+        min_order: Number(org?.order_min_amount) || 0,
+        accepts_transfer: !!org?.order_payment_info?.trim(),
+        categories: (categories ?? []).map(c => ({
+          name: c.name,
+          items: (items ?? []).filter(i => i.category_id === c.id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available })),
+        })),
+        uncategorized: (items ?? []).filter(i => !i.category_id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available })),
+      })
+    }
+
+    case 'create_order': {
+      const raw = input as unknown as {
+        customer_name?: string; fulfillment?: string; address?: string; payment_method?: string; notes?: string; items?: OrderLineInput[]
+      }
+      const result = await createOrder({
+        organizationId: ctx.organizationId,
+        customerName: String(raw.customer_name ?? ''),
+        customerPhone: ctx.customerPhone ?? '',
+        fulfillment: raw.fulfillment === 'pickup' ? 'pickup' : 'delivery',
+        address: raw.address,
+        notes: raw.notes,
+        paymentMethod: raw.payment_method === 'transfer' ? 'transfer' : 'cash',
+        source: 'whatsapp',
+        items: Array.isArray(raw.items) ? raw.items : [],
+      })
+      if (!result.ok) return JSON.stringify({ error: result.error })
+      return JSON.stringify({
+        success: true,
+        order_number: result.order.order_number,
+        subtotal: result.order.subtotal,
+        delivery_fee: result.order.delivery_fee,
+        total: result.order.total,
+        transfer_info: result.paymentInfo,
+      })
+    }
+
+    case 'get_order_status': {
+      const phone = (ctx.customerPhone ?? '').replace(/\D/g, '')
+      const { data: orders } = await db
+        .from('orders')
+        .select('order_number, status, fulfillment, total, created_at')
+        .eq('organization_id', ctx.organizationId)
+        .eq('customer_phone', phone)
+        .order('created_at', { ascending: false })
+        .limit(3)
+      return JSON.stringify({ orders: orders ?? [] })
+    }
+
     case 'get_business_info': {
       const [{ data: services }, { data: staff }] = await Promise.all([
         db.from('services').select('id, name, duration_minutes, price').eq('organization_id', ctx.organizationId).eq('is_active', true),

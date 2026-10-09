@@ -1,6 +1,6 @@
 // Planes de suscripción. Fuente única para el checkout, /comprar, el webhook
 // y las pantallas — si cambia un precio, cambia aquí.
-export type PlanKey = 'agenda' | 'asistente'
+export type PlanKey = 'agenda' | 'asistente' | 'pedidos'
 
 export interface Plan {
   key: PlanKey
@@ -34,12 +34,23 @@ export const PLANS: Record<PlanKey, Plan> = {
     features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Conversaciones en tu panel', 'Soporte prioritario'],
     bot: true,
   },
+  // Negocios de comida: menú, link de pedidos, tablero y bot que toma pedidos.
+  // Precio provisional: se ajusta aquí y en nada más.
+  pedidos: {
+    key: 'pedidos',
+    name: 'Turno — Pedidos',
+    amount: 180000,
+    priceLabel: '$1,800',
+    description: 'Pedidos y delivery por WhatsApp y link de menú',
+    features: ['Menú con fotos, extras y notas', 'Link público de pedidos', 'Bot que toma pedidos por WhatsApp 24/7', 'Tablero de pedidos con avisos al cliente', 'Entrega a domicilio o para recoger'],
+    bot: true,
+  },
 }
 
 export const DEFAULT_PLAN: PlanKey = 'asistente'
 
 export function isPlanKey(v: unknown): v is PlanKey {
-  return v === 'agenda' || v === 'asistente'
+  return v === 'agenda' || v === 'asistente' || v === 'pedidos'
 }
 
 export function resolvePlan(key: unknown): Plan {

@@ -16,7 +16,7 @@ export interface Organization {
   id: string
   name: string
   slug: string
-  business_type: 'barbershop' | 'spa' | 'psychology' | 'dentistry' | 'physiotherapy' | 'laboratory' | 'other' | null
+  business_type: 'barbershop' | 'spa' | 'psychology' | 'dentistry' | 'physiotherapy' | 'laboratory' | 'charter' | 'tattoo' | 'consulting' | 'tours' | 'restaurant' | 'other' | null
   whatsapp_number: string
   phone: string | null
   email: string | null
@@ -38,6 +38,12 @@ export interface Organization {
   deposit_enabled: boolean
   deposit_amount: number
   whatsapp_bot_enabled: boolean
+  order_delivery_enabled: boolean
+  order_pickup_enabled: boolean
+  order_delivery_fee: number
+  order_min_amount: number
+  order_payment_info: string | null
+  order_accepting: boolean
   created_at: string
   updated_at: string
 }

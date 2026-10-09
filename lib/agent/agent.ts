@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { buildSystemPrompt } from './prompts'
-import { tools } from './tools'
+import { tools, orderTools } from './tools'
+import { hasCapability } from '@/lib/profiles/registry'
 import { handleTool } from './tool-handlers'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
@@ -20,7 +21,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount')
+    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount')
     .eq('id', organizationId)
     .single()
 
@@ -90,14 +91,16 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     ownerWhatsapp: org.whatsapp_number,
     ultramsg: { instance: org.ultramsg_instance, token: org.ultramsg_token },
     deposit: { enabled: org.deposit_enabled, amount: Number(org.deposit_amount ?? 0) },
+    customerPhone,
   }
+  const agentTools = hasCapability(org.business_type, 'orders') ? orderTools : tools
 
   // Agentic loop
   let response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
-    tools,
+    tools: agentTools,
     messages,
   })
 
@@ -120,7 +123,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
-      tools,
+      tools: agentTools,
       messages,
     })
   }

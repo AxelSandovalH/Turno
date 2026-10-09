@@ -7,6 +7,7 @@ import { Check, Copy, ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { BookingQr } from '@/components/dashboard/booking-qr'
+import { PLANS } from '@/lib/plans'
 import type { Organization } from '@/types/database'
 
 
@@ -62,12 +63,14 @@ export function SettingsForm({ organization }: Props) {
   // solo se mandan los campos que el usuario cambió respecto a esto — así una
   // pestaña abierta desde antes no pisa cambios hechos por fuera.
   const savedRef = useRef(form)
+  // Negocios de pedidos comparten su link de menú (/pedir) en lugar del de reservas (/book)
+  const publicPath = organization.business_type === 'restaurant' ? 'pedir' : 'book'
 
   const copyBookingLink = async () => {
     try {
-      await navigator.clipboard.writeText(`https://quickturno.app/book/${form.slug}`)
+      await navigator.clipboard.writeText(`https://quickturno.app/${publicPath}/${form.slug}`)
       setSlugCopied(true)
-      toast.success('Enlace de reservas copiado')
+      toast.success(publicPath === 'pedir' ? 'Enlace de pedidos copiado' : 'Enlace de reservas copiado')
       setTimeout(() => setSlugCopied(false), 2000)
     } catch {
       toast.error('No se pudo copiar el enlace')
@@ -196,10 +199,10 @@ export function SettingsForm({ organization }: Props) {
           <input style={s.input} value={form.name} onChange={e => set('name')(e.target.value)} />
         </div>
         <div>
-          <label style={s.label}>Slug de reserva pública</label>
+          <label style={s.label}>{publicPath === 'pedir' ? 'Slug del menú público' : 'Slug de reserva pública'}</label>
           <div style={{ display: 'flex', alignItems: 'center', background: 'var(--background)', border: `1px solid ${slugError ? '#ef4444' : 'var(--border)'}`, borderRadius: 8, overflow: 'hidden' }}>
             <span style={{ padding: '0 10px', fontSize: 12, color: 'var(--muted-foreground)', whiteSpace: 'nowrap', borderRight: '1px solid var(--border)', height: 38, display: 'flex', alignItems: 'center' }}>
-              quickturno.app/book/
+              quickturno.app/{publicPath}/
             </span>
             <input
               style={{ ...s.input, border: 'none', borderRadius: 0 }}
@@ -332,13 +335,13 @@ export function SettingsForm({ organization }: Props) {
           <div style={{ paddingTop: 4 }}>
             <button
               type="button"
-              onClick={() => window.open(`/book/${form.slug}`, '_blank')}
+              onClick={() => window.open(`/${publicPath}/${form.slug}`, '_blank')}
               style={{ ...s.btn, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted-foreground)' }}
             >
               <span style={{ fontSize: 13 }}>↗</span>
-              Ver mi página de reservas
+              {publicPath === 'pedir' ? 'Ver mi menú de pedidos' : 'Ver mi página de reservas'}
             </button>
-            <BookingQr slug={form.slug} businessName={form.name || organization.name} />
+            <BookingQr path={publicPath} slug={form.slug} businessName={form.name || organization.name} />
           </div>
         )}
       </div>
@@ -419,10 +422,10 @@ export function SettingsForm({ organization }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>
-              {organization.whatsapp_bot_enabled ? 'Agenda + Asistente' : 'Agenda'}
+              {organization.business_type === 'restaurant' ? 'Pedidos' : organization.whatsapp_bot_enabled ? 'Agenda + Asistente' : 'Agenda'}
             </p>
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
-              {organization.whatsapp_bot_enabled ? '$2,700' : '$1,500'} MXN / mes
+              {organization.business_type === 'restaurant' ? PLANS.pedidos.priceLabel : organization.whatsapp_bot_enabled ? PLANS.asistente.priceLabel : PLANS.agenda.priceLabel} MXN / mes
             </p>
           </div>
           {status === 'active' && (
