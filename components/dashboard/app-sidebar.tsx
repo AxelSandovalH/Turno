@@ -222,20 +222,17 @@ export function AppSidebar({ organization }: { organization: Organization }) {
           // Con logo propio: bloque grande arriba (alto fijo, ancho según la proporción
           // del logo) y debajo el nombre y el número
           <div className="flex flex-col gap-2.5">
-            <div className="h-16 self-start max-w-full rounded-lg overflow-hidden bg-white flex items-center justify-center">
+            <div className="h-24 self-start max-w-full rounded-xl overflow-hidden bg-white flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={organization.logo_url}
                 alt={organization.name}
-                className="h-full w-auto max-w-[200px] object-contain"
+                className="h-full w-auto max-w-[224px] object-contain"
               />
             </div>
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
                 {organization.name}
-              </p>
-              <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
-                {organization.whatsapp_number}
               </p>
             </div>
           </div>
@@ -247,9 +244,6 @@ export function AppSidebar({ organization }: { organization: Organization }) {
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
                 {organization.name}
-              </p>
-              <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
-                {organization.whatsapp_number}
               </p>
             </div>
           </div>
