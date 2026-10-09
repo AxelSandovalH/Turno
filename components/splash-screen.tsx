@@ -9,8 +9,8 @@ export function SplashScreen() {
   const [done, setDone] = useState(false)
 
   useLayoutEffect(() => {
-    if (sessionStorage.getItem('splash-done')) { setDone(true); return }
-
+    // Se muestra en cada carga completa (abrir o refrescar la página). Al cambiar de
+    // módulo no se repite porque este componente vive en el layout raíz y no se remonta.
     const el = ref.current
     if (!el) return
 
@@ -18,7 +18,6 @@ export function SplashScreen() {
 
     const tl = gsap.timeline({
       onComplete: () => {
-        sessionStorage.setItem('splash-done', '1')
         setDone(true)
       },
     })
