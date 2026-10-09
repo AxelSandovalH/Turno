@@ -218,30 +218,42 @@ export function AppSidebar({ organization }: { organization: Organization }) {
     <Sidebar>
       {/* Header */}
       <SidebarHeader className="px-4 py-4 border-b border-[var(--sidebar-border)] space-y-3">
-        <div className="flex items-center gap-3">
-          <div style={{ flexShrink: 0, color: 'var(--sidebar-foreground)' }}>
-            {organization.logo_url ? (
-              <div className="h-7 w-7 rounded-md overflow-hidden bg-white flex items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={organization.logo_url}
-                  alt={organization.name}
-                  className="h-full w-full object-contain"
-                />
-              </div>
-            ) : (
+        {organization.logo_url ? (
+          // Con logo propio: bloque grande arriba (alto fijo, ancho según la proporción
+          // del logo) y debajo el nombre y el número
+          <div className="flex flex-col gap-2.5">
+            <div className="h-16 self-start max-w-full rounded-lg overflow-hidden bg-white flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={organization.logo_url}
+                alt={organization.name}
+                className="h-full w-auto max-w-[200px] object-contain"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
+                {organization.name}
+              </p>
+              <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
+                {organization.whatsapp_number}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div style={{ flexShrink: 0, color: 'var(--sidebar-foreground)' }}>
               <TurnoLogo height={28} />
-            )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
+                {organization.name}
+              </p>
+              <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
+                {organization.whatsapp_number}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-[var(--sidebar-foreground)] truncate leading-tight">
-              {organization.name}
-            </p>
-            <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
-              {organization.whatsapp_number}
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Search */}
         <div className="relative">
