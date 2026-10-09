@@ -262,3 +262,25 @@
   50%      { transform: translateY(-6px); }
 }
 .animate-float-chip { animation: float-chip 3.6s ease-in-out infinite; }
+
+/* ── Landing: barrido circular al cambiar dark/light ──────────────────── */
+/* Usa la View Transitions API — document.startViewTransition() en
+   landing-page.tsx (toggleTheme). Si el navegador no la soporta, el cambio
+   de tema sigue funcionando instantáneo (ver el fallback en el JS). */
+::view-transition-group(root) {
+  animation-duration: 0.6s;
+}
+::view-transition-old(root) {
+  animation: none;
+}
+::view-transition-new(root) {
+  animation: theme-circle-reveal 0.6s ease-out forwards;
+}
+@keyframes theme-circle-reveal {
+  from {
+    clip-path: circle(0% at var(--theme-x, 50%) var(--theme-y, 50%));
+  }
+  to {
+    clip-path: circle(150% at var(--theme-x, 50%) var(--theme-y, 50%));
+  }
+}

@@ -1,8 +1,9 @@
 'use client'
 
 import { useLayoutEffect, useRef, useState, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import Link from 'next/link'
-import { Check } from 'lucide-react'
+import { Check, Sun, Moon } from 'lucide-react'
 import { FancyButton } from '@/components/ui/fancy-button'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spotlight } from '@/components/ui/spotlight'
@@ -70,6 +71,37 @@ const FAQ = [
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
+// ── Theme switch (nav) ────────────────────────────────────────────────────────
+// Ícono simple (no el switch grande sol/luna que ya usa el dashboard en
+// Configuración) — en una landing de conversión, el toggle de tema no debe
+// competir visualmente con el CTA; va después de él, con el mismo peso que
+// cualquier otro ícono utilitario del nav.
+function LandingThemeSwitch({ t, isDay, onToggle }: {
+  t: ReturnType<typeof tokens>
+  isDay: boolean
+  onToggle: (e: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-label={isDay ? 'Cambiar a modo noche' : 'Cambiar a modo día'}
+      title={isDay ? 'Modo noche' : 'Modo día'}
+      className="flex items-center justify-center rounded-full shrink-0 transition-colors duration-200"
+      style={{
+        width: 32,
+        height: 32,
+        color: hover ? t.text : t.muted,
+        background: hover ? `${t.accent}14` : 'transparent',
+      }}
+    >
+      {isDay ? <Moon size={16} strokeWidth={2} /> : <Sun size={16} strokeWidth={2} />}
+    </button>
+  )
+}
 // ── Segment picker (hero) ─────────────────────────────────────────────────────
 // Chips de giro que controlan qué conversación muestra el mockup de WhatsApp —
 // mismo orden/emoji que SEGMENTS, así el índice apunta directo a SCENARIOS.
@@ -109,6 +141,8 @@ function SegmentPicker({ t, active, onSelect }: {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+const THEME_KEY = 'turno-landing-theme'
+
 export function LandingPage() {
   const root = useRef<HTMLDivElement>(null)
   const [isDay, setIsDay] = useState(false) // dark default for SSR
@@ -116,8 +150,17 @@ export function LandingPage() {
   const [activeSegment, setActiveSegment] = useState(0)
 
   useEffect(() => {
+    // Por defecto SIEMPRE se adapta a la hora actual. Si el visitante toca el
+    // switch, la elección manual dura solo esta sesión (sessionStorage, no
+    // localStorage) — en su próxima visita vuelve a decidir por horario.
+    localStorage.removeItem(THEME_KEY) // limpia la versión anterior (persistía para siempre)
+    const stored = sessionStorage.getItem(THEME_KEY)
+    if (stored === 'day' || stored === 'night') {
+      setIsDay(stored === 'day')
+      return
+    }
     setIsDay(getIsDay())
-    // Re-check at the next hour boundary
+    // Re-check at the next hour boundary (solo mientras no haya elección manual)
     const now   = new Date()
     const msToNextHour = (60 - now.getMinutes()) * 60_000 - now.getSeconds() * 1000
     const t = setTimeout(() => {
@@ -125,6 +168,24 @@ export function LandingPage() {
     }, msToNextHour)
     return () => clearTimeout(t)
   }, [])
+
+  function toggleTheme(e: React.MouseEvent<HTMLButtonElement>) {
+    const next = !isDay
+    const apply = () => {
+      setIsDay(next)
+      sessionStorage.setItem(THEME_KEY, next ? 'day' : 'night')
+    }
+
+    // Barrido circular desde el botón con la View Transitions API — si el
+    // navegador no la soporta (Firefox, Safari viejo), cae a un cambio
+    // instantáneo sin romper nada.
+    const supportsViewTransition = typeof document !== 'undefined' && typeof (document as any).startViewTransition === 'function'
+    if (!supportsViewTransition) { apply(); return }
+
+    document.documentElement.style.setProperty('--theme-x', `${e.clientX}px`)
+    document.documentElement.style.setProperty('--theme-y', `${e.clientY}px`)
+    ;(document as any).startViewTransition(() => flushSync(apply))
+  }
 
   const t = tokens(isDay)
 
@@ -201,7 +262,7 @@ export function LandingPage() {
             <a href="#pricing"   className="transition-colors hover:opacity-80">Precio</a>
             <a href="#faq"       className="transition-colors hover:opacity-80">FAQ</a>
           </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <Link href="/login" className="text-[13px] transition-colors hover:opacity-80" style={{ color: t.muted }}>Entrar</Link>
             <Link href="/register">
               <button
@@ -211,6 +272,7 @@ export function LandingPage() {
                 Crear cuenta
               </button>
             </Link>
+            <LandingThemeSwitch t={t} isDay={isDay} onToggle={toggleTheme} />
           </div>
         </div>
       </header>
