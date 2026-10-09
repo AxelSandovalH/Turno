@@ -10,7 +10,7 @@ interface Category { id: string; name: string }
 interface Org {
   slug: string; name: string; address: string | null; logo_url: string | null; accent: string
   deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: number; minAmount: number
-  hasTransferInfo: boolean; accepting: boolean; cardEnabled: boolean
+  accepting: boolean
 }
 type Returned = { paid: true; number: number } | { paid: false } | null
 interface CartLine { key: string; item: Item; quantity: number; extras: string[]; notes: string }
@@ -32,10 +32,9 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
   const [national, setNational] = useState('')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
-  const [payment, setPayment] = useState<'cash' | 'transfer' | 'card'>(org.cardEnabled ? 'card' : 'cash')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [done, setDone] = useState<{ number: number; total: number | null; paymentInfo: string | null } | null>(returned?.paid ? { number: returned.number, total: null, paymentInfo: null } : null)
+  const [done] = useState<{ number: number } | null>(returned?.paid ? { number: returned.number } : null)
 
   const accent = org.accent
   const subtotal = cart.reduce((s, l) => s + lineUnit(l) * l.quantity, 0)
@@ -92,15 +91,13 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
           fulfillment,
           address,
           notes,
-          payment_method: payment,
           items: cart.map(l => ({ menu_item_id: l.item.id, quantity: l.quantity, extras: l.extras, notes: l.notes })),
         }),
       })
       const data = await res.json().catch(() => null)
       if (!res.ok || !data?.ok) { setError(data?.error ?? 'No se pudo enviar el pedido. Intenta de nuevo.'); return }
-      if (data.checkoutUrl) { window.location.href = data.checkoutUrl; return }
-      setDone({ number: data.orderNumber, total: data.total, paymentInfo: data.paymentInfo })
-      setCart([]); setView('done')
+      if (!data.checkoutUrl) { setError('No se pudo iniciar el pago. Intenta de nuevo.'); return }
+      window.location.href = data.checkoutUrl // pago seguro en Stripe
     } catch {
       setError('No se pudo conectar. Revisa tu internet e intenta de nuevo.')
     } finally {
@@ -140,14 +137,8 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             <Check className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-semibold">¡Pedido recibido!</h1>
-          <p className="text-zinc-400 mt-2">Pedido #{done.number}{done.total !== null ? ` · ${money(done.total)}` : ' · pago recibido'}</p>
+          <p className="text-zinc-400 mt-2">Pedido #{done.number} · pago recibido</p>
           <p className="text-sm text-zinc-500 mt-4">Te enviamos la confirmación por WhatsApp y te avisaremos cuando avance tu pedido.</p>
-          {done.paymentInfo && (
-            <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left">
-              <p className="text-xs text-zinc-500 mb-1">Datos para tu transferencia</p>
-              <p className="text-sm whitespace-pre-wrap">{done.paymentInfo}</p>
-            </div>
-          )}
           <button onClick={() => setView('menu')} className="mt-8 text-sm text-zinc-400 underline">Hacer otro pedido</button>
         </div>
       </div>
@@ -208,18 +199,7 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             <textarea className={input} rows={2} placeholder="Notas para el pedido (opcional)" value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm text-zinc-400">Forma de pago</p>
-            <div className="grid grid-cols-2 gap-2">
-              {([['card', 'Tarjeta en línea', org.cardEnabled], ['cash', 'Efectivo al recibir', true], ['transfer', 'Transferencia', org.hasTransferInfo]] as const).filter(([, , on]) => on).map(([k, label, on]) => (
-                <button key={k} disabled={!on} onClick={() => setPayment(k)}
-                  className={`rounded-xl border px-3 py-3 text-sm font-medium disabled:opacity-30 ${payment === k ? 'text-white' : 'border-zinc-800 text-zinc-400'}`}
-                  style={payment === k ? { borderColor: accent, background: `${accent}22` } : undefined}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="text-xs text-zinc-500">El pago se hace en línea con tarjeta, de forma segura con Stripe. Tu pedido se envía al negocio al confirmarse el pago.</p>
 
           <div className="rounded-xl border border-zinc-800 p-4 space-y-1.5 text-sm">
             <div className="flex justify-between text-zinc-400"><span>Subtotal</span><span>{money(subtotal)}</span></div>
@@ -233,7 +213,7 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
         <div className="fixed bottom-0 inset-x-0 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur p-4">
           <button onClick={submit} disabled={sending || cart.length === 0 || belowMin}
             className="max-w-lg mx-auto block w-full rounded-xl py-4 font-semibold text-white disabled:opacity-40" style={{ background: accent }}>
-            {sending ? 'Un momento…' : payment === 'card' ? `Pagar con tarjeta · ${money(total)}` : `Enviar pedido · ${money(total)}`}
+            {sending ? 'Un momento…' : `Pagar con tarjeta · ${money(total)}`}
           </button>
         </div>
       </div>

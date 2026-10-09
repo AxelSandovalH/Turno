@@ -21,13 +21,12 @@ export interface CreateOrderInput {
   fulfillment: 'delivery' | 'pickup'
   address?: string
   notes?: string
-  paymentMethod: 'cash' | 'transfer' | 'card'
   source: 'web' | 'whatsapp'
   items: OrderLineInput[]
 }
 
 export type CreateOrderResult =
-  | { ok: true; order: { id: string; order_number: number; total: number; subtotal: number; delivery_fee: number }; paymentInfo: string | null; checkoutUrl: string | null }
+  | { ok: true; order: { id: string; order_number: number; total: number; subtotal: number; delivery_fee: number }; checkoutUrl: string }
   | { ok: false; error: string; status: number }
 
 export const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
@@ -61,7 +60,6 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   if (input.fulfillment === 'delivery' && !org.order_delivery_enabled) return fail('Este negocio no tiene entrega a domicilio')
   if (input.fulfillment === 'pickup' && !org.order_pickup_enabled) return fail('Este negocio no tiene pedidos para recoger')
-  if (input.paymentMethod === 'card' && !org.order_card_enabled) return fail('Este negocio no acepta pago con tarjeta')
   const address = input.address?.trim() ?? ''
   if (input.fulfillment === 'delivery' && address.length < 6) return fail('Escribe tu dirección de entrega completa')
 
@@ -126,7 +124,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       subtotal,
       delivery_fee: deliveryFee,
       total,
-      payment_method: input.paymentMethod,
+      payment_method: 'card',
       source: input.source,
     })
     .select('id, order_number')
@@ -143,55 +141,43 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     return fail('No se pudo registrar el pedido. Intenta de nuevo.', 500)
   }
 
-  // Tarjeta: el pedido queda sin pagar y oculto para el negocio. Se avisa a todos
-  // (negocio y cliente) hasta que Stripe confirme el pago — ver markOrderPaid.
-  if (input.paymentMethod === 'card') {
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
-      const session = await stripe.checkout.sessions.create({
-        mode: 'payment',
-        line_items: [
-          ...lines.map(l => ({
-            quantity: l.quantity,
-            price_data: {
-              currency: 'mxn',
-              unit_amount: Math.round(l.unit_price * 100),
-              product_data: {
-                name: l.extras.length ? `${l.name} (${l.extras.map(e => e.name).join(', ')})` : l.name,
-              },
+  // El pago es siempre con tarjeta (Stripe). El pedido queda sin pagar y oculto para
+  // el negocio, y no se avisa a nadie hasta que Stripe confirme — ver markOrderPaid.
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        ...lines.map(l => ({
+          quantity: l.quantity,
+          price_data: {
+            currency: 'mxn',
+            unit_amount: Math.round(l.unit_price * 100),
+            product_data: {
+              name: l.extras.length ? `${l.name} (${l.extras.map(e => e.name).join(', ')})` : l.name,
             },
-          })),
-          ...(deliveryFee > 0 ? [{
-            quantity: 1,
-            price_data: { currency: 'mxn', unit_amount: Math.round(deliveryFee * 100), product_data: { name: 'Envío a domicilio' } },
-          }] : []),
-        ],
-        success_url: `${baseUrl}/pedir/${org.slug}?pago=ok&pedido=${order.order_number}`,
-        cancel_url: `${baseUrl}/pedir/${org.slug}?pago=cancelado`,
-        metadata: { type: 'order', order_id: order.id, organization_id: org.id },
-        payment_intent_data: { description: `Pedido #${order.order_number} — ${org.name}`, metadata: { order_id: order.id } },
-      })
-      await db.from('orders').update({ stripe_checkout_session_id: session.id }).eq('id', order.id)
-      return {
-        ok: true,
-        order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee },
-        paymentInfo: null,
-        checkoutUrl: session.url,
-      }
-    } catch (err) {
-      console.error('[orders] stripe checkout failed', err)
-      await db.from('orders').delete().eq('id', order.id)
-      return fail('No se pudo iniciar el pago con tarjeta. Intenta de nuevo o elige otra forma de pago.', 502)
+          },
+        })),
+        ...(deliveryFee > 0 ? [{
+          quantity: 1,
+          price_data: { currency: 'mxn', unit_amount: Math.round(deliveryFee * 100), product_data: { name: 'Envío a domicilio' } },
+        }] : []),
+      ],
+      success_url: `${baseUrl}/pedir/${org.slug}?pago=ok&pedido=${order.order_number}`,
+      cancel_url: `${baseUrl}/pedir/${org.slug}?pago=cancelado`,
+      metadata: { type: 'order', order_id: order.id, organization_id: org.id },
+      payment_intent_data: { description: `Pedido #${order.order_number} — ${org.name}`, metadata: { order_id: order.id } },
+    })
+    await db.from('orders').update({ stripe_checkout_session_id: session.id }).eq('id', order.id)
+    return {
+      ok: true,
+      order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee },
+      checkoutUrl: session.url!,
     }
-  }
-
-  await notifyNewOrder(order.id, { skipCustomer: input.source === 'whatsapp' })
-
-  return {
-    ok: true,
-    order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee },
-    paymentInfo: input.paymentMethod === 'transfer' ? org.order_payment_info ?? null : null,
-    checkoutUrl: null,
+  } catch (err) {
+    console.error('[orders] stripe checkout failed', err)
+    await db.from('orders').delete().eq('id', order.id)
+    return fail('No se pudo iniciar el pago con tarjeta. Intenta de nuevo en un momento.', 502)
   }
 }
 

@@ -94,14 +94,13 @@ export const orderTools: Tool[] = [
   },
   {
     name: 'create_order',
-    description: 'Registra el pedido del cliente. Llámala SOLO después de que el cliente confirmó explícitamente el resumen y el total. Los precios los calcula el sistema.',
+    description: 'Registra el pedido del cliente. Llámala SOLO después de que el cliente confirmó explícitamente el resumen y el total. Los precios los calcula el sistema. El pago es siempre con tarjeta: devuelve un payment_link que debes compartir con el cliente.',
     input_schema: {
       type: 'object' as const,
       properties: {
         customer_name: { type: 'string', description: 'Nombre del cliente' },
         fulfillment: { type: 'string', enum: ['delivery', 'pickup'], description: 'delivery = a domicilio, pickup = pasa a recoger' },
         address: { type: 'string', description: 'Dirección completa de entrega (obligatoria si es delivery)' },
-        payment_method: { type: 'string', enum: ['cash', 'transfer', 'card'], description: 'cash = efectivo al recibir, transfer = transferencia, card = tarjeta en línea (devuelve un link de pago)' },
         notes: { type: 'string', description: 'Notas generales del pedido (opcional)' },
         items: {
           type: 'array',
@@ -118,7 +117,7 @@ export const orderTools: Tool[] = [
           },
         },
       },
-      required: ['customer_name', 'fulfillment', 'payment_method', 'items'],
+      required: ['customer_name', 'fulfillment', 'items'],
     },
   },
   {

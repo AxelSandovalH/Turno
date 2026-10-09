@@ -18,10 +18,9 @@ export async function POST(req: Request) {
     fulfillment: body.fulfillment === 'pickup' ? 'pickup' : 'delivery',
     address: body.address ? String(body.address) : undefined,
     notes: body.notes ? String(body.notes) : undefined,
-    paymentMethod: body.payment_method === 'transfer' ? 'transfer' : body.payment_method === 'card' ? 'card' : 'cash',
     source: 'web',
     items: Array.isArray(body.items) ? body.items : [],
   })
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
-  return NextResponse.json({ ok: true, orderNumber: result.order.order_number, total: result.order.total, paymentInfo: result.paymentInfo, checkoutUrl: result.checkoutUrl })
+  return NextResponse.json({ ok: true, orderNumber: result.order.order_number, total: result.order.total, checkoutUrl: result.checkoutUrl })
 }

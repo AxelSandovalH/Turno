@@ -29,12 +29,10 @@ export default async function MenuPage() {
         orderUrl={`${baseUrl}/pedir/${organization.slug}`}
         settings={{
           accepting: organization.order_accepting,
-          cardEnabled: organization.order_card_enabled,
           deliveryEnabled: organization.order_delivery_enabled,
           pickupEnabled: organization.order_pickup_enabled,
           deliveryFee: String(Number(organization.order_delivery_fee) || 0),
           minAmount: String(Number(organization.order_min_amount) || 0),
-          paymentInfo: organization.order_payment_info ?? '',
         }}
         categories={categories ?? []}
         items={(items ?? []).map(i => ({ ...i, price: Number(i.price), extras: Array.isArray(i.extras) ? i.extras : [] }))}

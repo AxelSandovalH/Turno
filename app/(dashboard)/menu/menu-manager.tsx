@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 interface Extra { name: string; price: number }
 interface Category { id: string; name: string }
 interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean }
-interface Settings { accepting: boolean; cardEnabled: boolean; deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: string; minAmount: string; paymentInfo: string }
+interface Settings { accepting: boolean; deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: string; minAmount: string }
 
 const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true }
 const money = (n: number) => `$${n.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`
@@ -37,12 +37,10 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
     setSavingSettings(true)
     const { error } = await supabase.from('organizations').update({
       order_accepting: settings.accepting,
-      order_card_enabled: settings.cardEnabled,
       order_delivery_enabled: settings.deliveryEnabled,
       order_pickup_enabled: settings.pickupEnabled,
       order_delivery_fee: Math.max(0, parseFloat(settings.deliveryFee) || 0),
       order_min_amount: Math.max(0, parseFloat(settings.minAmount) || 0),
-      order_payment_info: settings.paymentInfo.trim() || null,
     }).eq('id', organizationId)
     setSavingSettings(false)
     if (error) return toast.error(error.message)
@@ -174,13 +172,12 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
       {/* Entrega y pago */}
       <Card>
         <CardContent className="pt-4 pb-4 space-y-4">
-          <p className="text-sm font-semibold">Entrega y pago</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <p className="text-sm font-semibold">Entrega</p>
+          <div className="grid gap-3 sm:grid-cols-3">
             {([
               ['accepting', 'Recibiendo pedidos'],
               ['deliveryEnabled', 'Entrega a domicilio'],
               ['pickupEnabled', 'Pedidos para recoger'],
-              ['cardEnabled', 'Cobrar con tarjeta en línea'],
             ] as const).map(([key, label]) => (
               <label key={key} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-sm">
                 {label}
@@ -198,10 +195,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
               <Input type="number" min="0" step="1" value={settings.minAmount} onChange={e => setSettings(p => ({ ...p, minAmount: e.target.value }))} />
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Datos para transferencia (opcional)</Label>
-            <Textarea rows={2} placeholder="Banco, CLABE y nombre del titular. Si lo dejas vacío, no se ofrece transferencia." value={settings.paymentInfo} onChange={e => setSettings(p => ({ ...p, paymentInfo: e.target.value }))} />
-          </div>
+          <p className="text-xs text-muted-foreground">Los pedidos se cobran en línea con tarjeta (Stripe). Si cancelas un pedido ya pagado, se reembolsa solo.</p>
           <Button onClick={saveSettings} disabled={savingSettings}>{savingSettings ? 'Guardando...' : 'Guardar configuración'}</Button>
         </CardContent>
       </Card>
