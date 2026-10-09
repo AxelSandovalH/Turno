@@ -34,12 +34,12 @@ export type CreateOrderResult =
 
 export const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 
-const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+export const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
 
 const STOP = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'un', 'una', 'al'])
 
 /** Busca un platillo por nombre: exacto primero, luego uno que contenga o esté contenido (si es único). */
-function findByName<T extends { name: string }>(menu: T[], raw: string): T | null {
+export function findByName<T extends { name: string }>(menu: T[], raw: string): T | null {
   const q = norm(raw)
   if (!q) return null
   const exact = menu.filter(m => norm(m.name) === q)

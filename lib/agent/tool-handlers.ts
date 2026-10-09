@@ -1,12 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendMessage, type UltramsgCreds } from '@/lib/ultramsg'
+import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
-import { createOrder, type OrderLineInput } from '@/lib/orders'
+import { createOrder, findByName, norm, money, type OrderLineInput } from '@/lib/orders'
 
 const DEPOSIT_TIMEOUT_MINUTES = 20
+const MAX_MENU_PHOTOS = 6
 
 interface Context {
   organizationId: string
@@ -39,6 +40,51 @@ export async function handleTool(toolName: string, input: Record<string, string>
           items: (items ?? []).filter(i => i.category_id === c.id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available })),
         })),
         uncategorized: (items ?? []).filter(i => !i.category_id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available })),
+      })
+    }
+
+    case 'send_menu_photos': {
+      const raw = input as unknown as { category?: string; names?: string[] }
+      const [{ data: categories }, { data: items }] = await Promise.all([
+        db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId),
+        db.from('menu_items').select('id, category_id, name, description, price, image_url, is_available').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
+      ])
+      const menu = items ?? []
+
+      // Platillos pedidos por nombre, o toda una categoría
+      let picked: typeof menu = []
+      if (Array.isArray(raw.names) && raw.names.length) {
+        for (const nm of raw.names) {
+          const found = findByName(menu, nm)
+          if (found && !picked.includes(found)) picked.push(found)
+        }
+      } else if (raw.category) {
+        const cat = (categories ?? []).find(c => norm(c.name) === norm(raw.category!)) ?? (categories ?? []).find(c => norm(c.name).includes(norm(raw.category!)) || norm(raw.category!).includes(norm(c.name)))
+        if (cat) picked = menu.filter(i => i.category_id === cat.id)
+      }
+      picked = picked.filter(i => i.is_available)
+
+      const withPhoto = picked.filter(i => i.image_url).slice(0, MAX_MENU_PHOTOS)
+      const withoutPhoto = picked.filter(i => !i.image_url).map(i => i.name)
+      if (!ctx.customerPhone) return JSON.stringify({ error: 'No hay teléfono del cliente' })
+
+      // Se envían en orden y se esperan: Vercel no debe cortar la función a medias
+      let sent = 0
+      for (const it of withPhoto) {
+        const caption = `${it.name} - ${money(Number(it.price))}${it.description ? `\n${it.description}` : ''}`
+        try {
+          const res = await sendImage(ctx.customerPhone, it.image_url!, caption, ctx.ultramsg)
+          if (res && !res.error) sent++
+          else console.error('[agent] sendImage falló:', JSON.stringify(res).slice(0, 200))
+        } catch (err) {
+          console.error('[agent] sendImage ERROR:', err)
+        }
+      }
+      return JSON.stringify({
+        photos_sent: sent,
+        names_sent: withPhoto.map(i => i.name),
+        no_photo: withoutPhoto,
+        truncated: picked.filter(i => i.image_url).length > MAX_MENU_PHOTOS,
       })
     }
 

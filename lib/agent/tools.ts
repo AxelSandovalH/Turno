@@ -93,6 +93,18 @@ export const orderTools: Tool[] = [
     input_schema: { type: 'object' as const, properties: {}, required: [] },
   },
   {
+    name: 'send_menu_photos',
+    description: 'Envía por WhatsApp las fotos de los platillos al cliente, cada una con su nombre y precio. Úsala cada vez que le muestres o recomiendes platillos de una categoría o por nombre. Se envían como máximo 6 fotos por llamada.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: { type: 'string', description: 'Nombre de la categoría cuyas fotos enviar (ej. Bowls). Úsalo cuando el cliente pide ver una categoría.' },
+        names: { type: 'array', items: { type: 'string' }, description: 'Nombres de platillos específicos. Úsalo cuando el cliente pregunta por platillos concretos. Tiene prioridad sobre category.' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'create_order',
     description: 'Registra el pedido del cliente. Llámala SOLO después de que el cliente confirmó explícitamente el resumen y el total. Los precios los calcula el sistema. El pago es siempre con tarjeta: devuelve un payment_link que debes compartir con el cliente.',
     input_schema: {

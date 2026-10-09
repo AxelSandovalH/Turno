@@ -24,3 +24,24 @@ export async function sendMessage(to: string, body: string, creds?: UltramsgCred
   })
   return res.json()
 }
+
+/**
+ * Envía una imagen por WhatsApp (UltraMsg). `image` es la URL pública de la foto;
+ * `caption` es el texto que va debajo.
+ */
+export async function sendImage(to: string, image: string, caption: string, creds?: UltramsgCreds) {
+  const instance = creds?.instance || process.env.ULTRAMSG_INSTANCE
+  const token = creds?.token || process.env.ULTRAMSG_TOKEN
+
+  if (!instance || !token) {
+    console.error('[ultramsg] missing credentials — image not sent to', to)
+    return { error: 'missing_credentials' }
+  }
+
+  const res = await fetch(`https://api.ultramsg.com/${instance}/messages/image`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, to, image, caption }),
+  })
+  return res.json()
+}
