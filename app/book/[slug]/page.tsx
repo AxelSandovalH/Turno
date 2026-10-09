@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isMedicalVertical, staffLabel } from '@/lib/business-type'
 import { hasCapability } from '@/lib/profiles/registry'
@@ -25,6 +25,8 @@ export default async function BookingPage({ params }: Props) {
     .single()
 
   if (!org || !org.is_active) notFound()
+  // Negocios de pedidos no tienen agenda: su link público es el menú
+  if (hasCapability(org.business_type, 'orders')) redirect(`/pedir/${org.slug}`)
 
   const [{ data: servicesRaw }, { data: staff }] = await Promise.all([
     db.from('services')
