@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { BookingQr } from '@/components/dashboard/booking-qr'
 import { PLANS } from '@/lib/plans'
+import { hasCapability } from '@/lib/profiles/registry'
 import type { Organization } from '@/types/database'
 
 
@@ -64,6 +65,8 @@ export function SettingsForm({ organization }: Props) {
   // pestaña abierta desde antes no pisa cambios hechos por fuera.
   const savedRef = useRef(form)
   // Negocios de pedidos comparten su link de menú (/pedir) en lugar del de reservas (/book)
+  // El anticipo por Stripe es de citas: los negocios de pedidos cobran cada pedido con tarjeta
+  const hasDeposits = hasCapability(organization.business_type, 'deposits')
   const publicPath = organization.business_type === 'restaurant' ? 'pedir' : 'book'
 
   const copyBookingLink = async () => {
@@ -376,45 +379,47 @@ export function SettingsForm({ organization }: Props) {
       )}
 
       {/* Anticipos */}
-      <div style={s.section}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-          <div>
-            <p style={s.sectionTitle}>Anticipo por Stripe</p>
-            <p style={s.sectionDesc}>{organization.whatsapp_bot_enabled ? 'El bot pide un pago para confirmar cada cita agendada por WhatsApp' : 'Se pide un pago para confirmar cada cita agendada desde tu página de reservas'}</p>
+      {hasDeposits && (
+        <div style={s.section}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <p style={s.sectionTitle}>Anticipo por Stripe</p>
+              <p style={s.sectionDesc}>{organization.whatsapp_bot_enabled ? 'El bot pide un pago para confirmar cada cita agendada por WhatsApp' : 'Se pide un pago para confirmar cada cita agendada desde tu página de reservas'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm(p => ({ ...p, deposit_enabled: !p.deposit_enabled }))}
+              style={{
+                flexShrink: 0, width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer',
+                background: form.deposit_enabled ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background .15s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: form.deposit_enabled ? 20 : 2,
+                width: 18, height: 18, borderRadius: 99, background: '#fff', transition: 'left .15s',
+              }} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setForm(p => ({ ...p, deposit_enabled: !p.deposit_enabled }))}
-            style={{
-              flexShrink: 0, width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer',
-              background: form.deposit_enabled ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background .15s',
-            }}
-          >
-            <span style={{
-              position: 'absolute', top: 2, left: form.deposit_enabled ? 20 : 2,
-              width: 18, height: 18, borderRadius: 99, background: '#fff', transition: 'left .15s',
-            }} />
-          </button>
-        </div>
 
-        {form.deposit_enabled && (
-          <div>
-            <label style={s.label}>Monto del anticipo (MXN)</label>
-            <input
-              style={s.input}
-              type="number"
-              min="1"
-              step="1"
-              placeholder="100"
-              value={form.deposit_amount}
-              onChange={e => setForm(p => ({ ...p, deposit_amount: e.target.value }))}
-            />
-            <p style={s.hint}>
-              El cliente recibe un link de pago por WhatsApp al agendar. Si no paga en 20 minutos, el horario se libera automáticamente.
-            </p>
-          </div>
-        )}
-      </div>
+          {form.deposit_enabled && (
+            <div>
+              <label style={s.label}>Monto del anticipo (MXN)</label>
+              <input
+                style={s.input}
+                type="number"
+                min="1"
+                step="1"
+                placeholder="100"
+                value={form.deposit_amount}
+                onChange={e => setForm(p => ({ ...p, deposit_amount: e.target.value }))}
+              />
+              <p style={s.hint}>
+                El cliente recibe un link de pago por WhatsApp al agendar. Si no paga en 20 minutos, el horario se libera automáticamente.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Plan */}
       <div style={s.section}>
