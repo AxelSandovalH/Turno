@@ -153,6 +153,44 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
 
   return (
     <>
+      {/* Platillos */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Platillos</h2>
+        <Button onClick={() => openCreate()}><Plus className="h-4 w-4 mr-2" /> Agregar platillo</Button>
+      </div>
+
+      {items.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Aún no hay platillos. Agrega el primero.</CardContent></Card>
+      ) : groups.filter(g => g.items.length).map(g => (
+        <div key={g.id || 'none'} className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">{g.name}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {g.items.map(i => (
+              <Card key={i.id} className={!i.is_available ? 'opacity-60' : ''}>
+                <CardContent className="pt-3 pb-3 flex items-start gap-3">
+                  {i.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={i.image_url} alt={i.name} className="h-24 w-24 rounded-xl object-cover shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium">{i.name}</p>
+                    <p className="text-sm">{money(i.price)}{i.extras.length > 0 && <span className="text-xs text-muted-foreground"> · {i.extras.length} extra(s)</span>}</p>
+                    <label className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
+                      <Switch size="sm" checked={i.is_available} onCheckedChange={() => toggleAvailable(i)} />
+                      {i.is_available ? 'Disponible' : 'Agotado'}
+                    </label>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" aria-label="Eliminar" className="text-destructive hover:text-destructive" onClick={() => deleteItem(i)}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+
       {/* Link público */}
       <Card>
         <CardContent className="pt-4 pb-4 flex flex-wrap items-center gap-3">
@@ -219,44 +257,6 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
           </div>
         </CardContent>
       </Card>
-
-      {/* Platillos */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Platillos</h2>
-        <Button onClick={() => openCreate()}><Plus className="h-4 w-4 mr-2" /> Agregar platillo</Button>
-      </div>
-
-      {items.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Aún no hay platillos. Agrega el primero.</CardContent></Card>
-      ) : groups.filter(g => g.items.length).map(g => (
-        <div key={g.id || 'none'} className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{g.name}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {g.items.map(i => (
-              <Card key={i.id} className={!i.is_available ? 'opacity-60' : ''}>
-                <CardContent className="pt-3 pb-3 flex items-start gap-3">
-                  {i.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={i.image_url} alt={i.name} className="h-16 w-16 rounded-lg object-cover shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{i.name}</p>
-                    <p className="text-sm">{money(i.price)}{i.extras.length > 0 && <span className="text-xs text-muted-foreground"> · {i.extras.length} extra(s)</span>}</p>
-                    <label className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                      <Switch size="sm" checked={i.is_available} onCheckedChange={() => toggleAvailable(i)} />
-                      {i.is_available ? 'Disponible' : 'Agotado'}
-                    </label>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" aria-label="Eliminar" className="text-destructive hover:text-destructive" onClick={() => deleteItem(i)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      ))}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
