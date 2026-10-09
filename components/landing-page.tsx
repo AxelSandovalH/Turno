@@ -320,7 +320,7 @@ export function LandingPage() {
               ))}
             </ul>
           </div>
-          <div data-feature className="flex justify-center" style={{ opacity: 0 }}>
+          <div data-feature className="flex justify-center min-w-0" style={{ opacity: 0 }}>
             <DashboardMockup isDay={isDay} />
           </div>
         </div>
