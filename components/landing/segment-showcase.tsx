@@ -144,10 +144,10 @@ export function SegmentShowcase({ t, isDay }: Props) {
           <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Pasa el cursor por tu giro — o tócalo si estás en el teléfono.</p>
         </div>
 
-        {/* Cluster de íconos flotantes — en móvil tira horizontal (7 burbujas
-            apiladas en wrap ocupaban demasiado alto antes del contenido) */}
+        {/* Cluster de íconos flotantes — wrap en todos los tamaños para que
+            las 7 burbujas se vean sin necesitar scroll lateral en móvil */}
         <div
-          className="flex flex-nowrap overflow-x-auto sm:flex-wrap sm:justify-center gap-x-5 gap-y-6 mb-12 sm:mb-16 -mx-5 px-5 sm:mx-0 sm:px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex flex-wrap justify-center gap-x-4 gap-y-6 mb-12 sm:mb-16 px-2 sm:px-4 py-2"
           onMouseLeave={() => setHovered(null)}
         >
           {SEGMENTS.map((s, i) => (
