@@ -55,13 +55,14 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
 
   if (!conversation) return 'Error interno. Por favor intenta de nuevo.'
 
-  // Load recent message history (last 10 messages for context)
+  // Historial reciente (últimos 30 mensajes). Un pedido completo ocupa más de 10, y con
+  // una ventana corta el bot olvidaba el platillo antes de confirmar.
   const { data: history } = await db
     .from('messages')
     .select('role, content, created_at')
     .eq('conversation_id', conversation.id)
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(30)
 
   // Saluda/preséntate en el primer mensaje de la conversación, o cuando el
   // cliente regresa tras 12+ horas de inactividad (conversación "reabierta").
@@ -69,10 +70,11 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   const isFirstMessage =
     !history || history.length === 0 || Date.now() - lastMessageAt > 12 * 60 * 60 * 1000
 
-  const messages: MessageParam[] = [
-    ...(history ?? []).reverse().map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-    { role: 'user', content: incomingMessage },
-  ]
+  const past = (history ?? []).reverse().map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+  // La API exige que la conversación empiece con un mensaje del cliente: si la ventana
+  // cortó justo después de su mensaje, se descartan las respuestas del bot del inicio.
+  while (past.length && past[0].role !== 'user') past.shift()
+  const messages: MessageParam[] = [...past, { role: 'user', content: incomingMessage }]
 
   // Save incoming message
   await db.from('messages').insert({
@@ -95,40 +97,53 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   }
   const agentTools = hasCapability(org.business_type, 'orders') ? orderTools : tools
 
-  // Agentic loop
-  let response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
-    tools: agentTools,
-    messages,
-  })
-
-  while (response.stop_reason === 'tool_use') {
-    const toolUses = response.content.filter(b => b.type === 'tool_use')
-    const toolResults = await Promise.all(
-      toolUses.map(async block => {
-        if (block.type !== 'tool_use') return null
-        console.log(`[agent] tool call: ${block.name}`, JSON.stringify(block.input))
-        const result = await handleTool(block.name, block.input as Record<string, string>, ctx)
-        console.log(`[agent] tool result: ${block.name} ->`, result.slice(0, 400))
-        return { type: 'tool_result' as const, tool_use_id: block.id, content: result }
-      })
-    )
-
-    messages.push({ role: 'assistant', content: response.content })
-    messages.push({ role: 'user', content: toolResults.filter(Boolean) as Anthropic.ToolResultBlockParam[] })
-
-    response = await anthropic.messages.create({
+  // Agentic loop. Si algo falla (API caída, error inesperado) el cliente recibe una
+  // respuesta en lugar de silencio, y el error queda en los logs.
+  let text: string
+  try {
+    let response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
       tools: agentTools,
       messages,
     })
-  }
 
-  const text = response.content.find(b => b.type === 'text')?.text ?? 'No pude procesar tu mensaje. Por favor intenta de nuevo.'
+    while (response.stop_reason === 'tool_use') {
+      const toolUses = response.content.filter(b => b.type === 'tool_use')
+      const toolResults = await Promise.all(
+        toolUses.map(async block => {
+          if (block.type !== 'tool_use') return null
+          console.log(`[agent] tool call: ${block.name}`, JSON.stringify(block.input))
+          let result: string
+          try {
+            result = await handleTool(block.name, block.input as Record<string, string>, ctx)
+          } catch (err) {
+            console.error(`[agent] tool ERROR: ${block.name}`, err)
+            result = JSON.stringify({ error: 'Falló la herramienta. Dile al cliente que hubo un problema y pídele que lo intente de nuevo.' })
+          }
+          console.log(`[agent] tool result: ${block.name} ->`, result.slice(0, 400))
+          return { type: 'tool_result' as const, tool_use_id: block.id, content: result }
+        })
+      )
+
+      messages.push({ role: 'assistant', content: response.content })
+      messages.push({ role: 'user', content: toolResults.filter(Boolean) as Anthropic.ToolResultBlockParam[] })
+
+      response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
+        tools: agentTools,
+        messages,
+      })
+    }
+
+    text = response.content.find(b => b.type === 'text')?.text ?? 'No pude procesar tu mensaje. Por favor intenta de nuevo.'
+  } catch (err) {
+    console.error('[agent] ERROR al generar la respuesta:', err)
+    text = 'Tuve un problema para procesar tu mensaje. ¿Me lo puedes repetir, por favor?'
+  }
 
   // Save assistant response
   await db.from('messages').insert({
