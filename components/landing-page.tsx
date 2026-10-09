@@ -61,11 +61,12 @@ function tokens(isDay: boolean) {
 // FEATURES vive ahora en features-bento.tsx y SEGMENTS en segments-data.ts
 
 const FAQ = [
-  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para cualquier negocio que trabaje con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Si agendas con clientes o pacientes, Turno funciona para ti.' },
+  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para negocios que trabajan con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Y también para restaurantes, taquerías y cafeterías que reciben pedidos a domicilio o para recoger.' },
+  { q: '¿Turno sirve para restaurantes y delivery?', a: 'Sí. Armas tu menú con fotos, extras y notas, y tus clientes piden por WhatsApp o desde tu link de menú con carrito, a domicilio o para recoger. Turno toma el pedido, manda las fotos de los platillos y cobra con tarjeta en línea por Stripe. Tú ves cada pedido en un tablero y, al cambiarlo de estado, el cliente recibe el aviso por WhatsApp. Sin comisión por pedido.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
-  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Para restaurantes y delivery está el plan Pedidos por $1,800 MXN al mes, con menú, link de pedidos y bot que toma pedidos. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -235,9 +236,9 @@ export function LandingPage() {
               Tu WhatsApp contesta<br />y agenda solo.
             </h1>
             <p data-hero-p className="text-[16px] sm:text-[18px] leading-relaxed mb-9 max-w-md" style={{ color: t.muted, opacity: 0 }}>
-              Mientras tú atiendes, Turno responde los mensajes, agenda las citas
-              y les recuerda a tus clientes que vayan. Para barberías, consultorios,
-              clínicas dentales y más.
+              Mientras tú atiendes, Turno responde los mensajes, agenda las citas,
+              toma pedidos y les recuerda a tus clientes que vayan. Para barberías,
+              consultorios, restaurantes y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
               <FancyButton href="/register">Empieza hoy →</FancyButton>
@@ -337,9 +338,9 @@ export function LandingPage() {
             <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Sin comisiones. Sin contratos. Sin letra chica.</p>
           </div>
 
-          {/* Dos planes: Agenda (sin bot) y Agenda + Asistente (con bot) */}
-          <div data-pricing-card style={{ opacity: 0 }} className="max-w-3xl mx-auto">
-            <div className="grid sm:grid-cols-2 gap-4">
+          {/* Tres planes: Agenda (sin bot), Agenda + Asistente (con bot) y Pedidos (restaurantes) */}
+          <div data-pricing-card style={{ opacity: 0 }} className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-4">
               {[
                 {
                   key: 'agenda',
@@ -356,6 +357,14 @@ export function LandingPage() {
                   desc: 'Tu WhatsApp contesta y agenda solo, 24/7',
                   features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Conversaciones en tu panel', 'Soporte prioritario'],
                   highlight: true,
+                },
+                {
+                  key: 'pedidos',
+                  name: 'Pedidos',
+                  price: '$1,800',
+                  desc: 'Pedidos y delivery por WhatsApp',
+                  features: ['Menú con fotos, extras y notas', 'Link de pedidos con carrito', 'Bot que toma pedidos 24/7', 'Cobro con tarjeta por Stripe', 'Tablero con avisos al cliente'],
+                  highlight: false,
                 },
               ].map(({ key, name, price, desc, features, highlight }) => (
                 <div
@@ -433,7 +442,7 @@ export function LandingPage() {
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
           <p className="text-[16px] mb-3" style={{ color: t.muted }}>Desde $1,500 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
-          <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · y más</p>
+          <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · Restaurantes · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>
       </section>

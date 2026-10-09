@@ -98,6 +98,16 @@ export const SCENARIOS: Scenario[] = [
       { from: 'bot', text: '✅ ¡Apartado!\n\n🎨 Tatuaje mediano · $2,800\n📅 Sábado 1:00 pm\n👤 Con Kenji\n💳 Anticipo de $500 para asegurar tu cita', time: '19:16' },
     ],
   },
+  {
+    emoji: '🌮',
+    business: 'Raíz Wellness Kitchen',
+    messages: [
+      { from: 'customer', text: 'Hola! ¿Qué bowls tienen? 🥗', time: '13:05' },
+      { from: 'bot', text: '¡Hola Axel! Te muestro los bowls 😋\n\n🥗 Pollo y quinoa · $189\n🐟 Salmón · $239\n🌱 Vegano · $169\n\n¿Cuál se te antoja?', time: '13:05' },
+      { from: 'customer', text: 'El de pollo con aguacate extra, a domicilio', time: '13:06' },
+      { from: 'bot', text: '✅ Listo, tu pedido:\n\n🥗 Bowl de pollo + aguacate · $214\n🛵 Envío · $40\n💳 Total $254\n\nPaga aquí y lo preparamos al instante.', time: '13:06' },
+    ],
+  },
 ]
 
 export function WhatsappMockup({ isDay, activeIndex, onScenarioChange }: Props) {

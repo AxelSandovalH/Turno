@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { ALL_PROFILES } from '@/lib/profiles/registry'
+import { isPlanKey } from '@/lib/plans'
 
 const s = {
   label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#888', marginBottom: 7, fontFamily: 'inherit' } as React.CSSProperties,
@@ -84,7 +85,7 @@ export default function RegisterPage() {
     const sid = params.get('session_id')
     if (sid) setPaidSessionId(sid)
     const plan = params.get('plan')
-    if (plan === 'agenda' || plan === 'asistente') setPlanKey(plan)
+    if (isPlanKey(plan)) setPlanKey(plan)
   }, [])
 
   async function handleRegister(e: React.FormEvent) {

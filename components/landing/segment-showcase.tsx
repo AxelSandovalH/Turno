@@ -39,14 +39,14 @@ function AgendaPreview({ t, isDay, index }: { t: Tokens; isDay: boolean; index: 
           <span className="w-2 h-2 rounded-full" style={{ background: '#28c840' }} />
         </div>
         <span className="text-[10.5px] truncate" style={{ color: t.muted }}>
-          app.quickturno.app/appointments
+          app.quickturno.app/{seg.window?.path ?? 'appointments'}
         </span>
       </div>
 
       {/* Cuerpo */}
       <div className="p-4 sm:p-5">
         <div className="flex items-baseline justify-between mb-4 gap-3">
-          <p className="text-[12.5px] font-semibold" style={{ color: t.text }}>Hoy · Agenda</p>
+          <p className="text-[12.5px] font-semibold" style={{ color: t.text }}>{seg.window?.title ?? 'Hoy · Agenda'}</p>
           <p className="text-[10.5px] uppercase tracking-wider shrink-0" style={{ color: seg.accent }}>
             {seg.staffLabel}
           </p>
@@ -140,7 +140,7 @@ export function SegmentShowcase({ t, isDay }: Props) {
       <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
         <div data-section-head className="mb-12 sm:mb-14" style={{ opacity: 0 }}>
           <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Giros</p>
-          <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>¿Manejas citas? Turno es para ti.</h2>
+          <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>¿Manejas citas o pedidos? Turno es para ti.</h2>
           <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Pasa el cursor por tu giro — o tócalo si estás en el teléfono.</p>
         </div>
 

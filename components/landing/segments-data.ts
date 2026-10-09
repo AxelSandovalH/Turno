@@ -24,6 +24,8 @@ export interface Segment {
   staffLabel: string
   /** Mini agenda de ejemplo — hace tangible el "hecho para tu giro" */
   preview: SegmentPreviewRow[]
+  /** Módulo del panel que muestra la ventana de ejemplo. Por defecto la agenda. */
+  window?: { path: string; title: string }
 }
 
 export const SEGMENTS: Segment[] = [
@@ -151,6 +153,25 @@ export const SEGMENTS: Segment[] = [
       { time: '12:00', title: 'Sesión brazo · 4 h', who: 'Iván' },
       { time: '16:30', title: 'Retoque', who: 'Sofía' },
       { time: '18:00', title: 'Diseño pequeño', who: 'Iván' },
+    ],
+  },
+  {
+    emoji: '🌮',
+    name: 'Restaurantes y comida para llevar',
+    short: 'Restaurantes',
+    accent: '#22c55e',
+    pain: 'Los pedidos por WhatsApp se pierden entre mensajes, audios y capturas, y mientras contestas no cocinas.',
+    bullets: [
+      'Turno toma el pedido por chat, con extras y notas, y manda las fotos de tus platillos',
+      'Link de menú con carrito para pedir a domicilio o para recoger, sin comisiones por pedido',
+      'Pago con tarjeta en línea por Stripe: el pedido llega a tu cocina ya pagado',
+    ],
+    staffLabel: 'Pedidos',
+    window: { path: 'orders', title: 'Hoy · Pedidos' },
+    preview: [
+      { time: '13:05', title: 'Bowl de pollo + aguacate extra', who: 'A domicilio' },
+      { time: '13:12', title: '2 tacos al pastor y agua', who: 'Recoger' },
+      { time: '13:20', title: 'Smoothie verde y tostada', who: 'A domicilio' },
     ],
   },
 ]
