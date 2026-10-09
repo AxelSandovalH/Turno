@@ -5,6 +5,7 @@ import { sendMessage } from '@/lib/ultramsg'
 import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 import { planHasBot } from '@/lib/plans'
+import { markOrderPaid } from '@/lib/orders'
 import type Stripe from 'stripe'
 
 export async function POST(req: Request) {
@@ -28,6 +29,14 @@ export async function POST(req: Request) {
       if (session.metadata?.type === 'deposit') {
         const appointmentId = session.metadata.appointment_id
         if (appointmentId) await handleDepositPaid(db, appointmentId)
+        break
+      }
+
+      // Pedido pagado con tarjeta: recién ahora llega al tablero del negocio
+      if (session.metadata?.type === 'order') {
+        const orderId = session.metadata.order_id
+        const intent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+        if (orderId && session.payment_status === 'paid') await markOrderPaid(orderId, intent)
         break
       }
 

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Bike, Store, Banknote, Landmark, Phone } from 'lucide-react'
+import { Bike, Store, Banknote, Landmark, CreditCard, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { money, type OrderStatus } from '@/lib/orders'
@@ -17,7 +17,8 @@ export interface BoardOrder {
   address: string | null
   notes: string | null
   total: number
-  payment_method: 'cash' | 'transfer'
+  payment_method: 'cash' | 'transfer' | 'card'
+  payment_status: 'unpaid' | 'paid' | 'refunded'
   status: OrderStatus
   source: 'web' | 'whatsapp'
   created_at: string
@@ -46,7 +47,8 @@ function OrderCard({ o }: { o: BoardOrder }) {
   const action = nextAction(o)
 
   async function change(status: OrderStatus) {
-    if (status === 'cancelled' && !window.confirm(`¿Cancelar el pedido #${o.order_number}? Se le avisará al cliente.`)) return
+    const refundNote = o.payment_method === 'card' && o.payment_status === 'paid' ? ' Se reembolsará el pago con tarjeta.' : ''
+    if (status === 'cancelled' && !window.confirm(`¿Cancelar el pedido #${o.order_number}? Se le avisará al cliente.${refundNote}`)) return
     setBusy(true)
     const res = await fetch(`/api/orders/${o.id}`, {
       method: 'PATCH',
@@ -54,7 +56,11 @@ function OrderCard({ o }: { o: BoardOrder }) {
       body: JSON.stringify({ status }),
     })
     setBusy(false)
-    if (!res.ok) { toast.error('No se pudo actualizar el pedido'); return }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      toast.error(data?.error ?? 'No se pudo actualizar el pedido')
+      return
+    }
     router.refresh()
   }
 
@@ -85,8 +91,8 @@ function OrderCard({ o }: { o: BoardOrder }) {
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-1.5 text-muted-foreground">
-            {o.payment_method === 'cash' ? <Banknote className="h-3.5 w-3.5" /> : <Landmark className="h-3.5 w-3.5" />}
-            {o.payment_method === 'cash' ? 'Efectivo' : 'Transferencia'}
+            {o.payment_method === 'cash' ? <Banknote className="h-3.5 w-3.5" /> : o.payment_method === 'card' ? <CreditCard className="h-3.5 w-3.5" /> : <Landmark className="h-3.5 w-3.5" />}
+            {o.payment_method === 'cash' ? 'Efectivo' : o.payment_method === 'card' ? (o.payment_status === 'refunded' ? 'Tarjeta · Reembolsado' : 'Tarjeta · Pagado') : 'Transferencia'}
           </span>
           <span className="font-semibold">{money(o.total)}</span>
         </div>

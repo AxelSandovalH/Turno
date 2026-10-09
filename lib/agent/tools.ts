@@ -101,7 +101,7 @@ export const orderTools: Tool[] = [
         customer_name: { type: 'string', description: 'Nombre del cliente' },
         fulfillment: { type: 'string', enum: ['delivery', 'pickup'], description: 'delivery = a domicilio, pickup = pasa a recoger' },
         address: { type: 'string', description: 'Dirección completa de entrega (obligatoria si es delivery)' },
-        payment_method: { type: 'string', enum: ['cash', 'transfer'], description: 'cash = efectivo al recibir, transfer = transferencia' },
+        payment_method: { type: 'string', enum: ['cash', 'transfer', 'card'], description: 'cash = efectivo al recibir, transfer = transferencia, card = tarjeta en línea (devuelve un link de pago)' },
         notes: { type: 'string', description: 'Notas generales del pedido (opcional)' },
         items: {
           type: 'array',

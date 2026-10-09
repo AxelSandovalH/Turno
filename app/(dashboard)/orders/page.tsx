@@ -17,8 +17,10 @@ export default async function OrdersPage() {
   const since = last24h()
   const { data } = await db
     .from('orders')
-    .select('id, order_number, customer_name, customer_phone, fulfillment, address, notes, total, subtotal, delivery_fee, payment_method, status, source, created_at, items:order_items(id, name, quantity, extras, notes)')
+    .select('id, order_number, customer_name, customer_phone, fulfillment, address, notes, total, subtotal, delivery_fee, payment_method, payment_status, status, source, created_at, items:order_items(id, name, quantity, extras, notes)')
     .eq('organization_id', organization.id)
+    // Los pedidos con tarjeta sin pagar no existen para el negocio hasta que Stripe confirma
+    .or('payment_method.neq.card,payment_status.neq.unpaid')
     .or(`status.in.(pending,preparing,on_the_way),created_at.gte.${since}`)
     .order('created_at', { ascending: true })
     .limit(200)

@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { hasCapability } from '@/lib/profiles/registry'
 import { OrderForm } from './order-form'
 
-interface Props { params: Promise<{ slug: string }> }
+interface Props { params: Promise<{ slug: string }>; searchParams: Promise<{ pago?: string; pedido?: string }> }
 
 export const dynamic = 'force-dynamic'
 
@@ -15,13 +15,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: org ? `Pedir — ${org.name}` : 'Hacer pedido' }
 }
 
-export default async function OrderPage({ params }: Props) {
+export default async function OrderPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const { pago, pedido } = await searchParams
   const db = createServiceClient()
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, address, logo_url, primary_color, business_type, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting')
+    .select('id, name, slug, address, logo_url, primary_color, business_type, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting, order_card_enabled')
     .eq('slug', slug)
     .single()
 
@@ -46,7 +47,9 @@ export default async function OrderPage({ params }: Props) {
         minAmount: Number(org.order_min_amount) || 0,
         hasTransferInfo: !!org.order_payment_info?.trim(),
         accepting: org.order_accepting,
+        cardEnabled: org.order_card_enabled,
       }}
+      returned={pago === 'ok' && /^\d+$/.test(pedido ?? '') ? { paid: true as const, number: Number(pedido) } : pago === 'cancelado' ? { paid: false as const } : null}
       categories={categories ?? []}
       items={(items ?? []).map(i => ({ ...i, price: Number(i.price), extras: Array.isArray(i.extras) ? i.extras : [] }))}
     />

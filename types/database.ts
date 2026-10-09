@@ -44,6 +44,7 @@ export interface Organization {
   order_min_amount: number
   order_payment_info: string | null
   order_accepting: boolean
+  order_card_enabled: boolean
   created_at: string
   updated_at: string
 }

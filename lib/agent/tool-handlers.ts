@@ -25,7 +25,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
   switch (toolName) {
     case 'get_menu': {
       const [{ data: org }, { data: categories }, { data: items }] = await Promise.all([
-        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info').eq('id', ctx.organizationId).single(),
+        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_card_enabled').eq('id', ctx.organizationId).single(),
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
         db.from('menu_items').select('id, category_id, name, description, price, extras, is_available').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
       ])
@@ -35,6 +35,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         pickup_enabled: org?.order_pickup_enabled ?? true,
         min_order: Number(org?.order_min_amount) || 0,
         accepts_transfer: !!org?.order_payment_info?.trim(),
+        accepts_card: !!org?.order_card_enabled,
         categories: (categories ?? []).map(c => ({
           name: c.name,
           items: (items ?? []).filter(i => i.category_id === c.id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available })),
@@ -54,7 +55,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         fulfillment: raw.fulfillment === 'pickup' ? 'pickup' : 'delivery',
         address: raw.address,
         notes: raw.notes,
-        paymentMethod: raw.payment_method === 'transfer' ? 'transfer' : 'cash',
+        paymentMethod: raw.payment_method === 'transfer' ? 'transfer' : raw.payment_method === 'card' ? 'card' : 'cash',
         source: 'whatsapp',
         items: Array.isArray(raw.items) ? raw.items : [],
       })
@@ -66,6 +67,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         delivery_fee: result.order.delivery_fee,
         total: result.order.total,
         transfer_info: result.paymentInfo,
+        payment_link: result.checkoutUrl,
       })
     }
 
@@ -73,9 +75,10 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const phone = (ctx.customerPhone ?? '').replace(/\D/g, '')
       const { data: orders } = await db
         .from('orders')
-        .select('order_number, status, fulfillment, total, created_at')
+        .select('order_number, status, fulfillment, total, created_at, payment_method, payment_status')
         .eq('organization_id', ctx.organizationId)
         .eq('customer_phone', phone)
+        .or('payment_method.neq.card,payment_status.neq.unpaid')
         .order('created_at', { ascending: false })
         .limit(3)
       return JSON.stringify({ orders: orders ?? [] })

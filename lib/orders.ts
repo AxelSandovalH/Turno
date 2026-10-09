@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
+import { stripe } from '@/lib/stripe'
 
 export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'delivered' | 'cancelled'
 
@@ -20,13 +21,13 @@ export interface CreateOrderInput {
   fulfillment: 'delivery' | 'pickup'
   address?: string
   notes?: string
-  paymentMethod: 'cash' | 'transfer'
+  paymentMethod: 'cash' | 'transfer' | 'card'
   source: 'web' | 'whatsapp'
   items: OrderLineInput[]
 }
 
 export type CreateOrderResult =
-  | { ok: true; order: { id: string; order_number: number; total: number; subtotal: number; delivery_fee: number }; paymentInfo: string | null }
+  | { ok: true; order: { id: string; order_number: number; total: number; subtotal: number; delivery_fee: number }; paymentInfo: string | null; checkoutUrl: string | null }
   | { ok: false; error: string; status: number }
 
 export const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
@@ -51,7 +52,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting')
+    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting')
     .eq('id', input.organizationId)
     .eq('is_active', true)
     .single()
@@ -60,6 +61,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   if (input.fulfillment === 'delivery' && !org.order_delivery_enabled) return fail('Este negocio no tiene entrega a domicilio')
   if (input.fulfillment === 'pickup' && !org.order_pickup_enabled) return fail('Este negocio no tiene pedidos para recoger')
+  if (input.paymentMethod === 'card' && !org.order_card_enabled) return fail('Este negocio no acepta pago con tarjeta')
   const address = input.address?.trim() ?? ''
   if (input.fulfillment === 'delivery' && address.length < 6) return fail('Escribe tu dirección de entrega completa')
 
@@ -141,40 +143,125 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     return fail('No se pudo registrar el pedido. Intenta de nuevo.', 500)
   }
 
-  // Avisos por WhatsApp: se esperan para que Vercel no corte la función antes de enviarlos
-  const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
-  const summary = lines.map(l => {
-    const ex = l.extras.length ? ` (${l.extras.map(e => e.name).join(', ')})` : ''
-    return `${l.quantity} x ${l.name}${ex}${l.notes ? ` — ${l.notes}` : ''}`
-  }).join('\n')
-  const where = input.fulfillment === 'delivery' ? `Entrega a domicilio: ${address}` : 'Pasa a recoger'
-  const pay = input.paymentMethod === 'cash' ? 'Pago en efectivo al recibir' : 'Pago por transferencia'
-
-  if (org.whatsapp_number) {
-    await sendMessage(
-      `${org.whatsapp_number}@c.us`,
-      `🛎️ *Nuevo pedido #${order.order_number}*\n👤 ${name} (${phone})\n\n${summary}\n\n${where}\n${pay}\nTotal: ${money(total)}${input.notes ? `\nNotas: ${input.notes}` : ''}`,
-      creds
-    ).catch(e => console.error('[orders] owner whatsapp failed', e))
+  // Tarjeta: el pedido queda sin pagar y oculto para el negocio. Se avisa a todos
+  // (negocio y cliente) hasta que Stripe confirme el pago — ver markOrderPaid.
+  if (input.paymentMethod === 'card') {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        line_items: [
+          ...lines.map(l => ({
+            quantity: l.quantity,
+            price_data: {
+              currency: 'mxn',
+              unit_amount: Math.round(l.unit_price * 100),
+              product_data: {
+                name: l.extras.length ? `${l.name} (${l.extras.map(e => e.name).join(', ')})` : l.name,
+              },
+            },
+          })),
+          ...(deliveryFee > 0 ? [{
+            quantity: 1,
+            price_data: { currency: 'mxn', unit_amount: Math.round(deliveryFee * 100), product_data: { name: 'Envío a domicilio' } },
+          }] : []),
+        ],
+        success_url: `${baseUrl}/pedir/${org.slug}?pago=ok&pedido=${order.order_number}`,
+        cancel_url: `${baseUrl}/pedir/${org.slug}?pago=cancelado`,
+        metadata: { type: 'order', order_id: order.id, organization_id: org.id },
+        payment_intent_data: { description: `Pedido #${order.order_number} — ${org.name}`, metadata: { order_id: order.id } },
+      })
+      await db.from('orders').update({ stripe_checkout_session_id: session.id }).eq('id', order.id)
+      return {
+        ok: true,
+        order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee },
+        paymentInfo: null,
+        checkoutUrl: session.url,
+      }
+    } catch (err) {
+      console.error('[orders] stripe checkout failed', err)
+      await db.from('orders').delete().eq('id', order.id)
+      return fail('No se pudo iniciar el pago con tarjeta. Intenta de nuevo o elige otra forma de pago.', 502)
+    }
   }
-  const transferNote = input.paymentMethod === 'transfer' && org.order_payment_info
-    ? `\n\nDatos para tu transferencia:\n${org.order_payment_info}` : ''
-  // Por WhatsApp el bot ya le confirma en el mismo chat: no duplicar el mensaje
-  if (input.source !== 'whatsapp') await sendMessage(
-    phone,
-    `✅ Recibimos tu pedido #${order.order_number} en *${org.name}*.\n\n${summary}\n\n${where}\nTotal: ${money(total)} (${pay.toLowerCase()})${transferNote}\n\nTe avisamos por aquí cuando avance.`,
-    creds
-  ).catch(e => console.error('[orders] customer whatsapp failed', e))
+
+  await notifyNewOrder(order.id, { skipCustomer: input.source === 'whatsapp' })
 
   return {
     ok: true,
     order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee },
     paymentInfo: input.paymentMethod === 'transfer' ? org.order_payment_info ?? null : null,
+    checkoutUrl: null,
   }
 }
 
+/**
+ * Avisos por WhatsApp de un pedido nuevo (al negocio y al cliente). Se esperan
+ * para que Vercel no corte la función antes de enviarlos. skipCustomer: cuando el
+ * bot ya le confirma en el mismo chat no se duplica el mensaje.
+ */
+export async function notifyNewOrder(orderId: string, opts: { skipCustomer?: boolean } = {}) {
+  const db = createServiceClient()
+  const { data: order } = await db
+    .from('orders')
+    .select('id, order_number, organization_id, customer_name, customer_phone, fulfillment, address, notes, total, payment_method, payment_status, items:order_items(name, quantity, extras, notes)')
+    .eq('id', orderId)
+    .single()
+  if (!order) return
+  const { data: org } = await db
+    .from('organizations')
+    .select('name, whatsapp_number, ultramsg_instance, ultramsg_token, order_payment_info')
+    .eq('id', order.organization_id)
+    .single()
+  if (!org) return
+
+  const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
+  const items = (order.items ?? []) as { name: string; quantity: number; extras: MenuExtra[]; notes: string | null }[]
+  const summary = items.map(l => {
+    const ex = l.extras?.length ? ` (${l.extras.map(e => e.name).join(', ')})` : ''
+    return `${l.quantity} x ${l.name}${ex}${l.notes ? ` — ${l.notes}` : ''}`
+  }).join('\n')
+  const where = order.fulfillment === 'delivery' ? `Entrega a domicilio: ${order.address}` : 'Pasa a recoger'
+  const pay = order.payment_method === 'cash' ? 'Pago en efectivo al recibir'
+    : order.payment_method === 'card' ? 'Pagado con tarjeta'
+    : 'Pago por transferencia'
+
+  if (org.whatsapp_number) {
+    await sendMessage(
+      `${org.whatsapp_number}@c.us`,
+      `🛎️ *Nuevo pedido #${order.order_number}*\n👤 ${order.customer_name} (${order.customer_phone})\n\n${summary}\n\n${where}\n${pay}\nTotal: ${money(order.total)}${order.notes ? `\nNotas: ${order.notes}` : ''}`,
+      creds
+    ).catch(e => console.error('[orders] owner whatsapp failed', e))
+  }
+  if (!opts.skipCustomer) {
+    const transferNote = order.payment_method === 'transfer' && org.order_payment_info
+      ? `\n\nDatos para tu transferencia:\n${org.order_payment_info}` : ''
+    await sendMessage(
+      order.customer_phone,
+      `✅ Recibimos tu pedido #${order.order_number} en *${org.name}*.\n\n${summary}\n\n${where}\nTotal: ${money(order.total)} (${pay.toLowerCase()})${transferNote}\n\nTe avisamos por aquí cuando avance.`,
+      creds
+    ).catch(e => console.error('[orders] customer whatsapp failed', e))
+  }
+}
+
+/**
+ * Marca un pedido con tarjeta como pagado y recién entonces avisa. Idempotente:
+ * Stripe puede reenviar el evento y solo la primera vez notifica.
+ */
+export async function markOrderPaid(orderId: string, paymentIntentId: string | null) {
+  const db = createServiceClient()
+  const { data: updated } = await db
+    .from('orders')
+    .update({ payment_status: 'paid', paid_at: new Date().toISOString(), stripe_payment_intent_id: paymentIntentId })
+    .eq('id', orderId)
+    .eq('payment_status', 'unpaid')
+    .select('id')
+  if (!updated?.length) return
+  await notifyNewOrder(orderId)
+}
+
 /** Mensaje al cliente cuando el negocio cambia el estado del pedido. */
-export function statusMessage(status: OrderStatus, orderNumber: number, businessName: string, fulfillment: 'delivery' | 'pickup'): string | null {
+export function statusMessage(status: OrderStatus, orderNumber: number, businessName: string, fulfillment: 'delivery' | 'pickup', refunded = false): string | null {
   switch (status) {
     case 'preparing':
       return `👨‍🍳 Tu pedido #${orderNumber} ya se está preparando en *${businessName}*.`
@@ -185,7 +272,7 @@ export function statusMessage(status: OrderStatus, orderNumber: number, business
     case 'delivered':
       return `🙌 Pedido #${orderNumber} entregado. ¡Gracias por tu preferencia en *${businessName}*!`
     case 'cancelled':
-      return `Lamentamos avisarte que tu pedido #${orderNumber} en *${businessName}* fue cancelado. Escríbenos si necesitas ayuda.`
+      return `Lamentamos avisarte que tu pedido #${orderNumber} en *${businessName}* fue cancelado.${refunded ? ' Ya reembolsamos tu pago con tarjeta; puede tardar unos días en reflejarse.' : ''} Escríbenos si necesitas ayuda.`
     default:
       return null
   }

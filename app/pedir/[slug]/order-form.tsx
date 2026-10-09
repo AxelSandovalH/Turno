@@ -10,20 +10,21 @@ interface Category { id: string; name: string }
 interface Org {
   slug: string; name: string; address: string | null; logo_url: string | null; accent: string
   deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: number; minAmount: number
-  hasTransferInfo: boolean; accepting: boolean
+  hasTransferInfo: boolean; accepting: boolean; cardEnabled: boolean
 }
+type Returned = { paid: true; number: number } | { paid: false } | null
 interface CartLine { key: string; item: Item; quantity: number; extras: string[]; notes: string }
 
 const money = (n: number) => `$${n.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`
 const lineUnit = (l: CartLine) => l.item.price + l.extras.reduce((s, nm) => s + (l.item.extras.find(e => e.name === nm)?.price ?? 0), 0)
 
-export function OrderForm({ org, categories, items }: { org: Org; categories: Category[]; items: Item[] }) {
+export function OrderForm({ org, categories, items, returned = null }: { org: Org; categories: Category[]; items: Item[]; returned?: Returned }) {
   const [cart, setCart] = useState<CartLine[]>([])
   const [picking, setPicking] = useState<Item | null>(null)
   const [pickExtras, setPickExtras] = useState<string[]>([])
   const [pickNotes, setPickNotes] = useState('')
   const [pickQty, setPickQty] = useState(1)
-  const [view, setView] = useState<'menu' | 'cart' | 'done'>('menu')
+  const [view, setView] = useState<'menu' | 'cart' | 'done'>(returned?.paid ? 'done' : 'menu')
 
   const [fulfillment, setFulfillment] = useState<'delivery' | 'pickup'>(org.deliveryEnabled ? 'delivery' : 'pickup')
   const [name, setName] = useState('')
@@ -31,10 +32,10 @@ export function OrderForm({ org, categories, items }: { org: Org; categories: Ca
   const [national, setNational] = useState('')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
-  const [payment, setPayment] = useState<'cash' | 'transfer'>('cash')
+  const [payment, setPayment] = useState<'cash' | 'transfer' | 'card'>(org.cardEnabled ? 'card' : 'cash')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [done, setDone] = useState<{ number: number; total: number; paymentInfo: string | null } | null>(null)
+  const [done, setDone] = useState<{ number: number; total: number | null; paymentInfo: string | null } | null>(returned?.paid ? { number: returned.number, total: null, paymentInfo: null } : null)
 
   const accent = org.accent
   const subtotal = cart.reduce((s, l) => s + lineUnit(l) * l.quantity, 0)
@@ -97,6 +98,7 @@ export function OrderForm({ org, categories, items }: { org: Org; categories: Ca
       })
       const data = await res.json().catch(() => null)
       if (!res.ok || !data?.ok) { setError(data?.error ?? 'No se pudo enviar el pedido. Intenta de nuevo.'); return }
+      if (data.checkoutUrl) { window.location.href = data.checkoutUrl; return }
       setDone({ number: data.orderNumber, total: data.total, paymentInfo: data.paymentInfo })
       setCart([]); setView('done')
     } catch {
@@ -138,7 +140,7 @@ export function OrderForm({ org, categories, items }: { org: Org; categories: Ca
             <Check className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-2xl font-semibold">¡Pedido recibido!</h1>
-          <p className="text-zinc-400 mt-2">Pedido #{done.number} · {money(done.total)}</p>
+          <p className="text-zinc-400 mt-2">Pedido #{done.number}{done.total !== null ? ` · ${money(done.total)}` : ' · pago recibido'}</p>
           <p className="text-sm text-zinc-500 mt-4">Te enviamos la confirmación por WhatsApp y te avisaremos cuando avance tu pedido.</p>
           {done.paymentInfo && (
             <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left">
@@ -209,7 +211,7 @@ export function OrderForm({ org, categories, items }: { org: Org; categories: Ca
           <div className="space-y-2">
             <p className="text-sm text-zinc-400">Forma de pago</p>
             <div className="grid grid-cols-2 gap-2">
-              {([['cash', 'Efectivo al recibir', true], ['transfer', 'Transferencia', org.hasTransferInfo]] as const).map(([k, label, on]) => (
+              {([['card', 'Tarjeta en línea', org.cardEnabled], ['cash', 'Efectivo al recibir', true], ['transfer', 'Transferencia', org.hasTransferInfo]] as const).filter(([, , on]) => on).map(([k, label, on]) => (
                 <button key={k} disabled={!on} onClick={() => setPayment(k)}
                   className={`rounded-xl border px-3 py-3 text-sm font-medium disabled:opacity-30 ${payment === k ? 'text-white' : 'border-zinc-800 text-zinc-400'}`}
                   style={payment === k ? { borderColor: accent, background: `${accent}22` } : undefined}>
@@ -231,7 +233,7 @@ export function OrderForm({ org, categories, items }: { org: Org; categories: Ca
         <div className="fixed bottom-0 inset-x-0 border-t border-zinc-800 bg-zinc-950/95 backdrop-blur p-4">
           <button onClick={submit} disabled={sending || cart.length === 0 || belowMin}
             className="max-w-lg mx-auto block w-full rounded-xl py-4 font-semibold text-white disabled:opacity-40" style={{ background: accent }}>
-            {sending ? 'Enviando…' : `Enviar pedido · ${money(total)}`}
+            {sending ? 'Un momento…' : payment === 'card' ? `Pagar con tarjeta · ${money(total)}` : `Enviar pedido · ${money(total)}`}
           </button>
         </div>
       </div>
@@ -242,6 +244,11 @@ export function OrderForm({ org, categories, items }: { org: Org; categories: Ca
     <div className="min-h-screen bg-zinc-950 text-white pb-28">
       {header}
       <div className="max-w-lg mx-auto px-4 py-6">
+        {returned && !returned.paid && (
+          <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            El pago no se completó, así que tu pedido no se envió. Puedes intentarlo de nuevo.
+          </div>
+        )}
         {!org.accepting && (
           <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
             Por ahora no estamos recibiendo pedidos. Puedes ver el menú y volver más tarde.

@@ -29,6 +29,7 @@ export default async function MenuPage() {
         orderUrl={`${baseUrl}/pedir/${organization.slug}`}
         settings={{
           accepting: organization.order_accepting,
+          cardEnabled: organization.order_card_enabled,
           deliveryEnabled: organization.order_delivery_enabled,
           pickupEnabled: organization.order_pickup_enabled,
           deliveryFee: String(Number(organization.order_delivery_fee) || 0),
