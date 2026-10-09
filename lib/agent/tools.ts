@@ -109,11 +109,12 @@ export const orderTools: Tool[] = [
             type: 'object',
             properties: {
               menu_item_id: { type: 'string', description: 'ID del platillo, tal cual lo devolvió get_menu' },
+              name: { type: 'string', description: 'Nombre exacto del platillo, como aparece en el menú. Siempre inclúyelo: se usa si el ID no coincide.' },
               quantity: { type: 'number', description: 'Cantidad' },
               extras: { type: 'array', items: { type: 'string' }, description: 'Nombres exactos de los extras elegidos (opcional)' },
               notes: { type: 'string', description: 'Nota para ese platillo, ej. sin cebolla (opcional)' },
             },
-            required: ['menu_item_id', 'quantity'],
+            required: ['name', 'quantity'],
           },
         },
       },

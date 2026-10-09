@@ -7,7 +7,10 @@ export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'delivered' |
 export interface MenuExtra { name: string; price: number }
 
 export interface OrderLineInput {
-  menu_item_id: string
+  /** ID del platillo; si no es válido se intenta resolver por nombre */
+  menu_item_id?: string
+  /** Nombre del platillo (respaldo cuando el ID se perdió entre mensajes del bot) */
+  name?: string
   quantity: number
   /** Nombres de los extras elegidos; se validan contra el menú real */
   extras?: string[]
@@ -30,6 +33,29 @@ export type CreateOrderResult =
   | { ok: false; error: string; status: number }
 
 export const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+
+const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
+
+const STOP = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'con', 'y', 'un', 'una', 'al'])
+
+/** Busca un platillo por nombre: exacto primero, luego uno que contenga o esté contenido (si es único). */
+function findByName<T extends { name: string }>(menu: T[], raw: string): T | null {
+  const q = norm(raw)
+  if (!q) return null
+  const exact = menu.filter(m => norm(m.name) === q)
+  if (exact.length === 1) return exact[0]
+  const partial = menu.filter(m => { const n = norm(m.name); return n.includes(q) || q.includes(n) })
+  if (partial.length === 1) return partial[0]
+  // Mismas palabras en otro orden ("extra de aguacate" = "Aguacate extra")
+  const words = (t: string) => norm(t).split(' ').filter(w => w && !STOP.has(w))
+  const qw = words(raw)
+  if (!qw.length) return null
+  const byWords = menu.filter(m => {
+    const nw = words(m.name)
+    return qw.every(w => nw.includes(w)) || nw.every(w => qw.includes(w))
+  })
+  return byWords.length === 1 ? byWords[0] : null
+}
 
 const MAX_LINES = 40
 const MAX_QTY = 50
@@ -63,19 +89,20 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   const address = input.address?.trim() ?? ''
   if (input.fulfillment === 'delivery' && address.length < 6) return fail('Escribe tu dirección de entrega completa')
 
-  const ids = [...new Set(input.items.map(i => i.menu_item_id))]
   const { data: menu } = await db
     .from('menu_items')
     .select('id, name, price, extras, is_available')
     .eq('organization_id', org.id)
-    .in('id', ids)
-  const byId = new Map((menu ?? []).map(m => [m.id, m]))
+  const all = menu ?? []
+  const byId = new Map(all.map(m => [m.id, m]))
 
   let subtotal = 0
   const lines: { menu_item_id: string; name: string; unit_price: number; quantity: number; extras: MenuExtra[]; notes: string | null }[] = []
   for (const it of input.items) {
-    const item = byId.get(it.menu_item_id)
-    if (!item) return fail('Uno de los productos ya no existe en el menú')
+    // El ID del bot puede perderse entre mensajes: se acepta también el nombre del platillo
+    const item = (it.menu_item_id ? byId.get(it.menu_item_id) : undefined)
+      ?? findByName(all, it.name ?? it.menu_item_id ?? '')
+    if (!item) return fail(`No encontré "${it.name ?? it.menu_item_id ?? 'ese platillo'}" en el menú`)
     if (!item.is_available) return fail(`"${item.name}" está agotado por hoy`, 409)
     const quantity = Math.floor(Number(it.quantity))
     if (!quantity || quantity < 1 || quantity > MAX_QTY) return fail('Cantidad no válida')
@@ -83,7 +110,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     const catalog: MenuExtra[] = Array.isArray(item.extras) ? item.extras : []
     const chosen: MenuExtra[] = []
     for (const nm of it.extras ?? []) {
-      const found = catalog.find(e => e.name === nm)
+      const found = catalog.find(e => e.name === nm) ?? findByName(catalog, nm)
       if (!found) return fail(`El extra "${nm}" no está disponible`)
       chosen.push({ name: found.name, price: Number(found.price) || 0 })
     }
