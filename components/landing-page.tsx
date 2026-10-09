@@ -66,7 +66,7 @@ const FAQ = [
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
-  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Para restaurantes y delivery está el plan Pedidos por $1,800 MXN al mes, con menú, link de pedidos y bot que toma pedidos. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Para restaurantes y delivery está el plan Pedidos por $2,800 MXN al mes, con menú, link de pedidos y bot que toma pedidos. Sin contratos ni permanencia.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -361,7 +361,7 @@ export function LandingPage() {
                 {
                   key: 'pedidos',
                   name: 'Pedidos',
-                  price: '$1,800',
+                  price: '$2,800',
                   desc: 'Pedidos y delivery por WhatsApp',
                   features: ['Menú con fotos, extras y notas', 'Link de pedidos con carrito', 'Bot que toma pedidos 24/7', 'Cobro con tarjeta por Stripe', 'Tablero con avisos al cliente'],
                   highlight: false,

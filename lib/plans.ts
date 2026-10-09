@@ -39,8 +39,8 @@ export const PLANS: Record<PlanKey, Plan> = {
   pedidos: {
     key: 'pedidos',
     name: 'Turno — Pedidos',
-    amount: 180000,
-    priceLabel: '$1,800',
+    amount: 280000,
+    priceLabel: '$2,800',
     description: 'Pedidos y delivery por WhatsApp y link de menú',
     features: ['Menú con fotos, extras y notas', 'Link público de pedidos', 'Bot que toma pedidos por WhatsApp 24/7', 'Tablero de pedidos con avisos al cliente', 'Entrega a domicilio o para recoger'],
     bot: true,
