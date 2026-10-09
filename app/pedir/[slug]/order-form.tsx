@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Minus, Plus, ShoppingBag, X, Check } from 'lucide-react'
-import { COUNTRIES, DEFAULT_COUNTRY, buildPhone } from '@/lib/booking-format'
+import { buildPhone } from '@/lib/booking-format'
 
 interface Extra { name: string; price: number }
 interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean }
@@ -14,6 +14,16 @@ interface Org {
 }
 type Returned = { paid: true; number: number } | { paid: false } | null
 interface CartLine { key: string; item: Item; quantity: number; extras: string[]; notes: string }
+
+/** México por defecto (10 dígitos); con "+" y otra lada se acepta número internacional (turistas). */
+function parsePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (raw.trim().startsWith('+')) {
+    if (digits.startsWith('52')) return buildPhone('52', digits.slice(2))
+    return digits.length >= 8 && digits.length <= 15 ? digits : ''
+  }
+  return buildPhone('52', digits)
+}
 
 const money = (n: number) => `$${n.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`
 const lineUnit = (l: CartLine) => l.item.price + l.extras.reduce((s, nm) => s + (l.item.extras.find(e => e.name === nm)?.price ?? 0), 0)
@@ -28,10 +38,8 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
 
   const [fulfillment, setFulfillment] = useState<'delivery' | 'pickup'>(org.deliveryEnabled ? 'delivery' : 'pickup')
   const [name, setName] = useState('')
-  const [country, setCountry] = useState(DEFAULT_COUNTRY)
-  const [national, setNational] = useState('')
+  const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [notes, setNotes] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const [done] = useState<{ number: number } | null>(returned?.paid ? { number: returned.number } : null)
@@ -42,7 +50,7 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
   const total = subtotal + fee
   const count = cart.reduce((s, l) => s + l.quantity, 0)
   const belowMin = subtotal < org.minAmount
-  const fullPhone = buildPhone(country, national)
+  const fullPhone = parsePhone(phone)
 
   const sections = useMemo(() => {
     const known = new Set(categories.map(c => c.id))
@@ -76,8 +84,8 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
   async function submit() {
     setError('')
     if (!name.trim()) return setError('Escribe tu nombre')
-    if (!fullPhone) return setError('Revisa tu número de WhatsApp')
-    if (fulfillment === 'delivery' && address.trim().length < 6) return setError('Escribe tu dirección de entrega completa')
+    if (!fullPhone) return setError('Escribe tu WhatsApp con 10 dígitos')
+    if (fulfillment === 'delivery' && address.trim().length < 6) return setError('Escribe tu dirección de entrega')
     if (belowMin) return setError(`El pedido mínimo es de ${money(org.minAmount)}`)
     setSending(true)
     try {
@@ -90,7 +98,6 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
           customer_phone: fullPhone,
           fulfillment,
           address,
-          notes,
           items: cart.map(l => ({ menu_item_id: l.item.id, quantity: l.quantity, extras: l.extras, notes: l.notes })),
         }),
       })
@@ -172,34 +179,27 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             {cart.length === 0 && <p className="text-sm text-zinc-500">Tu pedido está vacío.</p>}
           </div>
 
-          <div className="space-y-3">
-            <p className="text-sm text-zinc-400">¿Cómo lo quieres?</p>
+          {org.deliveryEnabled && org.pickupEnabled && (
             <div className="grid grid-cols-2 gap-2">
-              {([['delivery', 'A domicilio', org.deliveryEnabled], ['pickup', 'Paso a recoger', org.pickupEnabled]] as const).map(([k, label, on]) => (
-                <button key={k} disabled={!on} onClick={() => setFulfillment(k)}
-                  className={`rounded-xl border px-3 py-3 text-sm font-medium disabled:opacity-30 ${fulfillment === k ? 'text-white' : 'border-zinc-800 text-zinc-400'}`}
+              {([['delivery', 'A domicilio'], ['pickup', 'Paso a recoger']] as const).map(([k, label]) => (
+                <button key={k} onClick={() => setFulfillment(k)}
+                  className={`rounded-xl border px-3 py-3 text-sm font-medium ${fulfillment === k ? 'text-white' : 'border-zinc-800 text-zinc-400'}`}
                   style={fulfillment === k ? { borderColor: accent, background: `${accent}22` } : undefined}>
                   {label}
                 </button>
               ))}
             </div>
-            {fulfillment === 'delivery' && (
-              <textarea className={input} rows={2} placeholder="Dirección de entrega (calle, número, colonia, referencias)" value={address} onChange={e => setAddress(e.target.value)} />
-            )}
-          </div>
+          )}
 
           <div className="space-y-3">
             <input className={input} placeholder="Tu nombre" value={name} onChange={e => setName(e.target.value)} />
-            <div className="flex gap-2">
-              <select className={`${input} !w-28 shrink-0`} value={country} onChange={e => setCountry(e.target.value)} aria-label="Lada">
-                {COUNTRIES.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
-              </select>
-              <input className={input} inputMode="tel" placeholder="Tu WhatsApp" value={national} onChange={e => setNational(e.target.value)} />
-            </div>
-            <textarea className={input} rows={2} placeholder="Notas para el pedido (opcional)" value={notes} onChange={e => setNotes(e.target.value)} />
+            <input className={input} inputMode="tel" placeholder="Tu WhatsApp (10 dígitos)" value={phone} onChange={e => setPhone(e.target.value)} />
+            {fulfillment === 'delivery' && (
+              <input className={input} placeholder="Dirección de entrega" value={address} onChange={e => setAddress(e.target.value)} />
+            )}
           </div>
 
-          <p className="text-xs text-zinc-500">El pago se hace en línea con tarjeta, de forma segura con Stripe. Tu pedido se envía al negocio al confirmarse el pago.</p>
+          <p className="text-xs text-zinc-500">Pago en línea con tarjeta, seguro con Stripe.</p>
 
           <div className="rounded-xl border border-zinc-800 p-4 space-y-1.5 text-sm">
             <div className="flex justify-between text-zinc-400"><span>Subtotal</span><span>{money(subtotal)}</span></div>
