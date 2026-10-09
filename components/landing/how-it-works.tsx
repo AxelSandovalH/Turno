@@ -30,7 +30,7 @@ const STEPS = [
 // ── Visual del paso 1 — registro ────────────────────────────────────────────────
 function OnboardingVisual({ t }: { t: Tokens }) {
   return (
-    <div style={{ width: 300, borderRadius: 20, background: t.card, border: `1px solid ${t.border}`, padding: 26, boxShadow: '0 24px 60px -20px rgba(0,0,0,0.35)' }}>
+    <div style={{ width: 300, borderRadius: 20, background: t.card, border: `1px solid ${t.border}`, padding: 26, boxShadow: '0 24px 60px -20px rgba(0,0,0,0.35)', transition: 'background .5s, border-color .5s' }}>
       <p style={{ fontSize: 11, color: t.muted, marginBottom: 6 }}>Nombre del negocio</p>
       <div style={{ height: 40, borderRadius: 10, border: `1.5px solid ${t.accent}`, display: 'flex', alignItems: 'center', padding: '0 12px', marginBottom: 18 }}>
         <span style={{ fontSize: 13, color: t.text }}>Barbería El Estilo</span>
@@ -59,7 +59,7 @@ function CatalogVisual({ t }: { t: Tokens }) {
   const activeDays = [true, true, true, true, true, true, false]
 
   return (
-    <div style={{ width: 300, borderRadius: 20, background: t.card, border: `1px solid ${t.border}`, padding: 24, boxShadow: '0 24px 60px -20px rgba(0,0,0,0.35)' }}>
+    <div style={{ width: 300, borderRadius: 20, background: t.card, border: `1px solid ${t.border}`, padding: 24, boxShadow: '0 24px 60px -20px rgba(0,0,0,0.35)', transition: 'background .5s, border-color .5s' }}>
       <p style={{ fontSize: 11, fontWeight: 600, color: t.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>Tus servicios</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
         {services.map(s => (

@@ -29,7 +29,7 @@ function Cell({ t, span, eyebrow, title, desc, Icon, children }: {
   return (
     <div
       data-feature
-      className={`rounded-2xl p-6 sm:p-7 flex flex-col ${SPAN[span]}`}
+      className={`rounded-2xl p-6 sm:p-7 flex flex-col transition-colors duration-500 ${SPAN[span]}`}
       style={{ opacity: 0, background: t.card, border: `1px solid ${t.border}` }}
     >
       {Icon && (
