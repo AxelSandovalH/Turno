@@ -109,6 +109,18 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
     router.refresh()
   }
 
+  const [running, setRunning] = useState(false)
+  async function runNow() {
+    setRunning(true)
+    toast.message('Enviando… tarda hasta un minuto por las pausas entre mensajes')
+    const { ok, data } = await post('/api/admin/sales/run', {})
+    setRunning(false)
+    if (!ok) return toast.error(data?.error ?? 'Falló el envío')
+    if (data.skipped) toast.warning(`No envió: ${data.skipped}`)
+    else toast.success(`${data.sent} mensajes enviados`)
+    router.refresh()
+  }
+
   async function syncNotion() {
     setImporting(true)
     const { ok, data } = await post('/api/admin/sales/notion', {}, 'PUT')
@@ -156,6 +168,7 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
           <button onClick={toggle} className={`${btn} ${cfg.enabled ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
             {cfg.enabled ? 'Apagar agente' : 'Encender agente'}
           </button>
+          {cfg.enabled && <button onClick={runNow} disabled={running} className={`${btn} bg-violet-600 text-white`}>{running ? 'Enviando…' : 'Enviar ahora'}</button>}
         </div>
       </div>
 
