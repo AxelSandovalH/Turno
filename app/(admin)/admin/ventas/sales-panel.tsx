@@ -108,6 +108,14 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
     router.refresh()
   }
 
+  async function syncNotion() {
+    setImporting(true)
+    const { ok, data } = await post('/api/admin/sales/notion', {}, 'PUT')
+    setImporting(false)
+    if (!ok) return toast.error(data?.error ?? 'No se pudo escribir en Notion')
+    toast.success(`${data.updated} actualizados en Notion${data.failed ? `, ${data.failed} con error (¿la integración puede editar?)` : ''}`)
+  }
+
   async function setStatus(id: string, status: string) {
     const { ok, data } = await post('/api/admin/sales/prospects', { id, status }, 'PATCH')
     if (!ok) return toast.error(data?.error ?? 'No se pudo cambiar')
@@ -187,6 +195,7 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
         />
         <button onClick={importList} disabled={importing || !text.trim()} className={`${btn} bg-violet-600 text-white`}>{importing ? 'Importando…' : 'Importar'}</button>
         <button onClick={importNotion} disabled={importing} className={`${btn} bg-muted text-foreground ml-2`}>Importar desde Notion</button>
+        <button onClick={syncNotion} disabled={importing} className={`${btn} bg-muted text-foreground ml-2`}>Enviar avance a Notion</button>
         <p className="text-xs text-muted-foreground">Giro, ciudad y contacto son opcionales. Los teléfonos repetidos se omiten. «Importar desde Notion» trae los que están en estado «Por contactar» del CRM.</p>
       </section>
 
