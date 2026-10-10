@@ -3,8 +3,8 @@ import Image from 'next/image'
 interface TurnoLogoProps {
   height?: number
   className?: string
-  /** 'dark' = logo blanco (para fondos oscuros) · 'light' = logo azul original (para fondos claros) */
-  variant?: 'dark' | 'light'
+  /** 'dark' = logo blanco (fondos oscuros) · 'light' = logo azul original · 'black' = logo negro (fondos claros) */
+  variant?: 'dark' | 'light' | 'black'
 }
 
 export function TurnoLogo({ height = 32, className = '', variant = 'dark' }: TurnoLogoProps) {
@@ -22,8 +22,8 @@ export function TurnoLogo({ height = 32, className = '', variant = 'dark' }: Tur
         display: 'block',
         height,
         width,
-        // dark variant → invertir a blanco; light variant → color original azul
-        filter: variant === 'dark' ? 'brightness(0) invert(1)' : 'none',
+        // dark → blanco; black → negro; light → color original azul
+        filter: variant === 'dark' ? 'brightness(0) invert(1)' : variant === 'black' ? 'brightness(0)' : 'none',
       }}
     />
   )

@@ -21,7 +21,7 @@ const EXAMPLES = [
 ]
 type Phase = 'idle' | 'erasing' | 'working' | 'result'
 type View = 'link' | 'sistema' | 'whatsapp'
-const MIN_WORKING_MS = 4200
+const MIN_WORKING_MS = 2400
 const nowMs = () => Date.now()
 
 export function DemoGenerator({ t, isDay }: Props) {
@@ -59,14 +59,14 @@ export function DemoGenerator({ t, isDay }: Props) {
     if (!reduced) {
       let left = description.length
       await new Promise<void>(resolve => {
-        const step = Math.max(2, Math.ceil(description.length / 22))
+        const step = Math.max(3, Math.ceil(description.length / 14))
         const id = setInterval(() => {
           left = Math.max(0, left - step)
           setShown(description.slice(0, left))
           if (left === 0) { clearInterval(id); resolve() }
-        }, 35)
+        }, 30)
       })
-      await new Promise(r => setTimeout(r, 250))
+      await new Promise(r => setTimeout(r, 120))
     }
 
     // 2) trabaja la IA: logo de QuickTurno
@@ -94,7 +94,7 @@ export function DemoGenerator({ t, isDay }: Props) {
       const res = await fetch('/api/demo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'refine', plan, instruction: ask, description: text }) })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error ?? 'No pude aplicar ese cambio.')
-      const wait = Math.max(0, 1800 - (nowMs() - started))
+      const wait = Math.max(0, 1200 - (nowMs() - started))
       if (wait) await new Promise(r => setTimeout(r, wait))
       setPlan(data.plan as DemoPlan); setVersion(v => v + 1)
       setLog(l => [...l, { role: 'ai', text: data.note || 'Listo, ya lo cambié.', fresh: true }])

@@ -259,7 +259,7 @@ export function LandingPage() {
       >
         <div className="max-w-5xl mx-auto px-5 flex items-center justify-between" style={{ height: '56px' }}>
           <Link href="/">
-            <TurnoLogo height={36} variant={isDay ? 'light' : 'dark'} />
+            <TurnoLogo height={52} variant={isDay ? 'black' : 'dark'} />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-[13px]" style={{ color: t.muted }}>
             <a href="#features"  className="transition-colors hover:opacity-80">Funciones</a>
@@ -552,7 +552,7 @@ export function LandingPage() {
       <footer style={{ borderTop: `1px solid ${t.border}` }}>
         <div className="max-w-5xl mx-auto px-5 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
           <Link href="/">
-            <TurnoLogo height={28} variant={isDay ? 'light' : 'dark'} />
+            <TurnoLogo height={38} variant={isDay ? 'black' : 'dark'} />
           </Link>
           <p className="text-[13px]" style={{ color: t.subtle }}>© 2026 Turno · Hecho en México</p>
           <a
