@@ -113,6 +113,13 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
   const [bulk, setBulk] = useState<{ sent: number } | null>(null)
   const stopBulk = useRef(false)
 
+  // Mientras se está enviando, los números y la lista se refrescan solos cada pocos segundos
+  useEffect(() => {
+    if (!bulk && !running) return
+    const t = setInterval(() => router.refresh(), 4000)
+    return () => clearInterval(t)
+  }, [bulk, running, router])
+
   // Encadena pasadas (3 mensajes con pausas cada una) hasta vaciar la lista o llegar al tope diario.
   async function runAll() {
     if (!window.confirm(`Se enviarán los mensajes a todos los prospectos pendientes, uno cada 12 a 25 segundos (unos 15 s en promedio), hasta el tope diario de ${cfg.daily_limit}. Deja esta pestaña abierta. ¿Continuar?`)) return
