@@ -67,6 +67,12 @@ export async function POST(req: Request) {
   // citas (create_appointment necesita un branch_id válido)
   await db.from('branches').insert({ organization_id: org.id, name, is_active: true })
 
+  // Si el negocio era un prospecto del agente de ventas, queda como ganado y se le deja de escribir
+  const last10 = String(whatsappNumber).replace(/\D/g, '').slice(-10)
+  if (last10.length === 10) {
+    await db.from('prospects').update({ status: 'won' }).eq('phone_key', last10).neq('status', 'opted_out')
+  }
+
   // Create staff record as owner
   await db.from('staff').insert({
     organization_id: org.id,

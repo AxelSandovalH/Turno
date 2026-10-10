@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
+import { handleSalesInbound } from '@/lib/sales/inbound'
 
 export const maxDuration = 60
 
@@ -50,6 +51,13 @@ export async function POST(req: Request) {
         console.log('[whatsapp] duplicate msgId, skipping:', msgId)
         return NextResponse.json({ ok: true })
       }
+    }
+
+    // Agente de ventas: si quien escribe es un prospecto cargado en la línea de ventas, lo atiende ventas
+    // y no se trata como cliente de ningún negocio
+    const salesInstanceId: string = body?.instanceId ?? body?.instance_id ?? ''
+    if (await handleSalesInbound({ instanceId: salesInstanceId, phone, text, msgId })) {
+      return NextResponse.json({ ok: true })
     }
 
     const ORG_FIELDS = 'id, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token, whatsapp_bot_enabled'
