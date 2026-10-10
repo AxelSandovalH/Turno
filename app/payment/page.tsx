@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { PaymentClient } from './payment-client'
 
-export default async function PaymentPage() {
+export default async function PaymentPage({ searchParams }: { searchParams: Promise<{ renew?: string }> }) {
+  const { renew } = await searchParams
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -18,7 +19,8 @@ export default async function PaymentPage() {
     .eq('id', orgId)
     .single()
 
-  if (org?.subscription_status === 'active') redirect('/appointments')
+  // Un negocio activo no necesita esta pantalla, salvo para renovar un prepago
+  if (org?.subscription_status === 'active' && renew !== '1') redirect('/appointments')
 
   return <PaymentClient trial={!org?.stripe_subscription_id} />
 }

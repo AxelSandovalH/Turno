@@ -50,6 +50,13 @@ export const PLANS: Record<PlanKey, Plan> = {
 /** Días de prueba gratis en toda suscripción nueva. Stripe cobra el primer mes al terminar. */
 export const TRIAL_DAYS = 7
 
+/** Meses que se pueden prepagar con OXXO o SPEI (OXXO tiene tope de $10,000 por pago). */
+export const PREPAID_MONTHS = [1, 3] as const
+export type PrepaidMonths = (typeof PREPAID_MONTHS)[number]
+export function isPrepaidMonths(v: unknown): v is PrepaidMonths {
+  return PREPAID_MONTHS.includes(v as PrepaidMonths)
+}
+
 export const DEFAULT_PLAN: PlanKey = 'asistente'
 
 export function isPlanKey(v: unknown): v is PlanKey {

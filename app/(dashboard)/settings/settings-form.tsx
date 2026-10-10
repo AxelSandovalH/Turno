@@ -444,6 +444,11 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
               {organization.business_type === 'restaurant' ? PLANS.pedidos.priceLabel : organization.whatsapp_bot_enabled ? PLANS.asistente.priceLabel : PLANS.agenda.priceLabel} MXN / mes
             </p>
+            {organization.payment_mode === 'prepaid' && organization.paid_until && (
+              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 4 }}>
+                Prepagado hasta el {new Date(organization.paid_until).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}. No se renueva solo.
+              </p>
+            )}
             {inTrial && (
               <p style={{ fontSize: 12, color: '#a78bfa', marginTop: 4 }}>
                 Prueba gratis hasta el {new Date(organization.trial_ends_at!).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}. Después se cobra tu plan.
@@ -462,7 +467,17 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
         </div>
       </div>
 
-      {organization.stripe_customer_id && (
+      {organization.payment_mode === 'prepaid' ? (
+        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Renueva con OXXO, transferencia SPEI o tarjeta antes de que venza.</p>
+          <a
+            href="/payment?renew=1"
+            style={{ ...s.btn, textDecoration: 'none', background: 'transparent', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+          >
+            Renovar plan
+          </a>
+        </div>
+      ) : organization.stripe_customer_id && (
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Cambia tu tarjeta, descarga facturas o cancela cuando quieras.</p>
           <button

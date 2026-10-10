@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { resolvePlan, isPlanKey, TRIAL_DAYS, type PlanKey } from '@/lib/plans'
+import { resolvePlan, isPlanKey, isPrepaidMonths, TRIAL_DAYS, type PlanKey } from '@/lib/plans'
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
@@ -34,6 +34,37 @@ export async function POST(req: Request) {
       })
       customerId = customer.id
       await db.from('organizations').update({ stripe_customer_id: customerId }).eq('id', orgId)
+    }
+
+    // Prepago con OXXO o transferencia SPEI: un solo pago por 1 o 3 meses, sin renovación automática
+    // (esos métodos no permiten cobros recurrentes). El acceso se activa cuando el pago se confirma.
+    if (body?.mode === 'prepaid') {
+      const months = isPrepaidMonths(body.months) ? body.months : 1
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      const prepaid = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'payment',
+        payment_method_types: ['oxxo', 'customer_balance'],
+        payment_method_options: {
+          oxxo: { expires_after_days: 3 },
+          customer_balance: { funding_type: 'bank_transfer', bank_transfer: { type: 'mx_bank_transfer' } },
+        },
+        line_items: [{
+          quantity: 1,
+          price_data: {
+            currency: 'mxn',
+            unit_amount: plan.amount * months,
+            product_data: {
+              name: `${plan.name} · ${months} ${months === 1 ? 'mes' : 'meses'}`,
+              description: 'Prepago sin renovación automática',
+            },
+          },
+        }],
+        success_url: `${baseUrl}/payment/pendiente`,
+        cancel_url: `${baseUrl}/payment`,
+        metadata: { type: 'prepaid', organization_id: orgId, plan: plan.key, months: String(months) },
+      })
+      return NextResponse.json({ url: prepaid.url })
     }
 
     const session = await stripe.checkout.sessions.create({

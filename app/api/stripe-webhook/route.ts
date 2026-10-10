@@ -6,6 +6,8 @@ import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 import { planHasBot } from '@/lib/plans'
 import { markOrderPaid } from '@/lib/orders'
+import { activatePrepaid } from '@/lib/billing'
+import { isPlanKey, isPrepaidMonths } from '@/lib/plans'
 import type Stripe from 'stripe'
 
 export async function POST(req: Request) {
@@ -32,6 +34,13 @@ export async function POST(req: Request) {
         break
       }
 
+      // Prepago OXXO / SPEI: con OXXO el pago llega después (async_payment_succeeded);
+      // si el dinero ya estaba disponible llega aquí como 'paid'
+      if (session.metadata?.type === 'prepaid') {
+        if (session.payment_status === 'paid') await handlePrepaidPaid(session)
+        break
+      }
+
       // Pedido pagado con tarjeta: recién ahora llega al tablero del negocio
       if (session.metadata?.type === 'order') {
         const orderId = session.metadata.order_id
@@ -55,6 +64,9 @@ export async function POST(req: Request) {
           .from('organizations')
           .update({
             subscription_status: 'active',
+            // Si antes pagaba por adelantado, pasar a tarjeta lo saca del control de vencimientos
+            payment_mode: 'subscription',
+            paid_until: null,
             trial_ends_at: trialEnd,
             // El plan 'agenda' no incluye el bot de WhatsApp
             whatsapp_bot_enabled: planHasBot(session.metadata?.plan),
@@ -88,6 +100,19 @@ export async function POST(req: Request) {
           }
         }
       }
+      break
+    }
+
+    // OXXO y transferencia SPEI se confirman horas o días después de generar la referencia
+    case 'checkout.session.async_payment_succeeded': {
+      const session = event.data.object as Stripe.Checkout.Session
+      if (session.metadata?.type === 'prepaid') await handlePrepaidPaid(session)
+      break
+    }
+
+    case 'checkout.session.async_payment_failed': {
+      const session = event.data.object as Stripe.Checkout.Session
+      console.warn('[stripe-webhook] pago OXXO/SPEI fallido o vencido:', session.id, session.metadata?.organization_id)
       break
     }
 
@@ -129,6 +154,31 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ received: true })
+}
+
+async function handlePrepaidPaid(session: Stripe.Checkout.Session) {
+  const orgId = session.metadata?.organization_id
+  const plan = session.metadata?.plan
+  const months = Number(session.metadata?.months)
+  if (!orgId || !isPlanKey(plan) || !isPrepaidMonths(months)) {
+    console.error('[stripe-webhook] prepago con metadata incompleta', session.id)
+    return
+  }
+  const result = await activatePrepaid(orgId, plan, months, session.id)
+  if (!result || !result.firstActivation) return
+
+  // Bienvenida solo en la primera activación (las renovaciones no la repiten)
+  const db = createServiceClient()
+  const { data: owner } = await db.from('staff').select('email').eq('organization_id', orgId).eq('is_owner', true).limit(1).maybeSingle()
+  const to = owner?.email ?? session.customer_details?.email
+  if (to) {
+    const props = { businessName: result.name, whatsappNumber: result.whatsappNumber }
+    await resend.emails.send({
+      from: FROM, to,
+      subject: `¡Bienvenido a QuickTurno, ${result.name}!`,
+      html: welcomeEmailHtml(props), text: welcomeEmailText(props),
+    }).catch(err => console.error('[stripe-webhook] welcome email failed:', err))
+  }
 }
 
 async function handleDepositPaid(db: ReturnType<typeof createServiceClient>, appointmentId: string) {

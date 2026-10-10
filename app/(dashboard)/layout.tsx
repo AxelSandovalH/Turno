@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const status = organization?.subscription_status ?? 'trialing'
 
   return (
-    <SubscriptionGate status={status}>
+    <SubscriptionGate status={status} prepaid={organization?.payment_mode === 'prepaid'}>
       <SidebarProvider>
         <div className="print:hidden contents">{organization && <AppSidebar organization={organization} />}</div>
         <main className="flex-1 min-w-0 bg-background">

@@ -8,6 +8,8 @@ type SubscriptionStatus = 'trialing' | 'active' | 'suspended' | 'canceled' | 'pa
 
 interface Props {
   status: SubscriptionStatus
+  /** El negocio paga por adelantado (OXXO / SPEI) en lugar de suscripción con tarjeta */
+  prepaid?: boolean
   children: React.ReactNode
 }
 
@@ -67,7 +69,7 @@ function GateScreen({ icon, title, description, cta }: {
   )
 }
 
-export function SubscriptionGate({ status, children }: Props) {
+export function SubscriptionGate({ status, prepaid = false, children }: Props) {
   // Sin trials: 'trialing' (default post-onboarding) significa que aún no paga
   if (status === 'trialing') {
     return (
@@ -76,6 +78,17 @@ export function SubscriptionGate({ status, children }: Props) {
         title="Ya casi está listo"
         description="Tu cuenta está creada. Elige un plan para activar tu agenda y que tu WhatsApp empiece a contestar solo."
         cta="Elegir mi plan →"
+      />
+    )
+  }
+
+  if (status === 'suspended' && prepaid) {
+    return (
+      <GateScreen
+        icon={<AlertTriangle size={28} color="#eab308" />}
+        title="Tu plan prepagado venció"
+        description="El periodo que pagaste terminó. Renueva con OXXO, transferencia SPEI o tarjeta y recuperas el acceso en cuanto se confirme el pago. Tu información sigue guardada."
+        cta="Renovar mi plan →"
       />
     )
   }

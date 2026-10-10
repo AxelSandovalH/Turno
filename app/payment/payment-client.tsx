@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
-import { PLANS, DEFAULT_PLAN, isPlanKey, type PlanKey } from '@/lib/plans'
+import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, type PlanKey, type PrepaidMonths } from '@/lib/plans'
 
 const PLAN_LIST = [PLANS.agenda, PLANS.asistente, PLANS.pedidos]
 
@@ -13,6 +13,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
   const [selected, setSelected] = useState<PlanKey>(DEFAULT_PLAN)
   const [loading, setLoading] = useState(false)
   const autoStarted = useRef(false)
+  const [months, setMonths] = useState<PrepaidMonths>(1)
 
   // Si el plan ya se eligió antes (landing/registro: ?plan=agenda|asistente)
   // se preselecciona; y con ?auto=1 arranca el checkout sin un clic más.
@@ -31,13 +32,13 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleCheckout(planKey: PlanKey = selected) {
+  async function handleCheckout(planKey: PlanKey = selected, prepaid = false) {
     setLoading(true)
     try {
       const res = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planKey }),
+        body: JSON.stringify(prepaid ? { planKey, mode: 'prepaid', months } : { planKey }),
       })
       // La respuesta puede no ser JSON (ej. página de error HTML de un 500
       // no manejado) — nunca dejar que eso reviente sin apagar el loading.
@@ -98,7 +99,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 14, fontWeight: 600, color: '#ebebeb' }}>{p.name.replace('Turno — ', '')}</span>
-                    {p.bot && (
+                    {p.key === 'asistente' && (
                       <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', border: '1px solid #7c3aed55', borderRadius: 99, padding: '1px 7px' }}>Popular</span>
                     )}
                   </div>
@@ -136,6 +137,39 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
         >
           {loading ? <Spinner size={20} color="#fff" /> : trial ? 'Empezar 7 días gratis →' : `Activar ${plan.name.replace('Turno — ', '')} — ${plan.priceLabel} MXN/mes →`}
         </button>
+
+        {/* Prepago: OXXO o transferencia SPEI (no permiten cobro automático mensual) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '22px 0 14px' }}>
+          <div style={{ flex: 1, height: 1, background: '#1f1f1f' }} />
+          <span style={{ fontSize: 11, color: '#444' }}>¿Prefieres pagar en efectivo o por transferencia?</span>
+          <div style={{ flex: 1, height: 1, background: '#1f1f1f' }} />
+        </div>
+        <div style={{ background: '#111', border: '1px solid #1f1f1f', borderRadius: 12, padding: 14 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {PREPAID_MONTHS.map(m => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMonths(m)}
+                style={{ flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${months === m ? '#7c3aed' : '#252525'}`, background: months === m ? '#7c3aed18' : '#141414', color: months === m ? '#c4b5fd' : '#888' }}
+              >
+                {m} {m === 1 ? 'mes' : 'meses'} · ${(plan.amount * m / 100).toLocaleString('es-MX')}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckout(selected, true)}
+            disabled={loading}
+            style={{ width: '100%', height: 46, background: 'transparent', border: '1.5px solid #333', borderRadius: 10, color: '#ebebeb', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: 'inherit' }}
+          >
+            Pagar en OXXO o por transferencia SPEI
+          </button>
+          <p style={{ fontSize: 11, color: '#4a4a4a', marginTop: 10, lineHeight: 1.5, textAlign: 'center' }}>
+            Pago por adelantado, sin renovación automática. Tu cuenta se activa al confirmarse el pago y te avisamos antes de que venza.
+          </p>
+        </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: '#3d3d3d', marginTop: 14 }}>
           {trial ? `Hoy no se te cobra. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.` : 'Pago seguro vía Stripe · Cancela cuando quieras'}

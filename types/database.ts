@@ -47,6 +47,10 @@ export interface Organization {
   order_card_enabled: boolean
   whatsapp_connected_at: string | null
   trial_reminder_sent_at: string | null
+  payment_mode: 'subscription' | 'prepaid'
+  paid_until: string | null
+  prepaid_reminder_sent_at: string | null
+  last_prepaid_session_id: string | null
   created_at: string
   updated_at: string
 }
