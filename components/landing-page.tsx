@@ -12,6 +12,7 @@ import { HowItWorks } from '@/components/landing/how-it-works'
 import { DashboardMockup } from '@/components/landing/dashboard-mockup'
 import { FeaturesBento } from '@/components/landing/features-bento'
 import { SegmentShowcase } from '@/components/landing/segment-showcase'
+import { DemoGenerator } from '@/components/landing/demo-generator'
 import { SEGMENTS } from '@/components/landing/segments-data'
 import { BASES, ASSISTANT, PLANS, planKeyFor, money } from '@/lib/plans'
 import gsap from 'gsap'
@@ -366,6 +367,9 @@ export function LandingPage() {
 
       {/* Segmentos — un solo panel por giro en vez de 7 columnas de bullets */}
       <SegmentShowcase t={t} isDay={isDay} />
+
+      {/* Demo con IA: el visitante describe su negocio y ve cómo quedaría */}
+      <DemoGenerator t={t} isDay={isDay} />
 
       {/* Pricing */}
       <section id="pricing" style={{ borderTop: `1px solid ${t.border}` }}>
