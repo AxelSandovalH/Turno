@@ -148,6 +148,8 @@ export function LandingPage() {
   const [isDay, setIsDay] = useState(false) // dark default for SSR
   const [loginHover, setLoginHover] = useState(false)
   const [activeSegment, setActiveSegment] = useState(0)
+  // Los planes se muestran según el tipo de negocio: citas o pedidos
+  const [pricingSegment, setPricingSegment] = useState<'citas' | 'pedidos'>('citas')
 
   useEffect(() => {
     // Por defecto SIEMPRE se adapta a la hora actual. Si el visitante toca el
@@ -400,12 +402,34 @@ export function LandingPage() {
             <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Sin comisiones. Sin contratos. Sin letra chica.</p>
           </div>
 
-          {/* Tres planes: Agenda (sin bot), Agenda + Asistente (con bot) y Pedidos (restaurantes) */}
+          {/* Planes por tipo de negocio: citas (Agenda, Agenda + Asistente) y pedidos (Pedidos) */}
           <div data-pricing-card style={{ opacity: 0 }} className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="flex justify-center mb-3">
+              <div role="tablist" aria-label="Tipo de negocio" className="inline-flex rounded-full p-1 gap-1" style={{ border: `1px solid ${t.border}`, background: t.card }}>
+                {([['citas', 'Citas y reservas'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => (
+                  <button
+                    key={seg}
+                    role="tab"
+                    aria-selected={pricingSegment === seg}
+                    onClick={() => setPricingSegment(seg)}
+                    className="px-4 py-2 rounded-full text-[13px] font-medium transition-colors"
+                    style={pricingSegment === seg ? { background: t.accent, color: '#fff' } : { color: t.muted }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-center text-[13px] mb-8" style={{ color: t.muted }}>
+              {pricingSegment === 'citas'
+                ? 'Barberías, spas, clínicas, estudios de tatuaje, charters y tours.'
+                : 'Restaurantes, taquerías y cafeterías con pedidos a domicilio o para recoger.'}
+            </p>
+            <div className={pricingSegment === 'citas' ? 'grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto' : 'grid gap-4 max-w-md mx-auto'}>
               {[
                 {
                   key: 'agenda',
+                  segment: 'citas',
                   name: 'Agenda',
                   price: '$1,500',
                   desc: 'Tu agenda en orden, sin bot de WhatsApp',
@@ -414,6 +438,7 @@ export function LandingPage() {
                 },
                 {
                   key: 'asistente',
+                  segment: 'citas',
                   name: 'Agenda + Asistente',
                   price: '$2,700',
                   desc: 'Tu WhatsApp contesta y agenda solo, 24/7',
@@ -422,13 +447,14 @@ export function LandingPage() {
                 },
                 {
                   key: 'pedidos',
+                  segment: 'pedidos',
                   name: 'Pedidos',
                   price: '$2,800',
                   desc: 'Pedidos y delivery por WhatsApp',
                   features: ['Menú con fotos, extras y notas', 'Link de pedidos con carrito', 'Bot que toma pedidos 24/7', 'Cobro con tarjeta por Stripe', 'Tablero con avisos al cliente'],
-                  highlight: false,
+                  highlight: true,
                 },
-              ].map(({ key, name, price, desc, features, highlight }) => (
+              ].filter(plan => plan.segment === pricingSegment).map(({ key, name, price, desc, features, highlight }) => (
                 <div
                   key={key}
                   className="rounded-xl p-7 flex flex-col"
@@ -441,7 +467,7 @@ export function LandingPage() {
                     <span
                       className="inline-block self-start text-[10px] font-semibold uppercase tracking-widest rounded-full px-2.5 py-0.5 mb-3"
                       style={{ color: t.accent, border: `1px solid ${t.accent}66` }}
-                    >Popular</span>
+                    >{key === 'pedidos' ? 'Para restaurantes' : 'Popular'}</span>
                   )}
                   <p className="text-[15px] font-semibold mb-1" style={{ color: t.text }}>{name}</p>
                   <p className="text-[12px] mb-5" style={{ color: t.muted }}>{desc}</p>

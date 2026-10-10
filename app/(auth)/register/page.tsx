@@ -20,7 +20,8 @@ const s = {
 }
 
 const TYPES = ALL_PROFILES.map(p => ({ value: p.type, label: `${p.emoji} ${p.displayName}` }))
-const PLAN_LIST = [PLANS.agenda, PLANS.asistente, PLANS.pedidos]
+const PLANS_CITAS = [PLANS.agenda, PLANS.asistente]
+const PLANS_PEDIDOS = [PLANS.pedidos]
 
 const IconBuilding = () => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -249,8 +250,28 @@ export default function RegisterPage() {
         {!paidSessionId && (
           <div>
             <label style={s.label}>Tu plan</label>
+            <div role="tablist" aria-label="Tipo de negocio" style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {([['citas', 'Citas y reservas'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => {
+                const active = (form.businessType === 'restaurant') === (seg === 'pedidos')
+                return (
+                  <button
+                    key={seg}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => { if (!active) chooseType(seg === 'pedidos' ? 'restaurant' : 'barbershop') }}
+                    style={{
+                      flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414', color: active ? '#c4b5fd' : '#777',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {PLAN_LIST.map(pl => {
+              {(form.businessType === 'restaurant' ? PLANS_PEDIDOS : PLANS_CITAS).map(pl => {
                 const active = planKey === pl.key
                 return (
                   <button
