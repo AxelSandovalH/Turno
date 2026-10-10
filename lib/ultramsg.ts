@@ -14,7 +14,7 @@ export interface UltramsgCreds {
  */
 export async function hasWhatsapp(phone: string, creds: UltramsgCreds): Promise<boolean | null> {
   try {
-    const q = new URLSearchParams({ token: creds.token, chatId: `${phone.replace(/\D/g, '')}@c.us` })
+    const q = new URLSearchParams({ token: creds.token ?? '', chatId: `${phone.replace(/\D/g, '')}@c.us` })
     const res = await fetch(`https://api.ultramsg.com/${creds.instance}/contacts/check?${q}`)
     const data = await res.json() as { status?: string }
     if (data?.status === 'valid') return true
