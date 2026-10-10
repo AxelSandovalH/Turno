@@ -21,12 +21,21 @@ export function ConnectPanel({ businessName }: { businessName: string }) {
   const [status, setStatus] = useState<Status | null>(null)
   const [busy, setBusy] = useState(false)
   const wasConnected = useRef(false)
+  // Tras pedir la desconexión, UltraMsg tarda unos segundos en cerrar la sesión
+  const disconnectingUntil = useRef(0)
+  const [disconnecting, setDisconnecting] = useState(false)
 
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/whatsapp/connection', { cache: 'no-store' })
       if (!res.ok) return
       const data: Status = await res.json()
+      // Mientras se cierra la sesión no se vuelve a mostrar "conectado"
+      if (disconnectingUntil.current) {
+        if (data.state !== 'connected') { disconnectingUntil.current = 0; setDisconnecting(false) }
+        else if (Date.now() < disconnectingUntil.current) return
+        else { disconnectingUntil.current = 0; setDisconnecting(false); toast.error('UltraMsg no cerró la sesión. Intenta de nuevo o revisa la instancia en su panel.') }
+      }
       setStatus(data)
       if (data.state === 'connected' && !wasConnected.current) {
         wasConnected.current = true
@@ -59,9 +68,16 @@ export function ConnectPanel({ businessName }: { businessName: string }) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
       })
       const data = await res.json().catch(() => null)
-      if (!res.ok) { toast.error(data?.error ?? 'No se pudo completar la acción'); return }
+      if (!res.ok) {
+        console.error('[whatsapp]', action, data)
+        toast.error(`${data?.error ?? 'No se pudo completar la acción'}${data?.detail ? ` (${String(data.detail).slice(0, 120)})` : ''}`)
+        return
+      }
       if (action === 'test') toast.success('Listo. Te mandamos un mensaje de prueba por WhatsApp.')
-      else { setStatus({ state: 'loading' }); wasConnected.current = false; fetchStatus() }
+      else {
+        if (action === 'disconnect') { disconnectingUntil.current = Date.now() + 20000; setDisconnecting(true) }
+        setStatus({ state: 'loading' }); wasConnected.current = false; fetchStatus()
+      }
     } finally {
       setBusy(false)
     }
@@ -128,12 +144,13 @@ export function ConnectPanel({ businessName }: { businessName: string }) {
   }
 
   // loading / disconnected / unknown
-  const needsRestart = status.state === 'disconnected' || status.state === 'unknown'
+  const label = disconnecting ? 'Desconectando…' : null
+  const needsRestart = !disconnecting && (status.state === 'disconnected' || status.state === 'unknown')
   return (
     <Card>
       <CardContent className="py-10 text-center space-y-3">
         {needsRestart ? null : <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />}
-        <p className="font-semibold">{needsRestart ? 'No pudimos mostrar el código' : 'Preparando tu conexión…'}</p>
+        <p className="font-semibold">{label ?? (needsRestart ? 'No pudimos mostrar el código' : 'Preparando tu conexión…')}</p>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
           {needsRestart ? 'Reinicia la conexión para generar un código nuevo.' : 'En unos segundos aparece el código para escanear.'}
         </p>

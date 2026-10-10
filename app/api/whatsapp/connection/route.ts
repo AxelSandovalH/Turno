@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     console.error('[whatsapp] action failed:', action, err)
-    return NextResponse.json({ error: 'No se pudo completar la acción. Intenta de nuevo.' }, { status: 502 })
+    return NextResponse.json({ error: 'No se pudo completar la acción. Intenta de nuevo.', detail: err instanceof Error ? err.message : String(err) }, { status: 502 })
   }
   return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
 }

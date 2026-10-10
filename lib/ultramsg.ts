@@ -129,10 +129,15 @@ export async function configureInstanceWebhook(creds: { instance: string; token:
 }
 
 export async function instanceAction(creds: { instance: string; token: string }, action: 'logout' | 'restart') {
-  const res = await fetch(`${apiBase(creds.instance)}/instance/${action}`, {
+  // El token va en la URL y en el cuerpo: UltraMsg lo acepta de cualquiera de las dos formas
+  const res = await fetch(`${apiBase(creds.instance)}/instance/${action}?token=${encodeURIComponent(creds.token)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: creds.token }),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ token: creds.token }),
   })
-  if (!res.ok) throw new Error(`ultramsg ${action} ${res.status}`)
+  const text = await res.text()
+  console.log(`[ultramsg] ${action} -> ${res.status}`, text.slice(0, 200))
+  let json: { error?: unknown } | null = null
+  try { json = JSON.parse(text) } catch { /* respuesta no JSON */ }
+  if (!res.ok || json?.error) throw new Error(`ultramsg ${action} ${res.status}: ${text.slice(0, 200)}`)
 }
