@@ -49,3 +49,19 @@ export function GeneratingStage({ isDay, accent = '#7c3aed' }: { isDay: boolean;
     </div>
   )
 }
+
+/** Capa sobre las vistas mientras la IA aplica un cambio: el logo de QuickTurno trabajando. */
+export function RefineOverlay({ isDay, accent = '#7c3aed' }: { isDay: boolean; accent?: string }) {
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl backdrop-blur-[2px]" style={{ background: isDay ? 'rgba(245,244,240,.72)' : 'rgba(12,12,12,.72)', animation: 'qt-pop .25s ease-out both' }} role="status" aria-live="polite">
+      <span className="relative flex h-20 w-20 items-center justify-center">
+        <span className="qt-anim absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${accent}66, transparent 68%)`, animation: 'qt-glow 1.6s ease-in-out infinite' }} />
+        <span className="qt-anim absolute inset-1" style={{ animation: 'qt-orbit 1.6s linear infinite' }}>
+          <span className="absolute -top-0.5 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full" style={{ background: accent, boxShadow: `0 0 10px ${accent}` }} />
+        </span>
+        <span className="qt-anim relative" style={{ animation: 'qt-pulse 1.6s ease-in-out infinite' }}><TurnoLogo height={30} variant={isDay ? 'light' : 'dark'} /></span>
+      </span>
+      <p className="text-sm" style={{ color: isDay ? '#444' : '#cfcfcf' }}><TypedText text="Aplicando tu cambio…" speed={30} caret /></p>
+    </div>
+  )
+}

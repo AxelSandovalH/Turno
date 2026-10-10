@@ -1,5 +1,7 @@
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
 import { SubscriptionGate } from '@/components/dashboard/subscription-gate'
+import { SetupNudge } from '@/components/dashboard/setup-nudge'
+import { getSetupProgress } from '@/lib/setup/progress'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeSwitch } from '@/components/ui/theme-switch'
 import { createClient } from '@/lib/supabase/server'
@@ -21,6 +23,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const status = organization?.subscription_status ?? 'trialing'
+  // Mientras le falte configurar algo, el panel le recuerda (de forma llamativa) que la IA lo ayuda a terminar
+  const setup = organization ? await getSetupProgress(createServiceClient(), organization.id).catch(() => null) : null
+  const nextStep = setup?.steps.find(s => !s.done)
 
   return (
     <SubscriptionGate status={status} prepaid={organization?.payment_mode === 'prepaid'}>
@@ -36,6 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {/* Ancho por defecto 1024px; una página que necesite más lo pide con
               data-wide en su raíz (ej. Citas) y sube a 1600px */}
           <div className="p-4 sm:p-6 max-w-5xl has-[[data-wide]]:max-w-[1600px]">
+            {setup && nextStep && status === 'active' && <SetupNudge done={setup.done} total={setup.total} next={nextStep.label} />}
             {children}
           </div>
         </main>

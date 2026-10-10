@@ -1,18 +1,25 @@
 'use client'
 
 import { useLayoutEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import gsap from 'gsap'
 import { TurnoLogo } from '@/components/ui/turno-logo'
+
+// Camino de compra: registro, pago y el asistente de configuración. Ahí la cortinilla corta el ritmo
+// (cada paso sería otra pantalla negra de casi 3 s), así que no se muestra. En el resto sigue igual.
+const FUNNEL = ['/register', '/payment', '/setup', '/onboarding', '/comprar', '/oferta', '/auth']
 
 export function SplashScreen() {
   const ref = useRef<HTMLDivElement>(null)
   const [done, setDone] = useState(false)
+  const pathname = usePathname() ?? ''
+  const skip = FUNNEL.some(p => pathname === p || pathname.startsWith(`${p}/`))
 
   useLayoutEffect(() => {
     // Se muestra en cada carga completa (abrir o refrescar la página). Al cambiar de
     // módulo no se repite porque este componente vive en el layout raíz y no se remonta.
     const el = ref.current
-    if (!el) return
+    if (!el || skip) return
 
     const logo = el.querySelector('[data-splash-logo]')
 
@@ -30,9 +37,11 @@ export function SplashScreen() {
       .to({}, { duration: 0.8 })
       .to(logo, { y: -20, opacity: 0, duration: 0.45, ease: 'power3.in' })
       .to(el, { yPercent: -100, duration: 0.7, ease: 'power3.inOut' }, '-=0.1')
+    // Solo al montar: si se llegó por una pantalla del camino de compra no hay animación que correr
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  if (done) return null
+  if (done || skip) return null
 
   return (
     <div

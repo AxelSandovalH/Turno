@@ -332,6 +332,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-0.5">
+              <style>{`@keyframes qt-spark { 0%,100% { transform: rotate(0) scale(1) } 50% { transform: rotate(18deg) scale(1.2) } }`}</style>
               {(query.trim() ? [] : modules).map(({ href, title, id }) => {
                 const Icon = {
                   setup:        Sparkles,
@@ -354,6 +355,18 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                 }[id] ?? CalendarDays
                 return (
                   <SidebarMenuItem key={href}>
+                    {id === 'setup' ? (
+                      <SidebarMenuButton
+                        render={<Link href={href} />}
+                        isActive={pathname?.startsWith(href) ?? false}
+                        className="text-[13px] font-semibold h-10 rounded-lg mb-1.5 border border-violet-500/40"
+                        style={{ background: 'linear-gradient(135deg, rgba(124,58,237,.22), rgba(236,72,153,.18))' }}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-fuchsia-400" style={{ animation: 'qt-spark 2.4s ease-in-out infinite' }} />
+                        <span>{title}</span>
+                        <span className="ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}>IA</span>
+                      </SidebarMenuButton>
+                    ) : (
                     <SidebarMenuButton
                       render={<Link href={href} />}
                       isActive={pathname?.startsWith(href) ?? false}
@@ -362,6 +375,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                       <Icon className="h-4 w-4 shrink-0" />
                       <span>{title}</span>
                     </SidebarMenuButton>
+                    )}
                   </SidebarMenuItem>
                 )
               })}
