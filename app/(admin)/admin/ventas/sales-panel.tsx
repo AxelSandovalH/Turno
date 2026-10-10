@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -35,10 +35,10 @@ async function post(url: string, body: unknown, method = 'POST') {
   return { ok: res.ok, data: await res.json().catch(() => null) }
 }
 
-export function SalesPanel({ config, prospects, sentToday, orgs }: { config: ConfigView; prospects: ProspectRow[]; sentToday: number; orgs: { slug: string; name: string }[] }) {
+export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }: { config: ConfigView; prospects: ProspectRow[]; sentToday: number; orgs: { slug: string; name: string }[]; freeInstances: string[] }) {
   const router = useRouter()
   const [cfg, setCfg] = useState(config)
-  const [copyFrom, setCopyFrom] = useState('')
+  const [lineChoice, setLineChoice] = useState('')   // 'pool:instance123' | 'org:slug'
   const [saving, setSaving] = useState(false)
   const [text, setText] = useState('')
   const [importing, setImporting] = useState(false)
@@ -53,20 +53,35 @@ export function SalesPanel({ config, prospects, sentToday, orgs }: { config: Con
     setSaving(true)
     const { ok, data } = await post('/api/admin/sales/config', {
       owner_phone: cfg.owner_phone, daily_limit: cfg.daily_limit, send_start_hour: cfg.send_start_hour, send_end_hour: cfg.send_end_hour,
-      max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, ...(copyFrom ? { copyFromOrgSlug: copyFrom } : {}), ...extra,
+      max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, ...extra,
     })
     setSaving(false)
     if (!ok) return toast.error(data?.error ?? 'No se pudo guardar')
     toast.success('Guardado')
-    setCopyFrom('')
     router.refresh()
+  }
+
+  async function changeLine() {
+    if (!lineChoice) return
+    const [source, value] = lineChoice.split(':')
+    const msg = source === 'org'
+      ? 'La instancia se MOVERÁ de ese negocio a ventas: el negocio se queda sin línea (el número sigue conectado y pasa a ser el de ventas). ¿Continuar?'
+      : 'Esta instancia quedará apartada para ventas y no se le asignará a ningún negocio. ¿Continuar?'
+    if (!window.confirm(msg)) return
+    await saveConfig({ line: { source, value } })
+    setLineChoice('')
+  }
+
+  async function removeLine() {
+    if (!window.confirm('Se apaga el agente, se cierra la sesión de WhatsApp de esa línea y la instancia vuelve a la reserva. ¿Continuar?')) return
+    await saveConfig({ clearLine: true })
   }
 
   async function toggle() {
     if (!cfg.enabled && !window.confirm('Vas a encender el agente. A partir de la próxima hora empezará a escribirles a los prospectos pendientes, dentro de tu horario y tu tope diario. ¿Continuar?')) return
     const { ok, data } = await post('/api/admin/sales/config', {
       owner_phone: cfg.owner_phone, daily_limit: cfg.daily_limit, send_start_hour: cfg.send_start_hour, send_end_hour: cfg.send_end_hour,
-      max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, ...(copyFrom ? { copyFromOrgSlug: copyFrom } : {}), enabled: !cfg.enabled,
+      max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, enabled: !cfg.enabled,
     })
     if (!ok) return toast.error(data?.error ?? 'No se pudo cambiar')
     setCfg(c => ({ ...c, enabled: !c.enabled }))
@@ -132,16 +147,16 @@ export function SalesPanel({ config, prospects, sentToday, orgs }: { config: Con
       {/* Configuración */}
       <section className="rounded-lg border border-border p-4 space-y-4">
         <p className="text-sm font-semibold">Configuración</p>
-        <div className="space-y-1.5">
-          <p className="text-xs text-muted-foreground">Línea de WhatsApp: {cfg.lineReady ? <span className="text-emerald-500">lista ({cfg.lineName})</span> : <span className="text-amber-500">sin elegir</span>}</p>
-          <div className="flex gap-2 flex-wrap">
-            <select className={`${input} min-w-[240px]`} value={copyFrom} onChange={e => setCopyFrom(e.target.value)}>
-              <option value="">Usar la instancia de un negocio…</option>
-              {orgs.map(o => <option key={o.slug} value={o.slug}>{o.name}</option>)}
-            </select>
-          </div>
-          <p className="text-xs text-muted-foreground">Si usas la misma línea que un negocio de demo, comparten el riesgo de que WhatsApp la bloquee.</p>
-        </div>
+        <LineSection
+          ready={cfg.lineReady}
+          name={cfg.lineName}
+          freeInstances={freeInstances}
+          orgs={orgs}
+          choice={lineChoice}
+          onChoice={setLineChoice}
+          onChange={changeLine}
+          onRemove={removeLine}
+        />
         <div className="flex flex-wrap gap-x-5 gap-y-3 items-center text-sm">
           <label className="flex items-center gap-2">Tu teléfono de aviso <input className={`${input} w-40`} placeholder="10 dígitos" value={cfg.owner_phone} onChange={e => setCfg(c => ({ ...c, owner_phone: e.target.value }))} /></label>
           <label className="flex items-center gap-2">Tope diario {num('daily_limit')}</label>
@@ -211,6 +226,95 @@ export function SalesPanel({ config, prospects, sentToday, orgs }: { config: Con
           </ul>
         )}
       </section>
+    </div>
+  )
+}
+
+interface LineState { state: string; qr?: string | null; instance?: string }
+
+/** Línea de WhatsApp de ventas: su estado en vivo, el QR para vincularla y cómo cambiarla. */
+function LineSection({ ready, name, freeInstances, orgs, choice, onChoice, onChange, onRemove }: {
+  ready: boolean; name: string | null; freeInstances: string[]; orgs: { slug: string; name: string }[]
+  choice: string; onChoice: (v: string) => void; onChange: () => void; onRemove: () => void
+}) {
+  const router = useRouter()
+  const [line, setLine] = useState<LineState | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!ready) return
+    let stopped = false, timer: ReturnType<typeof setTimeout>, first = true
+    const tick = async () => {
+      if (stopped) return
+      if (first || document.visibilityState === 'visible') {
+        const res = await fetch('/api/admin/sales/line', { cache: 'no-store' }).catch(() => null)
+        if (res?.ok && !stopped) setLine(await res.json())
+      }
+      first = false
+      if (!stopped) timer = setTimeout(tick, 4000)
+    }
+    tick()
+    return () => { stopped = true; clearTimeout(timer) }
+  }, [ready, name])
+
+  async function act(action: 'logout' | 'restart' | 'test') {
+    setBusy(true)
+    const { ok, data } = await post('/api/admin/sales/line', { action })
+    setBusy(false)
+    if (!ok) return toast.error(data?.error ?? 'No se pudo completar')
+    toast.success(action === 'test' ? 'Mensaje de prueba enviado a tu teléfono' : 'Listo')
+    if (action !== 'test') { setLine({ state: 'loading' }); router.refresh() }
+  }
+
+  const label: Record<string, string> = { connected: 'conectada', qr: 'falta vincular el teléfono', loading: 'iniciando…', disconnected: 'desconectada', unknown: 'sin respuesta de UltraMsg', none: 'sin elegir' }
+  const connected = line?.state === 'connected'
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Línea de WhatsApp de ventas:{' '}
+        {ready
+          ? <span className={connected ? 'text-emerald-500' : 'text-amber-500'}>{name} · {line ? (label[line.state] ?? line.state) : 'revisando…'}</span>
+          : <span className="text-amber-500">sin elegir</span>}
+      </p>
+
+      {ready && line?.state === 'qr' && (
+        <div className="flex gap-4 items-center flex-wrap rounded-md border border-border p-3">
+          <div className="h-40 w-40 rounded-lg bg-white p-2 flex items-center justify-center">
+            {line.qr
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={line.qr} alt="Código QR de la línea de ventas" className="h-full w-full object-contain" />
+              : <span className="text-xs text-zinc-500">Cargando…</span>}
+          </div>
+          <p className="text-xs text-muted-foreground max-w-xs">En el teléfono de ventas abre WhatsApp, Ajustes, Dispositivos vinculados, Vincular un dispositivo y escanea este código.</p>
+        </div>
+      )}
+
+      {ready && (
+        <div className="flex gap-2 flex-wrap">
+          <button disabled={busy || !connected} onClick={() => act('test')} className={`${btn} bg-muted text-foreground`}>Enviarme un mensaje de prueba</button>
+          <button disabled={busy} onClick={() => act('restart')} className={`${btn} bg-muted text-foreground`}>Reiniciar</button>
+          <button disabled={busy} onClick={onRemove} className={`${btn} bg-muted text-red-400`}>Quitar línea</button>
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap">
+        <select className={`${input} min-w-[260px]`} value={choice} onChange={e => onChoice(e.target.value)}>
+          <option value="">{ready ? 'Cambiar de línea…' : 'Elegir línea…'}</option>
+          {freeInstances.length > 0 && (
+            <optgroup label="Instancias libres de la reserva">
+              {freeInstances.map(i => <option key={i} value={`pool:${i}`}>{i}</option>)}
+            </optgroup>
+          )}
+          {orgs.length > 0 && (
+            <optgroup label="Mover desde un negocio (se la quita)">
+              {orgs.map(o => <option key={o.slug} value={`org:${o.slug}`}>{o.name}</option>)}
+            </optgroup>
+          )}
+        </select>
+        <button disabled={!choice} onClick={onChange} className={`${btn} bg-violet-600 text-white`}>Usar esta línea</button>
+      </div>
+      <p className="text-xs text-muted-foreground">La línea de ventas es solo de ventas: no se comparte con ningún negocio. Si le escribes en frío a muchas personas y WhatsApp bloquea el número, solo afecta a ventas.</p>
     </div>
   )
 }

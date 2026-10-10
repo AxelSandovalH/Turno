@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { isPlatformAdmin } from '@/lib/admin-guard'
 import { normalizeMxPhone } from '@/lib/sales/phone'
+import { reserveFreeInstance, moveInstanceFromOrg, clearLine } from '@/lib/sales/line'
 
 const int = (v: unknown, min: number, max: number, fallback: number) => {
   const n = Math.floor(Number(v))
@@ -32,17 +33,22 @@ export async function POST(req: Request) {
     if (b.owner_phone && !phone) return NextResponse.json({ error: 'Tu teléfono de aviso no es válido (10 dígitos)' }, { status: 400 })
     patch.owner_phone = phone
   }
-  if (b.copyFromOrgSlug) {
-    const { data: org } = await db.from('organizations').select('ultramsg_instance, ultramsg_token').eq('slug', String(b.copyFromOrgSlug)).maybeSingle()
-    if (!org?.ultramsg_instance || !org?.ultramsg_token) return NextResponse.json({ error: 'Ese negocio no tiene una instancia de WhatsApp' }, { status: 400 })
-    patch.ultramsg_instance = org.ultramsg_instance
-    patch.ultramsg_token = org.ultramsg_token
+  // Línea de WhatsApp: se aparta una libre de la reserva, se mueve la de un negocio, o se quita
+  if (b.clearLine) {
+    await clearLine()
+  } else if (b.line?.source === 'pool' && b.line.value) {
+    const r = await reserveFreeInstance(String(b.line.value))
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 })
+  } else if (b.line?.source === 'org' && b.line.value) {
+    const r = await moveInstanceFromOrg(String(b.line.value))
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: 400 })
   }
+
   if (b.enabled !== undefined) {
     if (b.enabled) {
       const { data: cur } = await db.from('sales_config').select('ultramsg_instance, ultramsg_token, owner_phone').eq('id', 1).single()
-      const instance = (patch.ultramsg_instance ?? cur?.ultramsg_instance) as string | null
-      const token = (patch.ultramsg_token ?? cur?.ultramsg_token) as string | null
+      const instance = cur?.ultramsg_instance as string | null
+      const token = cur?.ultramsg_token as string | null
       const owner = (patch.owner_phone ?? cur?.owner_phone) as string | null
       if (!instance || !token) return NextResponse.json({ error: 'Primero elige la línea de WhatsApp desde la que escribirá' }, { status: 400 })
       if (!owner) return NextResponse.json({ error: 'Escribe tu teléfono: ahí te avisa cuando un prospecto necesita a una persona' }, { status: 400 })
