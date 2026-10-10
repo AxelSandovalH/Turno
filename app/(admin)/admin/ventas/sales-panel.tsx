@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -110,6 +110,27 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
   }
 
   const [running, setRunning] = useState(false)
+  const [bulk, setBulk] = useState<{ sent: number } | null>(null)
+  const stopBulk = useRef(false)
+
+  // Encadena pasadas (3 mensajes con pausas cada una) hasta vaciar la lista o llegar al tope diario.
+  async function runAll() {
+    if (!window.confirm(`Se enviarán los mensajes a todos los prospectos pendientes, uno cada 12 a 25 segundos (unos 15 s en promedio), hasta el tope diario de ${cfg.daily_limit}. Deja esta pestaña abierta. ¿Continuar?`)) return
+    stopBulk.current = false
+    setBulk({ sent: 0 })
+    let total = 0, why = ''
+    while (!stopBulk.current) {
+      const { ok, data } = await post('/api/admin/sales/run', {})
+      if (!ok) { why = data?.error ?? 'falló un envío'; break }
+      if (data.skipped) { why = data.skipped; break }
+      total += data.sent
+      setBulk({ sent: total })
+      if (!data.processed) { why = 'ya no quedan pendientes'; break }
+    }
+    setBulk(null)
+    toast.success(`${total} mensajes enviados${why ? ` (${why})` : ' (detenido)'}`)
+    router.refresh()
+  }
   async function runNow() {
     setRunning(true)
     toast.message('Enviando… tarda hasta un minuto por las pausas entre mensajes')
@@ -168,7 +189,10 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
           <button onClick={toggle} className={`${btn} ${cfg.enabled ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
             {cfg.enabled ? 'Apagar agente' : 'Encender agente'}
           </button>
-          {cfg.enabled && <button onClick={runNow} disabled={running} className={`${btn} bg-violet-600 text-white`}>{running ? 'Enviando…' : 'Enviar ahora'}</button>}
+          {cfg.enabled && <button onClick={runNow} disabled={running} className={`${btn} bg-violet-600 text-white`}>{running ? 'Enviando…' : 'Enviar 3 ahora'}</button>}
+          {cfg.enabled && (bulk
+            ? <button onClick={() => { stopBulk.current = true }} className={`${btn} bg-amber-600 text-white`}>Detener ({bulk.sent} enviados)</button>
+            : <button onClick={runAll} disabled={running} className={`${btn} bg-violet-600 text-white`}>Enviar toda la lista</button>)}
         </div>
       </div>
 

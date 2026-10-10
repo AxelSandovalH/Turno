@@ -21,7 +21,7 @@ function followupText(name: string | null, bizName: string, n: number): string {
   return `${hi}, es mi último mensaje: si en algún momento quieres que WhatsApp conteste y agende solo en ${bizName}, aquí sigo. Más información en quickturno.app. Gracias por tu tiempo.`
 }
 
-export interface OutreachResult { sent: number; followups: number; skipped?: string }
+export interface OutreachResult { sent: number; followups: number; processed?: number; skipped?: string }
 
 /**
  * Una pasada de envíos en frío: respeta el tiempo de encendido, el tope diario y manda pocos
@@ -98,5 +98,5 @@ export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Pr
     // Pausa entre mensajes (12 a 25 s): enviar en ráfaga es lo que hace que bloqueen un número
     if (i < jobs.length - 1) await sleep(12000 + Math.floor(Math.random() * 13000))
   }
-  return { sent, followups }
+  return { sent, followups, processed: jobs.length }
 }
