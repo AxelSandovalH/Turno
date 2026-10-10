@@ -94,6 +94,8 @@ export default function RegisterPage() {
   // Usuario que ya entró con Google pero aún no tiene negocio: solo falta crearlo
   const [googleUser, setGoogleUser] = useState<{ id: string; email: string; firstName: string } | null>(null)
   const [planKey, setPlanKey] = useState<PlanKey>(DEFAULT_PLAN)
+  // Paso 1: cuenta (Google, correo y contraseña). Paso 2: negocio y plan. Con Google ya entró, así que va directo al 2
+  const [stepState, setStepState] = useState<1 | 2>(1)
   const [form, setForm] = useState({
     businessName: '', email: '', password: '', whatsappNumber: '', businessType: 'barbershop',
   })
@@ -142,6 +144,19 @@ export default function RegisterPage() {
   }
 
   const plan = PLANS[planKey]
+  const step: 1 | 2 = googleUser ? 2 : stepState
+
+  function goToStep(n: 1 | 2) {
+    setStepState(n)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Paso 1 -> 2: el navegador ya validó correo y contraseña; la cuenta se crea hasta el final
+  function handleNext(e: React.FormEvent) {
+    e.preventDefault()
+    if (form.password.length < 8) { toast.error('La contraseña debe tener al menos 8 caracteres'); return }
+    goToStep(2)
+  }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -172,6 +187,7 @@ export default function RegisterPage() {
         const already = /already|registered/i.test(authError?.message ?? '')
         toast.error(already ? 'Ese correo ya tiene una cuenta. Inicia sesión para continuar.' : (authError?.message ?? 'Error al crear la cuenta'))
         setLoading(false)
+        setStepState(1)
         return
       }
       userId = authData.user.id
@@ -221,160 +237,176 @@ export default function RegisterPage() {
     router.refresh()
   }
 
+  const labels = paidSessionId ? ['Cuenta', 'Negocio'] : ['Cuenta', 'Negocio', 'Tarjeta · sin cobro hoy']
+  const heading = step === 1
+    ? (paidSessionId ? '¡Pago recibido! Crea tu cuenta' : 'Crea tu cuenta')
+    : paidSessionId ? 'Activa tu negocio'
+    : googleUser ? `Casi listo${googleUser.firstName ? `, ${googleUser.firstName}` : ''}` : 'Cuéntanos de tu negocio'
+  const subheading = step === 1
+    ? (paidSessionId ? 'Tu suscripción ya está pagada. Crea tu cuenta para activarla.' : '7 días gratis. Hoy no se te cobra nada.')
+    : googleUser ? `Entraste con ${googleUser.email}. Solo falta lo de tu negocio.` : 'Elige tu plan y llena tres datos.'
+
+  const submitStyle = { marginTop: 6, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' } as React.CSSProperties
+
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
-      {/* Progreso: dos pasos, sin sorpresas */}
-      {!paidSessionId && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, fontSize: 12 }}>
-          <span style={{ color: '#c4b5fd', fontWeight: 600 }}>{googleUser ? '1 · Tu negocio' : '1 · Tu cuenta'}</span>
-          <span style={{ flex: 1, height: 1, background: '#252525' }} />
-          <span style={{ color: '#555' }}>2 · Tarjeta (sin cobro hoy)</span>
-        </div>
-      )}
-
-      <div style={{ marginBottom: 22 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>
-          {paidSessionId ? '¡Pago recibido! Activa tu negocio' : googleUser ? `Casi listo${googleUser.firstName ? `, ${googleUser.firstName}` : ''}` : 'Empieza en un minuto'}
-        </h1>
-        <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#555' }}>
-          {paidSessionId
-            ? 'Tu suscripción ya está pagada. Este último paso activa tu negocio.'
-            : googleUser
-              ? `Entraste con ${googleUser.email}. Solo falta lo de tu negocio.`
-              : '7 días gratis. Elige tu plan, llena 4 datos y listo.'}
-        </p>
+      {/* Progreso */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 12 }}>
+        {labels.map((label, i) => {
+          const n = i + 1
+          const state = n < step ? 'done' : n === step ? 'now' : 'next'
+          return (
+            <span key={label} style={{ display: 'contents' }}>
+              {i > 0 && <span style={{ flex: 1, height: 1, background: n <= step ? '#7c3aed66' : '#252525' }} />}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: state === 'next' ? '#555' : '#c4b5fd', fontWeight: state === 'now' ? 600 : 500, whiteSpace: 'nowrap' }}>
+                <span style={{ width: 18, height: 18, borderRadius: 99, fontSize: 10.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: state === 'done' ? '#7c3aed' : 'transparent', border: `1.5px solid ${state === 'next' ? '#333' : '#7c3aed'}`, color: state === 'done' ? '#fff' : 'inherit' }}>
+                  {state === 'done' ? '✓' : n}
+                </span>
+                {label}
+              </span>
+            </span>
+          )
+        })}
       </div>
 
-      <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-        {/* Plan */}
-        {!paidSessionId && (
-          <div>
-            <label style={s.label}>Tu plan</label>
-            <div role="tablist" aria-label="Tipo de negocio" style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              {([['citas', 'Citas y reservas'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => {
-                const active = (form.businessType === 'restaurant') === (seg === 'pedidos')
-                return (
-                  <button
-                    key={seg}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => { if (!active) chooseType(seg === 'pedidos' ? 'restaurant' : 'barbershop') }}
-                    style={{
-                      flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                      border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414', color: active ? '#c4b5fd' : '#777',
-                    }}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(form.businessType === 'restaurant' ? PLANS_PEDIDOS : PLANS_CITAS).map(pl => {
-                const active = planKey === pl.key
-                return (
-                  <button
-                    key={pl.key}
-                    type="button"
-                    onClick={() => choosePlan(pl.key)}
-                    aria-pressed={active}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: active ? '12px 14px' : '10px 14px', borderRadius: 10,
-                      border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414',
-                      cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all .15s', width: '100%',
-                    }}
-                  >
-                    <span style={{
-                      width: 16, height: 16, borderRadius: 99, flexShrink: 0,
-                      border: `2px solid ${active ? '#7c3aed' : '#333'}`, background: active ? '#7c3aed' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {active && <span style={{ width: 5, height: 5, borderRadius: 99, background: '#fff' }} />}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: active ? '#e9e3ff' : '#ccc' }}>
-                        {pl.name.replace('Turno — ', '')}
-                      </span>
-                      {active && <span style={{ display: 'block', fontSize: 11.5, color: '#8b8b8b', marginTop: 2 }}>{pl.description}</span>}
-                    </span>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: active ? '#e9e3ff' : '#aaa', whiteSpace: 'nowrap' }}>
-                      {pl.priceLabel}<span style={{ fontSize: 10.5, fontWeight: 400, color: '#666' }}>/mes</span>
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+      <div style={{ marginBottom: 22 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>{heading}</h1>
+        <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#777' }}>{subheading}</p>
+      </div>
+
+      {/* ── Paso 1: cuenta ─────────────────────────────────────────── */}
+      {step === 1 && (
+        <form onSubmit={handleNext} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+          <GoogleButton
+            onSignedIn={handleGoogleSignedIn}
+            fallbackRedirectTo={`?plan=${planKey}${paidSessionId ? `&session_id=${paidSessionId}` : ''}`}
+            disabled={loading}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0' }}>
+            <div style={{ flex: 1, height: 1, background: '#252525' }} />
+            <span style={{ fontSize: 12, color: '#555' }}>o con tu correo</span>
+            <div style={{ flex: 1, height: 1, background: '#252525' }} />
           </div>
-        )}
 
-        {!googleUser && (
-          <>
-            <GoogleButton
-              onSignedIn={handleGoogleSignedIn}
-              fallbackRedirectTo={`?plan=${planKey}${paidSessionId ? `&session_id=${paidSessionId}` : ''}`}
-              disabled={loading}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
-              <div style={{ flex: 1, height: 1, background: '#252525' }} />
-              <span style={{ fontSize: 12, color: '#444' }}>o con tu correo</span>
-              <div style={{ flex: 1, height: 1, background: '#252525' }} />
+          <Field label="Correo electrónico" icon={<IconMail />} type="email" inputMode="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required autoFocus autoComplete="email" />
+          <Field
+            label="Contraseña" icon={<IconLock />} type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" name="password"
+            value={form.password} onChange={set('password')} minLength={8} required autoComplete="new-password"
+            right={
+              <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                style={{ background: 'none', border: 'none', color: '#777', fontSize: 12, cursor: 'pointer', padding: '0 12px', fontFamily: 'inherit' }}>
+                {showPass ? 'Ocultar' : 'Mostrar'}
+              </button>
+            }
+          />
+          <button type="submit" style={submitStyle}>Continuar →</button>
+        </form>
+      )}
+
+      {/* ── Paso 2: negocio y plan ─────────────────────────────────── */}
+      {step === 2 && (
+        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+          {!paidSessionId && (
+            <div>
+              <label style={s.label}>Tu plan</label>
+              <div role="tablist" aria-label="Tipo de negocio" style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                {([['citas', 'Citas y reservas'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => {
+                  const active = (form.businessType === 'restaurant') === (seg === 'pedidos')
+                  return (
+                    <button
+                      key={seg}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => { if (!active) chooseType(seg === 'pedidos' ? 'restaurant' : 'barbershop') }}
+                      style={{
+                        flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414', color: active ? '#c4b5fd' : '#777',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(form.businessType === 'restaurant' ? PLANS_PEDIDOS : PLANS_CITAS).map(pl => {
+                  const active = planKey === pl.key
+                  return (
+                    <button
+                      key={pl.key}
+                      type="button"
+                      onClick={() => choosePlan(pl.key)}
+                      aria-pressed={active}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: active ? '12px 14px' : '10px 14px', borderRadius: 10,
+                        border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414',
+                        cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all .15s', width: '100%',
+                      }}
+                    >
+                      <span style={{
+                        width: 16, height: 16, borderRadius: 99, flexShrink: 0,
+                        border: `2px solid ${active ? '#7c3aed' : '#333'}`, background: active ? '#7c3aed' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {active && <span style={{ width: 5, height: 5, borderRadius: 99, background: '#fff' }} />}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: active ? '#e9e3ff' : '#ccc' }}>
+                          {pl.name.replace('Turno — ', '')}
+                        </span>
+                        {active && <span style={{ display: 'block', fontSize: 11.5, color: '#8b8b8b', marginTop: 2 }}>{pl.description}</span>}
+                      </span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: active ? '#e9e3ff' : '#aaa', whiteSpace: 'nowrap' }}>
+                        {pl.priceLabel}<span style={{ fontSize: 10.5, fontWeight: 400, color: '#666' }}>/mes</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </>
-        )}
+          )}
 
-        <Field label="Nombre del negocio" icon={<IconBuilding />} type="text" placeholder="Barbería El Estilo" name="businessName" value={form.businessName} onChange={set('businessName')} required autoFocus autoComplete="organization" />
+          <Field label="Nombre del negocio" icon={<IconBuilding />} type="text" placeholder="Barbería El Estilo" name="businessName" value={form.businessName} onChange={set('businessName')} required autoFocus autoComplete="organization" />
 
-        {/* Tipo de negocio */}
-        <div>
-          <label style={s.label}>Tipo de negocio</label>
-          <select
-            value={form.businessType}
-            onChange={e => chooseType(e.target.value)}
-            style={{ ...s.wrap, width: '100%', paddingRight: 12, color: '#ebebeb', fontSize: 14, fontFamily: 'inherit', cursor: 'pointer', appearance: 'auto' }}
-          >
-            {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </div>
+          <div>
+            <label style={s.label}>Tipo de negocio</label>
+            <select
+              value={form.businessType}
+              onChange={e => chooseType(e.target.value)}
+              style={{ ...s.wrap, width: '100%', paddingRight: 12, color: '#ebebeb', fontSize: 14, fontFamily: 'inherit', cursor: 'pointer', appearance: 'auto' }}
+            >
+              {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
 
-        <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" inputMode="tel" prefix="+52" placeholder="624 123 4567" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Tus 10 dígitos. Es el número donde recibirás los avisos." required autoComplete="tel-national" />
-        {!googleUser && (
-          <>
-            <Field label="Correo electrónico" icon={<IconMail />} type="email" inputMode="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required autoComplete="email" />
-            <Field
-              label="Contraseña" icon={<IconLock />} type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" name="password"
-              value={form.password} onChange={set('password')} minLength={8} required autoComplete="new-password"
-              right={
-                <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  style={{ background: 'none', border: 'none', color: '#777', fontSize: 12, cursor: 'pointer', padding: '0 12px', fontFamily: 'inherit' }}>
-                  {showPass ? 'Ocultar' : 'Mostrar'}
-                </button>
-              }
-            />
+          <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" inputMode="tel" prefix="+52" placeholder="624 123 4567" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Tus 10 dígitos. Es el número donde recibirás los avisos." required autoComplete="tel-national" />
 
-          </>
-        )}
+          <button type="submit" disabled={loading} style={submitStyle}>
+            {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : 'Empezar 7 días gratis →'}
+          </button>
+          {!paidSessionId && (
+            <p style={{ textAlign: 'center', fontSize: 11.5, color: '#6b6b6b', marginTop: -4 }}>
+              Hoy no se te cobra nada. Después de 7 días: {plan.priceLabel} MXN al mes. Cancela antes y no pagas.
+            </p>
+          )}
+          {!googleUser && (
+            <button type="button" onClick={() => goToStep(1)} style={{ background: 'none', border: 'none', color: '#777', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>
+              ← Atrás
+            </button>
+          )}
+        </form>
+      )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ marginTop: 6, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' }}
-        >
-          {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : 'Empezar 7 días gratis →'}
-        </button>
-        {!paidSessionId && (
-          <p style={{ textAlign: 'center', fontSize: 11.5, color: '#4a4a4a', marginTop: -4 }}>
-            Hoy no se te cobra nada. Después de 7 días: {plan.priceLabel} MXN al mes. Cancela antes y no pagas.
-          </p>
-        )}
-      </form>
-
-      <p style={{ textAlign: 'center', color: '#555', fontSize: 13, marginTop: 20 }}>
-        ¿Ya tienes cuenta?{' '}
-        <Link href="/login" style={{ color: '#7c3aed', fontWeight: 500, textDecoration: 'none' }}>
-          Inicia sesión
-        </Link>
-      </p>
+      {step === 1 && (
+        <p style={{ textAlign: 'center', color: '#555', fontSize: 13, marginTop: 20 }}>
+          ¿Ya tienes cuenta?{' '}
+          <Link href="/login" style={{ color: '#7c3aed', fontWeight: 500, textDecoration: 'none' }}>
+            Inicia sesión
+          </Link>
+        </p>
+      )}
     </div>
   )
 }
