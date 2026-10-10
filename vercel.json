@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/sales-outreach",
-      "schedule": "20 * * * *"
+      "schedule": "*/15 * * * *"
     }
   ]
 }

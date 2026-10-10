@@ -238,7 +238,7 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
           <label className="flex items-center gap-2">cada {num('followup_after_days')} días</label>
         </div>
         <button onClick={() => saveConfig()} disabled={saving} className={`${btn} bg-violet-600 text-white`}>{saving ? 'Guardando…' : 'Guardar configuración'}</button>
-        <p className="text-xs text-muted-foreground">Mientras está encendido escribe a cualquier hora, incluso domingos. Manda máximo 3 mensajes por hora, con pausas entre ellos.</p>
+        <p className="text-xs text-muted-foreground">Mientras está encendido escribe a cualquier hora, incluso domingos. Manda máximo 10 mensajes por hora, con pausas entre ellos.</p>
       </section>
 
       {/* Importar */}

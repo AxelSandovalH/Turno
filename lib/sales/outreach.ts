@@ -6,7 +6,8 @@ import { generateOpening } from '@/lib/sales/agent'
 import type { ProspectCtx } from '@/lib/sales/prompt'
 
 const OPT_OUT_LINE = 'Si prefieres que no te escriba, respóndeme "no" y no vuelvo a hacerlo.'
-const MAX_PER_RUN = 3
+const MAX_PER_RUN = 3          // por pasada (con pausas entre mensajes caben en una sola petición)
+const MAX_PER_HOUR = 10        // tope en cualquier ventana de 60 minutos
 const DAY = 24 * 3600_000
 
 /** Inicio del día de hoy (en la zona del negocio) como fecha UTC. */
@@ -27,7 +28,7 @@ export interface OutreachResult { sent: number; followups: number; processed?: n
  * Una pasada de envíos en frío: respeta el tiempo de encendido, el tope diario y manda pocos
  * mensajes por pasada con pausas entre ellos. Primero seguimientos, luego negocios nuevos.
  */
-export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Promise<void> } = {}): Promise<OutreachResult> {
+export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Promise<void>; manual?: boolean } = {}): Promise<OutreachResult> {
   const now = opts.now ?? new Date()
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>(r => setTimeout(r, ms)))
   const cfg = await getSalesConfig()
@@ -53,6 +54,14 @@ export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Pr
   const remaining = cfg.daily_limit - (today ?? []).length
   if (remaining <= 0) return { sent: 0, followups: 0, skipped: 'tope diario alcanzado' }
   let budget = Math.min(remaining, MAX_PER_RUN)
+
+  // Tope por hora (no aplica a las pasadas manuales que tú disparas desde el panel)
+  if (!opts.manual) {
+    const { data: lastHour } = await db.from('prospect_messages').select('id').in('kind', ['first', 'followup']).gte('created_at', new Date(now.getTime() - 3600_000).toISOString())
+    const left = MAX_PER_HOUR - (lastHour ?? []).length
+    if (left <= 0) return { sent: 0, followups: 0, skipped: 'tope por hora alcanzado' }
+    budget = Math.min(budget, left)
+  }
 
   const { data: followupRows } = await db.from('prospects').select('*')
     .eq('status', 'contacted').lt('followups_sent', cfg.max_followups).lt('last_contact_at', staleBefore)
