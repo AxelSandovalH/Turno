@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 export function OfferGenerator() {
-  const [plan, setPlan] = useState<'asistente' | 'agenda' | 'pedidos' | 'menu'>('asistente')
+  const [plan, setPlan] = useState<'asistente' | 'agenda' | 'tours' | 'pedidos' | 'menu'>('asistente')
   const [link, setLink] = useState<{ url: string; expiresAt: number } | null>(null)
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -29,7 +29,7 @@ export function OfferGenerator() {
   return (
     <div className="mt-6 space-y-4">
       <div className="flex gap-2">
-        {([['asistente', 'Agenda + Asistente'], ['agenda', 'Agenda'], ['pedidos', 'Pedidos + Asistente'], ['menu', 'Menú y pedidos']] as const).map(([k, label]) => (
+        {([['asistente', 'Agenda + Asistente'], ['agenda', 'Agenda'], ['tours', 'Tours + Asistente'], ['pedidos', 'Pedidos + Asistente'], ['menu', 'Menú y pedidos']] as const).map(([k, label]) => (
           <button
             key={k}
             onClick={() => setPlan(k)}

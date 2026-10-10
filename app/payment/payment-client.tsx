@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
-import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, type PlanKey, type PrepaidMonths } from '@/lib/plans'
+import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, trialEligible, type PlanKey, type PrepaidMonths } from '@/lib/plans'
 import { PlanComposer } from '@/components/pricing/plan-composer'
 
 
@@ -100,7 +100,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
           disabled={loading}
           style={{ width: '100%', height: 52, background: '#7c3aed', border: 'none', borderRadius: 12, color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', transition: 'opacity .15s' }}
         >
-          {loading ? <Spinner size={20} color="#fff" /> : trial ? 'Empezar 7 días gratis →' : `Activar ${plan.name.replace('Turno — ', '')} — ${plan.priceLabel} MXN/mes →`}
+          {loading ? <Spinner size={20} color="#fff" /> : trial && trialEligible(plan) ? 'Empezar 7 días gratis →' : `Activar ${plan.name.replace('Turno — ', '')} — ${plan.priceLabel} MXN/mes →`}
         </button>
 
         {/* Prepago: OXXO o transferencia SPEI (no permiten cobro automático mensual) */}
@@ -137,7 +137,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: '#3d3d3d', marginTop: 14 }}>
-          {trial ? `Hoy no se te cobra. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.` : 'Pago seguro vía Stripe · Cancela cuando quieras'}
+          {trial && trialEligible(plan) ? `Hoy no se te cobra. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.` : trial ? 'La prueba gratis de 7 días es del plan básico. Con el asistente se cobra hoy el primer mes. Pago seguro vía Stripe.' : 'Pago seguro vía Stripe · Cancela cuando quieras'}
         </p>
       </div>
     </div>

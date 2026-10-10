@@ -13,7 +13,7 @@ import { DashboardMockup } from '@/components/landing/dashboard-mockup'
 import { FeaturesBento } from '@/components/landing/features-bento'
 import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { SEGMENTS } from '@/components/landing/segments-data'
-import { BASES, ASSISTANT, planKeyFor, money } from '@/lib/plans'
+import { BASES, ASSISTANT, PLANS, planKeyFor, money } from '@/lib/plans'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -68,8 +68,8 @@ const FAQ = [
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
-  { q: '¿Cuánto cuesta?', a: 'Pagas un plan base y agregas solo lo que necesitas. Para citas y reservas, Agenda cuesta $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios). Para restaurantes, Menú y pedidos cuesta $1,500 MXN al mes (menú con fotos, link de pedidos con carrito, cobro con tarjeta y tablero). Si quieres que WhatsApp conteste y atienda solo, 24/7, agregas el Asistente por $1,200 MXN al mes en citas o $1,300 MXN al mes en restaurantes. Todos los planes incluyen 7 días de prueba gratis. Sin contratos ni permanencia.' },
-  { q: '¿Cómo funciona la prueba gratis?', a: 'Eliges tu plan, registras tu tarjeta y usas Turno completo durante 7 días sin pagar nada. Hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. Puedes cancelar tú mismo desde Configuración, en menos de un minuto.' },
+  { q: '¿Cuánto cuesta?', a: `Empiezas con un plan básico de ${money(BASES.citas.amount)} MXN al mes: para citas es Agenda (calendario, página de reservas, anticipos y recordatorios) y para restaurantes es Menú y pedidos (menú con fotos, link con carrito, cobro con tarjeta y tablero). Si quieres que WhatsApp conteste y atienda solo, 24/7, agregas el Asistente: el plan queda en ${PLANS.asistente.priceLabel} MXN al mes en citas, ${PLANS.tours.priceLabel} en tours y ${PLANS.pedidos.priceLabel} en restaurantes. Sin contratos ni permanencia.` },
+  { q: '¿Cómo funciona la prueba gratis?', a: 'El plan básico incluye 7 días de prueba gratis. Eliges tu plan, registras tu tarjeta y lo usas completo sin pagar nada: hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. El plan con asistente de WhatsApp no incluye prueba porque tiene costo desde el primer día, pero puedes empezar con el básico y agregarlo cuando quieras. Cancelas tú mismo desde Configuración, en menos de un minuto.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -151,8 +151,8 @@ export function LandingPage() {
   const [loginHover, setLoginHover] = useState(false)
   const [activeSegment, setActiveSegment] = useState(0)
   // Los planes se muestran según el tipo de negocio: citas o pedidos
-  const [pricingSegment, setPricingSegment] = useState<'citas' | 'pedidos'>('citas')
-  const [pricingAssistant, setPricingAssistant] = useState(true)
+  const [pricingSegment, setPricingSegment] = useState<'citas' | 'tours' | 'pedidos'>('citas')
+  const [pricingAssistant, setPricingAssistant] = useState(false)
 
   useEffect(() => {
     // Por defecto SIEMPRE se adapta a la hora actual. Si el visitante toca el
@@ -336,7 +336,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              7 días gratis · Desde $1,500 MXN/mes · Cancela cuando quieras
+              7 días gratis · Desde $700 MXN/mes · Cancela cuando quieras
             </p>
           </div>
 
@@ -409,7 +409,7 @@ export function LandingPage() {
           <div data-pricing-card style={{ opacity: 0 }} className="max-w-5xl mx-auto">
             <div className="flex justify-center mb-3">
               <div role="tablist" aria-label="Tipo de negocio" className="inline-flex rounded-full p-1 gap-1" style={{ border: `1px solid ${t.border}`, background: t.card }}>
-                {([['citas', 'Citas y reservas'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => (
+                {([['citas', 'Citas y reservas'], ['tours', 'Tours'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => (
                   <button
                     key={seg}
                     role="tab"
@@ -425,8 +425,10 @@ export function LandingPage() {
             </div>
             <p className="text-center text-[13px] mb-8" style={{ color: t.muted }}>
               {pricingSegment === 'citas'
-                ? 'Barberías, spas, clínicas, estudios de tatuaje, charters y tours.'
-                : 'Restaurantes, taquerías y cafeterías con pedidos a domicilio o para recoger.'}
+                ? 'Barberías, spas, clínicas, estudios de tatuaje y charters.'
+                : pricingSegment === 'tours'
+                  ? 'Operadores de tours y actividades.'
+                  : 'Restaurantes, taquerías y cafeterías con pedidos a domicilio o para recoger.'}
             </p>
             {/* Una sola tarjeta armada con piezas: plan base + complemento del asistente */}
             {(() => {
@@ -490,14 +492,19 @@ export function LandingPage() {
                   </div>
                   <Link href={`/register?plan=${planKey}`} className="block">
                     <button className="w-full py-3 rounded-md text-[14px] font-medium transition-colors" style={{ background: t.accent, color: '#fff' }}>
-                      Probar 7 días gratis
+                      {pricingAssistant ? `Contratar · ${money(total)} al mes` : 'Probar 7 días gratis'}
                     </button>
                   </Link>
+                  <p className="text-[12px] mt-3 text-center" style={{ color: t.subtle }}>
+                    {pricingAssistant
+                      ? 'Con asistente se cobra desde hoy. Para probar gratis, empieza con el plan básico y agrégalo cuando quieras.'
+                      : 'Sin cobro hoy. Agrega el asistente cuando quieras.'}
+                  </p>
                 </div>
               )
             })()}
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
-              7 días gratis · No se cobra hoy · Sin contrato · Cancela cuando quieras
+              Plan básico con 7 días gratis · Sin contrato · Cancela cuando quieras
             </p>
           </div>
         </div>
@@ -529,7 +536,7 @@ export function LandingPage() {
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde $1,500 MXN/mes. Cancela cuando quieras.</p>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde $700 MXN/mes. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · Restaurantes · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>

@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { ALL_PROFILES } from '@/lib/profiles/registry'
-import { isPlanKey, PLANS, DEFAULT_PLAN, planKeyFor, type PlanKey } from '@/lib/plans'
+import { isPlanKey, PLANS, DEFAULT_PLAN, planKeyFor, segmentForType, trialEligible, type PlanKey } from '@/lib/plans'
 import { PlanComposer } from '@/components/pricing/plan-composer'
 import { buildPhone } from '@/lib/booking-format'
 import { GoogleButton } from '@/components/auth/google-button'
@@ -106,7 +106,7 @@ export default function RegisterPage() {
   }
   function chooseType(type: string) {
     setForm(p => ({ ...p, businessType: type }))
-    setPlanKey(k => planKeyFor(type === 'restaurant' ? 'pedidos' : 'citas', PLANS[k].bot))
+    setPlanKey(k => planKeyFor(segmentForType(type), PLANS[k].bot))
   }
 
   // Compra directa desde el anuncio: llega de Stripe ya pagado (?session_id=...).
@@ -118,7 +118,9 @@ export default function RegisterPage() {
     const plan = params.get('plan')
     if (isPlanKey(plan)) {
       setPlanKey(plan)
-      if (PLANS[plan].segment === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
+      const seg = PLANS[plan].segment
+      if (seg === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
+      else if (seg === 'tours') setForm(p => ({ ...p, businessType: 'tours' }))
     }
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user
@@ -231,13 +233,13 @@ export default function RegisterPage() {
     router.refresh()
   }
 
-  const labels = paidSessionId ? ['Cuenta', 'Negocio'] : ['Cuenta', 'Negocio', 'Tarjeta · sin cobro hoy']
+  const labels = paidSessionId ? ['Cuenta', 'Negocio'] : ['Cuenta', 'Negocio', 'Pago']
   const heading = step === 1
     ? (paidSessionId ? '¡Pago recibido! Crea tu cuenta' : 'Crea tu cuenta')
     : paidSessionId ? 'Activa tu negocio'
     : googleUser ? `Casi listo${googleUser.firstName ? `, ${googleUser.firstName}` : ''}` : 'Cuéntanos de tu negocio'
   const subheading = step === 1
-    ? (paidSessionId ? 'Tu suscripción ya está pagada. Crea tu cuenta para activarla.' : '7 días gratis. Hoy no se te cobra nada.')
+    ? (paidSessionId ? 'Tu suscripción ya está pagada. Crea tu cuenta para activarla.' : 'Empieza con 7 días gratis en el plan básico.')
     : googleUser ? `Entraste con ${googleUser.email}. Solo falta lo de tu negocio.` : 'Elige tu plan y llena tres datos.'
 
   const submitStyle = { marginTop: 6, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' } as React.CSSProperties
@@ -305,15 +307,15 @@ export default function RegisterPage() {
             <div>
               <label style={s.label}>Tu plan</label>
               <div role="tablist" aria-label="Tipo de negocio" style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                {([['citas', 'Citas y reservas'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => {
-                  const active = (form.businessType === 'restaurant') === (seg === 'pedidos')
+                {([['citas', 'Citas', 'barbershop'], ['tours', 'Tours', 'tours'], ['pedidos', 'Restaurantes', 'restaurant']] as const).map(([seg, label, defaultType]) => {
+                  const active = segmentForType(form.businessType) === seg
                   return (
                     <button
                       key={seg}
                       type="button"
                       role="tab"
                       aria-selected={active}
-                      onClick={() => { if (!active) chooseType(seg === 'pedidos' ? 'restaurant' : 'barbershop') }}
+                      onClick={() => { if (!active) chooseType(defaultType) }}
                       style={{
                         flex: 1, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
                         border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414', color: active ? '#c4b5fd' : '#777',
@@ -344,11 +346,13 @@ export default function RegisterPage() {
           <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" inputMode="tel" prefix="+52" placeholder="624 123 4567" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Tus 10 dígitos. Es el número donde recibirás los avisos." required autoComplete="tel-national" />
 
           <button type="submit" disabled={loading} style={submitStyle}>
-            {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : 'Empezar 7 días gratis →'}
+            {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : trialEligible(plan) ? 'Empezar 7 días gratis →' : `Continuar al pago · ${plan.priceLabel} MXN/mes →`}
           </button>
           {!paidSessionId && (
             <p style={{ textAlign: 'center', fontSize: 11.5, color: '#6b6b6b', marginTop: -4 }}>
-              Hoy no se te cobra nada. Después de 7 días: {plan.priceLabel} MXN al mes. Cancela antes y no pagas.
+              {trialEligible(plan)
+                ? `Hoy no se te cobra nada. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.`
+                : `Se cobra hoy el primer mes (${plan.priceLabel} MXN) y después cada mes. Cancela cuando quieras. La prueba gratis es del plan básico.`}
             </p>
           )}
           {!googleUser && (

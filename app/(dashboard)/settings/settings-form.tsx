@@ -7,7 +7,7 @@ import { Check, Copy, ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { BookingQr } from '@/components/dashboard/booking-qr'
-import { PLANS, ASSISTANT, planKeyForOrg, planKeyFor, money } from '@/lib/plans'
+import { PLANS, ASSISTANT, planKeyForOrg, planKeyFor, segmentForType, money } from '@/lib/plans'
 import { hasCapability } from '@/lib/profiles/registry'
 import type { Organization } from '@/types/database'
 
@@ -71,7 +71,7 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
   // Negocios de pedidos comparten su link de menú (/pedir) en lugar del de reservas (/book)
   // El anticipo por Stripe es de citas: los negocios de pedidos cobran cada pedido con tarjeta
   const hasDeposits = hasCapability(organization.business_type, 'deposits')
-  const segment = organization.business_type === 'restaurant' ? 'pedidos' : 'citas'
+  const segment = segmentForType(organization.business_type)
   const publicPath = organization.business_type === 'restaurant' ? 'pedir' : 'book'
 
   const copyBookingLink = async () => {
@@ -114,8 +114,9 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
 
   async function handleAddAssistant() {
     const price = money(ASSISTANT.amountBySegment[segment])
+    const full = money(PLANS[planKeyFor(segment, true)].amount)
     const detail = inTrial
-      ? `Hoy no se cobra nada: empieza cuando termine tu prueba gratis, y después se suman ${price} al mes.`
+      ? `Tu prueba gratis termina hoy y se cobra a tu tarjeta el plan completo (${full}). Después, ${full} al mes. La prueba gratis es solo del plan básico.`
       : `Se cobra a tu tarjeta la parte proporcional de este mes, y después se suman ${price} al mes.`
     if (!window.confirm(`¿Agregar el ${ASSISTANT.name}?\n\n${detail}`)) return
     setLoading(true)
@@ -490,7 +491,7 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
           <div>
             <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>Agrega el {ASSISTANT.name}</p>
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
-              {segment === 'pedidos' ? 'Toma pedidos por WhatsApp y manda las fotos de tus platillos' : 'Contesta y agenda por WhatsApp, 24/7'} · +{money(ASSISTANT.amountBySegment[segment])} MXN/mes
+              {segment === 'pedidos' ? 'Toma pedidos por WhatsApp y manda las fotos de tus platillos' : segment === 'tours' ? 'Contesta a turistas y reserva salidas por WhatsApp, 24/7' : 'Contesta y agenda por WhatsApp, 24/7'} · +{money(ASSISTANT.amountBySegment[segment])} MXN/mes
             </p>
           </div>
           {organization.payment_mode === 'prepaid' ? (

@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe'
-import { ASSISTANT, planHasBot, planKeyFor, type PlanKey } from '@/lib/plans'
+import { ASSISTANT, planHasBot, planKeyFor, segmentForType, type PlanKey } from '@/lib/plans'
 
 export function addMonths(from: Date, months: number): Date {
   const d = new Date(from)
@@ -69,9 +69,9 @@ async function assistantProductId(): Promise<string> {
 
 /**
  * Agrega el Asistente de WhatsApp a la suscripción con tarjeta de un negocio.
- * Durante la prueba gratis no se cobra nada ahora (empieza al terminar la prueba);
- * ya pagando, se cobra de inmediato la parte proporcional del mes y si la tarjeta
- * falla no se cambia nada.
+ * La prueba gratis es solo del plan básico: si el negocio está en prueba, la prueba termina
+ * en ese momento y se cobra el plan completo. Ya pagando, se cobra de inmediato la parte
+ * proporcional del mes. Si la tarjeta falla no se cambia nada.
  */
 export async function addAssistant(orgId: string): Promise<AddonResult> {
   const db = createServiceClient()
@@ -87,7 +87,7 @@ export async function addAssistant(orgId: string): Promise<AddonResult> {
   if (org.payment_mode === 'prepaid') return { ok: false, status: 409, error: 'Tu plan es prepagado: agrega el asistente al renovar' }
   if (!org.stripe_subscription_id) return { ok: false, status: 409, error: 'No encontramos tu suscripción' }
 
-  const segment = org.business_type === 'restaurant' ? 'pedidos' : 'citas'
+  const segment = segmentForType(org.business_type)
   const newPlan = planKeyFor(segment, true)
 
   try {
@@ -109,7 +109,9 @@ export async function addAssistant(orgId: string): Promise<AddonResult> {
         },
         quantity: 1,
       }],
-      // En prueba gratis no hay nada que prorratear: el cobro empieza al terminar la prueba
+      // En prueba: se termina la prueba hoy y se factura el mes completo (sin prorrateo).
+      // Ya pagando: se factura de inmediato la parte proporcional del mes.
+      ...(sub.status === 'trialing' ? { trial_end: 'now' as const } : {}),
       proration_behavior: sub.status === 'trialing' ? 'none' : 'always_invoice',
       // Si la tarjeta no pasa, no se aplica ningún cambio
       payment_behavior: 'error_if_incomplete',
@@ -120,6 +122,6 @@ export async function addAssistant(orgId: string): Promise<AddonResult> {
     return { ok: false, status: 402, error: 'No se pudo cobrar a tu tarjeta. Revisa tu tarjeta en "Administrar suscripción" e intenta de nuevo.' }
   }
 
-  await db.from('organizations').update({ whatsapp_bot_enabled: true }).eq('id', orgId)
+  await db.from('organizations').update({ whatsapp_bot_enabled: true, trial_ends_at: null }).eq('id', orgId)
   return { ok: true }
 }
