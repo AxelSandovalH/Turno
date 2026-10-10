@@ -9,7 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { ALL_PROFILES } from '@/lib/profiles/registry'
-import { isPlanKey } from '@/lib/plans'
+import { isPlanKey, PLANS, DEFAULT_PLAN, type PlanKey } from '@/lib/plans'
+import { buildPhone } from '@/lib/booking-format'
 
 const s = {
   label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#888', marginBottom: 7, fontFamily: 'inherit' } as React.CSSProperties,
@@ -18,6 +19,7 @@ const s = {
 }
 
 const TYPES = ALL_PROFILES.map(p => ({ value: p.type, label: `${p.emoji} ${p.displayName}` }))
+const PLAN_LIST = [PLANS.agenda, PLANS.asistente, PLANS.pedidos]
 
 const IconBuilding = () => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -45,54 +47,94 @@ interface FieldProps {
   label: string; icon: React.ReactNode; type: string; placeholder: string
   value: string; onChange: (v: string) => void; name: string
   hint?: string; minLength?: number; required?: boolean; autoFocus?: boolean
+  prefix?: string; right?: React.ReactNode; inputMode?: 'tel' | 'email' | 'text'; autoComplete?: string
 }
 
-function Field({ label, icon, type, placeholder, value, onChange, name, hint, minLength, required, autoFocus }: FieldProps) {
+function Field({ label, icon, type, placeholder, value, onChange, name, hint, minLength, required, autoFocus, prefix, right, inputMode, autoComplete }: FieldProps) {
   const [focused, setFocused] = useState(false)
   return (
     <div>
       <label style={s.label}>{label}</label>
       <div style={{ ...s.wrap, borderColor: focused ? '#7c3aed' : '#252525' }}>
         {icon}
+        {prefix && <span style={{ fontSize: 14, color: '#777', marginLeft: -2 }}>{prefix}</span>}
         <input
           name={name} type={type} placeholder={placeholder} value={value}
           onChange={e => onChange(e.target.value)}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
           required={required} autoFocus={autoFocus} minLength={minLength}
+          inputMode={inputMode} autoComplete={autoComplete}
           style={s.input}
         />
+        {right}
       </div>
-      {hint && <p style={{ fontSize: 11, color: '#3d3d3d', marginTop: 5 }}>{hint}</p>}
+      {hint && <p style={{ fontSize: 11, color: '#4a4a4a', marginTop: 5 }}>{hint}</p>}
     </div>
   )
+}
+
+/** Teléfono del negocio: 10 dígitos de México (se guarda como 521…) o internacional con "+". */
+function parseBusinessPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (raw.trim().startsWith('+')) {
+    if (digits.startsWith('52')) return buildPhone('52', digits.slice(2))
+    return digits.length >= 8 && digits.length <= 15 ? digits : ''
+  }
+  return buildPhone('52', digits)
 }
 
 export default function RegisterPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [showPass, setShowPass] = useState(false)
   const [paidSessionId, setPaidSessionId] = useState<string | null>(null)
-  const [planKey, setPlanKey] = useState<string | null>(null)
+  const [planKey, setPlanKey] = useState<PlanKey>(DEFAULT_PLAN)
   const [form, setForm] = useState({
     businessName: '', email: '', password: '', whatsappNumber: '', businessType: 'barbershop',
   })
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
+  // El plan y el giro van de la mano: Pedidos es para restaurantes, y al revés
+  function choosePlan(key: PlanKey) {
+    setPlanKey(key)
+    setForm(p => ({
+      ...p,
+      businessType: key === 'pedidos' ? 'restaurant' : p.businessType === 'restaurant' ? 'barbershop' : p.businessType,
+    }))
+  }
+  function chooseType(type: string) {
+    setForm(p => ({ ...p, businessType: type }))
+    if (type === 'restaurant') setPlanKey('pedidos')
+    else if (planKey === 'pedidos') setPlanKey('asistente')
+  }
+
   // Compra directa desde el anuncio: llega de Stripe ya pagado (?session_id=...).
-  // Desde la landing puede venir el plan elegido (?plan=agenda|asistente).
+  // Desde la landing puede venir el plan elegido (?plan=agenda|asistente|pedidos).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const sid = params.get('session_id')
     if (sid) setPaidSessionId(sid)
     const plan = params.get('plan')
-    if (isPlanKey(plan)) setPlanKey(plan)
+    if (isPlanKey(plan)) {
+      setPlanKey(plan)
+      if (plan === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
+    }
   }, [])
+
+  const plan = PLANS[planKey]
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
 
-    const slug = form.businessName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    const whatsappNumber = parseBusinessPhone(form.whatsappNumber)
+    if (!whatsappNumber) {
+      toast.error('Escribe el WhatsApp de tu negocio con 10 dígitos')
+      return
+    }
+
+    setLoading(true)
+    const slug = form.businessName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
     // 1. Crear usuario
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -100,7 +142,8 @@ export default function RegisterPage() {
       password: form.password,
     })
     if (authError || !authData.user) {
-      toast.error(authError?.message ?? 'Error al crear la cuenta')
+      const already = /already|registered/i.test(authError?.message ?? '')
+      toast.error(already ? 'Ese correo ya tiene una cuenta. Inicia sesión para continuar.' : (authError?.message ?? 'Error al crear la cuenta'))
       setLoading(false)
       return
     }
@@ -113,7 +156,7 @@ export default function RegisterPage() {
         userId: authData.user.id,
         name: form.businessName,
         slug,
-        whatsappNumber: form.whatsappNumber,
+        whatsappNumber,
         email: form.email,
         businessType: form.businessType,
         stripeSessionId: paidSessionId,
@@ -139,67 +182,116 @@ export default function RegisterPage() {
       }
     }
 
-    // Si pagó desde el anuncio, la org ya quedó activa — directo al dashboard.
-    // Si ya eligió plan en la landing, va directo a Stripe; si no, al selector.
-    router.push(
-      onboarding?.alreadyPaid ? '/appointments'
-      : planKey ? `/payment?auto=1&plan=${planKey}`
-      : '/payment'
-    )
+    // Si pagó desde el anuncio, la org ya quedó activa — directo al panel.
+    // Si no, directo a Stripe con el plan que eligió en esta misma pantalla.
+    router.push(onboarding?.alreadyPaid ? '/appointments' : `/payment?auto=1&plan=${planKey}`)
     router.refresh()
   }
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
-      <div style={{ marginBottom: 28 }}>
+      {/* Progreso: dos pasos, sin sorpresas */}
+      {!paidSessionId && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, fontSize: 12 }}>
+          <span style={{ color: '#c4b5fd', fontWeight: 600 }}>1 · Tu cuenta</span>
+          <span style={{ flex: 1, height: 1, background: '#252525' }} />
+          <span style={{ color: '#555' }}>2 · Pago seguro</span>
+        </div>
+      )}
+
+      <div style={{ marginBottom: 22 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>
-          {paidSessionId ? '¡Pago recibido! Crea tu cuenta' : 'Crea tu cuenta'}
+          {paidSessionId ? '¡Pago recibido! Activa tu negocio' : 'Empieza en un minuto'}
         </h1>
         <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#555' }}>
           {paidSessionId
-            ? 'Tu suscripción ya está pagada — este último paso activa tu negocio.'
-            : 'Desde $1,500 MXN/mes · Cancela cuando quieras'}
+            ? 'Tu suscripción ya está pagada. Este último paso activa tu negocio.'
+            : 'Elige tu plan, llena 4 datos y listo. Sin contratos, cancelas cuando quieras.'}
         </p>
       </div>
 
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Field label="Nombre del negocio" icon={<IconBuilding />} type="text" placeholder="Barbería El Estilo" name="businessName" value={form.businessName} onChange={set('businessName')} required autoFocus />
+        {/* Plan */}
+        {!paidSessionId && (
+          <div>
+            <label style={s.label}>Tu plan</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {PLAN_LIST.map(pl => {
+                const active = planKey === pl.key
+                return (
+                  <button
+                    key={pl.key}
+                    type="button"
+                    onClick={() => choosePlan(pl.key)}
+                    aria-pressed={active}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10,
+                      border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414',
+                      cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all .15s', width: '100%',
+                    }}
+                  >
+                    <span style={{
+                      width: 16, height: 16, borderRadius: 99, flexShrink: 0,
+                      border: `2px solid ${active ? '#7c3aed' : '#333'}`, background: active ? '#7c3aed' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {active && <span style={{ width: 5, height: 5, borderRadius: 99, background: '#fff' }} />}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: active ? '#e9e3ff' : '#ccc' }}>
+                        {pl.name.replace('Turno — ', '')}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: '#666', marginTop: 1 }}>{pl.description}</span>
+                    </span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: active ? '#e9e3ff' : '#aaa', whiteSpace: 'nowrap' }}>
+                      {pl.priceLabel}<span style={{ fontSize: 10.5, fontWeight: 400, color: '#666' }}>/mes</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        <Field label="Nombre del negocio" icon={<IconBuilding />} type="text" placeholder="Barbería El Estilo" name="businessName" value={form.businessName} onChange={set('businessName')} required autoFocus autoComplete="organization" />
 
         {/* Tipo de negocio */}
         <div>
           <label style={s.label}>Tipo de negocio</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {TYPES.map(t => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => set('businessType')(t.value)}
-                style={{
-                  padding: '10px 12px', borderRadius: 10,
-                  border: `1.5px solid ${form.businessType === t.value ? '#7c3aed' : '#252525'}`,
-                  background: form.businessType === t.value ? '#7c3aed18' : '#141414',
-                  color: form.businessType === t.value ? '#c4b5fd' : '#888',
-                  fontSize: 13, cursor: 'pointer', textAlign: 'left',
-                  fontFamily: 'inherit', transition: 'all .15s',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <select
+            value={form.businessType}
+            onChange={e => chooseType(e.target.value)}
+            style={{ ...s.wrap, width: '100%', paddingRight: 12, color: '#ebebeb', fontSize: 14, fontFamily: 'inherit', cursor: 'pointer', appearance: 'auto' }}
+          >
+            {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
         </div>
 
-        <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" placeholder="521XXXXXXXXXX" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Formato internacional sin +. Ej: 521XXXXXXXXXX" required />
-        <Field label="Correo electrónico" icon={<IconMail />} type="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required />
-        <Field label="Contraseña" icon={<IconLock />} type="password" placeholder="Mínimo 8 caracteres" name="password" value={form.password} onChange={set('password')} minLength={8} required />
+        <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" inputMode="tel" prefix="+52" placeholder="624 123 4567" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Tus 10 dígitos. Es el número donde recibirás los avisos." required autoComplete="tel-national" />
+        <Field label="Correo electrónico" icon={<IconMail />} type="email" inputMode="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required autoComplete="email" />
+        <Field
+          label="Contraseña" icon={<IconLock />} type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" name="password"
+          value={form.password} onChange={set('password')} minLength={8} required autoComplete="new-password"
+          right={
+            <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              style={{ background: 'none', border: 'none', color: '#777', fontSize: 12, cursor: 'pointer', padding: '0 12px', fontFamily: 'inherit' }}>
+              {showPass ? 'Ocultar' : 'Mostrar'}
+            </button>
+          }
+        />
 
         <button
           type="submit"
           disabled={loading}
-          style={{ marginTop: 8, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 500, borderRadius: 10, height: 48, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' }}
+          style={{ marginTop: 6, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' }}
         >
-          {loading ? <Spinner size={20} color="#fff" /> : 'Crear cuenta →'}
+          {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : `Continuar al pago · ${plan.priceLabel} MXN/mes →`}
         </button>
+        {!paidSessionId && (
+          <p style={{ textAlign: 'center', fontSize: 11.5, color: '#4a4a4a', marginTop: -4 }}>
+            Pagas de forma segura en Stripe. Cancela cuando quieras.
+          </p>
+        )}
       </form>
 
       <p style={{ textAlign: 'center', color: '#555', fontSize: 13, marginTop: 20 }}>
