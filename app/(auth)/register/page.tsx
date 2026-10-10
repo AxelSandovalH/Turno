@@ -141,16 +141,26 @@ export default function RegisterPage() {
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user
       if (!u) return
-      if (u.user_metadata?.organization_id) { router.push('/appointments'); return }
+      if (u.user_metadata?.organization_id) { goToNextStep(); return }
       const full = String(u.user_metadata?.full_name ?? u.user_metadata?.name ?? '')
       setGoogleUser({ id: u.id, email: u.email ?? '', firstName: full.split(' ')[0] })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Google ya inició sesión: si ya tiene negocio va al panel; si no, completa los datos aquí
+  // Quien ya tiene negocio no registra otro: va directo al paso que le toca (pagar, o el asistente), sin pantallas de en medio
+  async function goToNextStep() {
+    try {
+      const { next } = await fetch('/api/onboarding/next').then(res => res.json())
+      router.replace(next ?? '/appointments')
+    } catch {
+      router.replace('/appointments')
+    }
+  }
+
+  // Google ya inició sesión: si ya tiene negocio va al paso que le toca; si no, completa los datos aquí
   function handleGoogleSignedIn(u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }) {
-    if (u.user_metadata?.organization_id) { router.push('/appointments'); router.refresh(); return }
+    if (u.user_metadata?.organization_id) { goToNextStep(); return }
     const full = String(u.user_metadata?.full_name ?? u.user_metadata?.name ?? '')
     setGoogleUser({ id: u.id, email: u.email ?? '', firstName: full.split(' ')[0] })
   }

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowRight, ArrowUp, Check, ExternalLink, Loader2, Sparkles } from 'lucide-react'
 import { TypedText } from '@/components/landing/demo/motion'
 import { TurnoLogo } from '@/components/ui/turno-logo'
+import { readDemoHandoff, clearDemoHandoff } from '@/lib/demo/handoff'
 import type { SetupStep } from '@/lib/setup/progress'
 
 interface Msg { role: 'user' | 'assistant'; content: string; changes?: string[]; fresh?: boolean }
@@ -70,6 +71,14 @@ export function SetupChat({ orgName, slug, usesAgenda, drafts, steps }: { orgNam
         const saved = JSON.parse(sessionStorage.getItem(STORE) ?? 'null') as Msg[] | null
         if (saved?.length) { setMessages(saved.map(m => ({ ...m, fresh: false }))); return }
       } catch { /* sin almacenamiento */ }
+      // Si llegó desde la demo de la landing con una cuenta que ya existía, la IA arranca con lo que armó ahí
+      const demo = readDemoHandoff()
+      if (demo) {
+        const d = demo.plan
+        clearDemoHandoff()
+        send(`${KICKOFF} Armé una demo en la página y quiero usarla como base: negocio "${d.businessName}", color ${d.accent}, servicios: ${d.services.map(s => `${s.name} $${s.price}${s.durationMin ? ` (${s.durationMin} min)` : ''}`).join('; ')}. Revísala conmigo antes de publicar nada.`, true)
+        return
+      }
       send(KICKOFF, true)
     }, 0)
     return () => clearTimeout(id)
