@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/service'
 import { availableTags } from '@/lib/demo/photos'
 import { normalizePlan, SEGMENTS, str } from '@/lib/demo/plan'
+import { isPlatformAdmin } from '@/lib/admin-guard'
 
 export const maxDuration = 60
 
@@ -111,7 +112,9 @@ export async function POST(req: Request) {
   const mode = refining ? 'refine' : 'create'
   const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'desconocida'
   const ipHash = createHash('sha256').update(`${ip}:${process.env.CRON_SECRET ?? 'demo'}`).digest('hex').slice(0, 30)
-  const quota = await takeQuota(ipHash, mode).catch(() => 'error' as const)
+  // El administrador de la plataforma (con sesión iniciada en este navegador) no tiene límites: prueba la demo todo lo que quiera
+  const admin = await isPlatformAdmin().catch(() => false)
+  const quota = admin ? 'ok' as const : await takeQuota(ipHash, mode).catch(() => 'error' as const)
   // Si no se puede comprobar el límite, no se genera nada (así no se dispara el gasto)
   if (quota === 'error') return NextResponse.json({ error: 'La demo no está disponible por ahora.' }, { status: 503 })
   if (quota === 'visitor') return NextResponse.json({ error: refining ? 'Ya hiciste muchos cambios hoy. Crea tu cuenta y sigue afinando todo con la IA, sin límite.' : `Ya usaste tus ${LIMITS.create.visitor} demos de hoy. Crea tu cuenta y prueba QuickTurno con tu negocio real.` }, { status: 429 })
