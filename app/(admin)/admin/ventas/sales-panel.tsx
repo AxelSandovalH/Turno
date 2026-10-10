@@ -10,7 +10,7 @@ export interface ProspectRow {
   last_contact_at: string | null; last_inbound_at: string | null; created_at: string
 }
 export interface ConfigView {
-  enabled: boolean; run_until: string | null; lineReady: boolean; lineName: string | null; owner_phone: string
+  enabled: boolean; run_until: string | null; last_run_at: string | null; last_run_result: string | null; lineReady: boolean; lineName: string | null; owner_phone: string
   daily_limit: number; max_followups: number; followup_after_days: number
 }
 interface Msg { id: string; role: 'user' | 'assistant'; kind: string; content: string; created_at: string }
@@ -202,6 +202,13 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
             : <button onClick={runAll} disabled={running} className={`${btn} bg-violet-600 text-white`}>Enviar toda la lista</button>)}
         </div>
       </div>
+
+      <p className="text-xs text-muted-foreground -mt-4">
+        Última pasada automática:{' '}
+        {cfg.last_run_at
+          ? `${new Date(cfg.last_run_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} · ${cfg.last_run_result}`
+          : 'todavía no ha corrido (corre cada 15 minutos)'}
+      </p>
 
       <div className="flex gap-3 flex-wrap">
         {[

@@ -21,6 +21,8 @@ export default async function SalesPage() {
   const config: ConfigView = {
     enabled: !!cfg?.enabled,
     run_until: cfg?.run_until ?? null,
+    last_run_at: cfg?.last_run_at ?? null,
+    last_run_result: cfg?.last_run_result ?? null,
     lineReady: !!(cfg?.ultramsg_instance && cfg?.ultramsg_token),
     lineName: cfg?.ultramsg_instance ?? null,
     owner_phone: cfg?.owner_phone ?? '',
