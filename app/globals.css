@@ -284,3 +284,9 @@
     clip-path: circle(150% at var(--theme-x, 50%) var(--theme-y, 50%));
   }
 }
+
+
+/* Enlaces a secciones de la landing: desplazamiento suave y sin quedar tapadas por el menú fijo (56px) */
+html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: 64px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

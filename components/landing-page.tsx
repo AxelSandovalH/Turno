@@ -264,10 +264,11 @@ export function LandingPage() {
             <a href="#features"  className="transition-colors hover:opacity-80">Funciones</a>
             <a href="#segments"  className="transition-colors hover:opacity-80">Giros</a>
             <a href="#dashboard" className="transition-colors hover:opacity-80">Sistema</a>
-            <a href="#pricing"   className="transition-colors hover:opacity-80">Precio</a>
+            <a href="#pricing"   className="transition-colors hover:opacity-80">Planes</a>
             <a href="#faq"       className="transition-colors hover:opacity-80">FAQ</a>
           </nav>
           <div className="flex items-center gap-1.5 sm:gap-3">
+            <a href="#pricing" className="md:hidden text-[13px] transition-colors hover:opacity-80" style={{ color: t.muted }}>Planes</a>
             <Link href="/login" className="text-[13px] transition-colors hover:opacity-80" style={{ color: t.muted }}>Entrar</Link>
             <Link href="/register">
               <button
@@ -308,8 +309,9 @@ export function LandingPage() {
               consultorios, restaurantes y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
-              <FancyButton href="/register">Empieza hoy →</FancyButton>
-              <Link href="/login">
+              {/* Si el visitante eligió restaurantes en el selector, el registro ya arranca con su plan */}
+              <FancyButton href={SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : '/register'}>Empezar 7 días gratis →</FancyButton>
+              <a href="#pricing">
                 <button
                   onMouseEnter={() => setLoginHover(true)}
                   onMouseLeave={() => setLoginHover(false)}
@@ -320,7 +322,7 @@ export function LandingPage() {
                     className="relative z-10 transition-colors duration-300"
                     style={{ color: loginHover ? t.accent : t.muted }}
                   >
-                    Iniciar sesión
+                    Ver planes y precios
                   </span>
                   {/* Barra de reveal: entra desde la izquierda al hover, sale hacia la derecha al salir */}
                   <span
@@ -333,7 +335,7 @@ export function LandingPage() {
                     }}
                   />
                 </button>
-              </Link>
+              </a>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
               7 días gratis · Desde $700 MXN/mes · Cancela cuando quieras
@@ -364,37 +366,6 @@ export function LandingPage() {
 
       {/* Segmentos — un solo panel por giro en vez de 7 columnas de bullets */}
       <SegmentShowcase t={t} isDay={isDay} />
-
-      {/* El sistema detrás del bot */}
-      <section id="dashboard" style={{ borderTop: `1px solid ${t.border}` }}>
-        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
-          <div data-section-head style={{ opacity: 0 }}>
-            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>No solo un bot</p>
-            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-5" style={{ color: t.text }}>Tu negocio, ordenado.</h2>
-            <p className="text-[16px] leading-relaxed mb-6" style={{ color: t.muted }}>
-              Cada cita que agenda el bot cae directo a tu panel. Ve tu agenda del día, tus ingresos y a tus clientes sin perseguir mensajes.
-            </p>
-            <ul className="space-y-3">
-              {[
-                'Agenda del día por colaborador, sin choques de horario',
-                'Ingresos y citas confirmadas en tiempo real',
-                'Historial de cada cliente y sus citas pasadas',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-[14px]" style={{ color: t.text }}>
-                  <Check size={16} style={{ color: t.accent, marginTop: 3, flexShrink: 0 }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div data-feature className="flex justify-center min-w-0" style={{ opacity: 0 }}>
-            <DashboardMockup isDay={isDay} />
-          </div>
-        </div>
-      </section>
-
-      {/* Cómo funciona — narrativa con scroll pineado en desktop */}
-      <HowItWorks t={t} isDay={isDay} />
 
       {/* Pricing */}
       <section id="pricing" style={{ borderTop: `1px solid ${t.border}` }}>
@@ -509,6 +480,37 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* El sistema detrás del bot */}
+      <section id="dashboard" style={{ borderTop: `1px solid ${t.border}` }}>
+        <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28 grid lg:grid-cols-2 gap-14 items-center">
+          <div data-section-head style={{ opacity: 0 }}>
+            <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>No solo un bot</p>
+            <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-5" style={{ color: t.text }}>Tu negocio, ordenado.</h2>
+            <p className="text-[16px] leading-relaxed mb-6" style={{ color: t.muted }}>
+              Cada cita que agenda el bot cae directo a tu panel. Ve tu agenda del día, tus ingresos y a tus clientes sin perseguir mensajes.
+            </p>
+            <ul className="space-y-3">
+              {[
+                'Agenda del día por colaborador, sin choques de horario',
+                'Ingresos y citas confirmadas en tiempo real',
+                'Historial de cada cliente y sus citas pasadas',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-[14px]" style={{ color: t.text }}>
+                  <Check size={16} style={{ color: t.accent, marginTop: 3, flexShrink: 0 }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div data-feature className="flex justify-center min-w-0" style={{ opacity: 0 }}>
+            <DashboardMockup isDay={isDay} />
+          </div>
+        </div>
+      </section>
+
+      {/* Cómo funciona — narrativa con scroll pineado en desktop */}
+      <HowItWorks t={t} isDay={isDay} />
 
       {/* FAQ */}
       <section id="faq" style={{ borderTop: `1px solid ${t.border}` }}>
