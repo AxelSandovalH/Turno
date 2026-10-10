@@ -10,8 +10,8 @@ export interface ProspectRow {
   last_contact_at: string | null; last_inbound_at: string | null; created_at: string
 }
 export interface ConfigView {
-  enabled: boolean; lineReady: boolean; lineName: string | null; owner_phone: string
-  daily_limit: number; send_start_hour: number; send_end_hour: number; max_followups: number; followup_after_days: number
+  enabled: boolean; run_until: string | null; lineReady: boolean; lineName: string | null; owner_phone: string
+  daily_limit: number; max_followups: number; followup_after_days: number
 }
 interface Msg { id: string; role: 'user' | 'assistant'; kind: string; content: string; created_at: string }
 
@@ -38,6 +38,7 @@ async function post(url: string, body: unknown, method = 'POST') {
 export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }: { config: ConfigView; prospects: ProspectRow[]; sentToday: number; orgs: { slug: string; name: string }[]; freeInstances: string[] }) {
   const router = useRouter()
   const [cfg, setCfg] = useState(config)
+  const [runHours, setRunHours] = useState(3)   // 0 = hasta apagarlo
   const [lineChoice, setLineChoice] = useState('')   // 'pool:instance123' | 'org:slug'
   const [saving, setSaving] = useState(false)
   const [text, setText] = useState('')
@@ -52,7 +53,7 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
   async function saveConfig(extra: Record<string, unknown> = {}) {
     setSaving(true)
     const { ok, data } = await post('/api/admin/sales/config', {
-      owner_phone: cfg.owner_phone, daily_limit: cfg.daily_limit, send_start_hour: cfg.send_start_hour, send_end_hour: cfg.send_end_hour,
+      owner_phone: cfg.owner_phone, daily_limit: cfg.daily_limit,
       max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, ...extra,
     })
     setSaving(false)
@@ -78,13 +79,13 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
   }
 
   async function toggle() {
-    if (!cfg.enabled && !window.confirm('Vas a encender el agente. A partir de la próxima hora empezará a escribirles a los prospectos pendientes, dentro de tu horario y tu tope diario. ¿Continuar?')) return
+    if (!cfg.enabled && !window.confirm('Vas a encender el agente. Empezará a escribirles a los prospectos pendientes en la próxima pasada (cada hora), dentro de tu tope diario. ¿Continuar?')) return
     const { ok, data } = await post('/api/admin/sales/config', {
-      owner_phone: cfg.owner_phone, daily_limit: cfg.daily_limit, send_start_hour: cfg.send_start_hour, send_end_hour: cfg.send_end_hour,
-      max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, enabled: !cfg.enabled,
+      owner_phone: cfg.owner_phone, daily_limit: cfg.daily_limit,
+      max_followups: cfg.max_followups, followup_after_days: cfg.followup_after_days, enabled: !cfg.enabled, runHours: cfg.enabled ? 0 : runHours,
     })
     if (!ok) return toast.error(data?.error ?? 'No se pudo cambiar')
-    setCfg(c => ({ ...c, enabled: !c.enabled }))
+    setCfg(c => ({ ...c, enabled: !c.enabled, run_until: !c.enabled && runHours > 0 ? new Date(Date.now() + runHours * 3600_000).toISOString() : null }))
     router.refresh()
   }
 
@@ -141,9 +142,21 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
           <h1 className="text-lg font-semibold">Agente de ventas</h1>
           <p className="text-sm text-muted-foreground mt-1">Escribe a los negocios que cargues, se presenta, resuelve dudas y negocia dentro de límites fijos.</p>
         </div>
-        <button onClick={toggle} className={`${btn} ${cfg.enabled ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
-          {cfg.enabled ? 'Apagar agente' : 'Encender agente'}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {cfg.enabled ? (
+            <span className="text-xs text-emerald-500">
+              {cfg.run_until ? `Encendido hasta las ${new Date(cfg.run_until).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}` : 'Encendido hasta que lo apagues'}
+            </span>
+          ) : (
+            <select className={input} value={runHours} onChange={e => setRunHours(Number(e.target.value))}>
+              <option value={1}>1 hora</option><option value={3}>3 horas</option><option value={6}>6 horas</option>
+              <option value={12}>12 horas</option><option value={24}>24 horas</option><option value={0}>Hasta apagarlo (24/7)</option>
+            </select>
+          )}
+          <button onClick={toggle} className={`${btn} ${cfg.enabled ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+            {cfg.enabled ? 'Apagar agente' : 'Encender agente'}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -177,12 +190,11 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
         <div className="flex flex-wrap gap-x-5 gap-y-3 items-center text-sm">
           <label className="flex items-center gap-2">Tu teléfono de aviso <input className={`${input} w-40`} placeholder="10 dígitos" value={cfg.owner_phone} onChange={e => setCfg(c => ({ ...c, owner_phone: e.target.value }))} /></label>
           <label className="flex items-center gap-2">Tope diario {num('daily_limit')}</label>
-          <label className="flex items-center gap-2">De {num('send_start_hour')} a {num('send_end_hour')} h</label>
           <label className="flex items-center gap-2">Seguimientos {num('max_followups')}</label>
           <label className="flex items-center gap-2">cada {num('followup_after_days')} días</label>
         </div>
         <button onClick={() => saveConfig()} disabled={saving} className={`${btn} bg-violet-600 text-white`}>{saving ? 'Guardando…' : 'Guardar configuración'}</button>
-        <p className="text-xs text-muted-foreground">Nunca escribe domingos ni fuera de horario. Manda máximo 3 mensajes por hora, con pausas entre ellos.</p>
+        <p className="text-xs text-muted-foreground">Mientras está encendido escribe a cualquier hora, incluso domingos. Manda máximo 3 mensajes por hora, con pausas entre ellos.</p>
       </section>
 
       {/* Importar */}

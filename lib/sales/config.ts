@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 export interface SalesConfig {
   enabled: boolean
+  run_until: string | null
   ultramsg_instance: string | null
   ultramsg_token: string | null
   owner_phone: string | null

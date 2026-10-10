@@ -9,14 +9,6 @@ const OPT_OUT_LINE = 'Si prefieres que no te escriba, respóndeme "no" y no vuel
 const MAX_PER_RUN = 3
 const DAY = 24 * 3600_000
 
-/** Hora y día de la semana en la zona del negocio (0 = domingo). */
-function localClock(now: Date, tz: string) {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false, weekday: 'short' }).formatToParts(now)
-  const hour = Number(parts.find(p => p.type === 'hour')?.value ?? 0) % 24
-  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.find(p => p.type === 'weekday')?.value ?? 'Sun')
-  return { hour, weekday }
-}
-
 /** Inicio del día de hoy (en la zona del negocio) como fecha UTC. */
 function localDayStart(now: Date, tz: string): Date {
   const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now)
@@ -32,7 +24,7 @@ function followupText(name: string | null, bizName: string, n: number): string {
 export interface OutreachResult { sent: number; followups: number; skipped?: string }
 
 /**
- * Una pasada de envíos en frío: respeta horario de oficina, domingo, tope diario y manda pocos
+ * Una pasada de envíos en frío: respeta el tiempo de encendido, el tope diario y manda pocos
  * mensajes por pasada con pausas entre ellos. Primero seguimientos, luego negocios nuevos.
  */
 export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Promise<void> } = {}): Promise<OutreachResult> {
@@ -43,11 +35,13 @@ export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Pr
   const creds = salesCreds(cfg)
   if (!creds) return { sent: 0, followups: 0, skipped: 'sin instancia configurada' }
 
-  const { hour, weekday } = localClock(now, cfg.timezone)
-  if (weekday === 0) return { sent: 0, followups: 0, skipped: 'domingo' }
-  if (hour < cfg.send_start_hour || hour >= cfg.send_end_hour) return { sent: 0, followups: 0, skipped: 'fuera de horario' }
-
   const db = createServiceClient()
+
+  // Encendido con duración: al llegar a la hora límite el agente se apaga solo
+  if (cfg.run_until && now.getTime() >= new Date(cfg.run_until).getTime()) {
+    await db.from('sales_config').update({ enabled: false, run_until: null }).eq('id', 1)
+    return { sent: 0, followups: 0, skipped: 'terminó el tiempo de encendido' }
+  }
 
   // Sin respuesta tras todos los seguimientos: se cierra el prospecto
   const staleBefore = new Date(now.getTime() - cfg.followup_after_days * DAY).toISOString()

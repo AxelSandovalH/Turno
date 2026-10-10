@@ -20,13 +20,8 @@ export async function POST(req: Request) {
   const patch: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
     daily_limit: int(b.daily_limit, 1, 50, 15),
-    send_start_hour: int(b.send_start_hour, 6, 20, 9),
-    send_end_hour: int(b.send_end_hour, 7, 22, 18),
     max_followups: int(b.max_followups, 0, 3, 2),
     followup_after_days: int(b.followup_after_days, 1, 14, 3),
-  }
-  if ((patch.send_end_hour as number) <= (patch.send_start_hour as number)) {
-    return NextResponse.json({ error: 'La hora de fin debe ser mayor que la de inicio' }, { status: 400 })
   }
   if (b.owner_phone !== undefined) {
     const phone = b.owner_phone ? normalizeMxPhone(String(b.owner_phone)) : null
@@ -54,6 +49,9 @@ export async function POST(req: Request) {
       if (!owner) return NextResponse.json({ error: 'Escribe tu teléfono: ahí te avisa cuando un prospecto necesita a una persona' }, { status: 400 })
     }
     patch.enabled = !!b.enabled
+    // Duración del encendido en horas (1 a 168); sin valor = hasta apagarlo
+    const hours = Number(b.runHours)
+    patch.run_until = b.enabled && hours > 0 ? new Date(Date.now() + Math.min(hours, 168) * 3600_000).toISOString() : null
   }
   const { error } = await db.from('sales_config').update(patch).eq('id', 1)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

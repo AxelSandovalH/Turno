@@ -20,12 +20,11 @@ export default async function SalesPage() {
 
   const config: ConfigView = {
     enabled: !!cfg?.enabled,
+    run_until: cfg?.run_until ?? null,
     lineReady: !!(cfg?.ultramsg_instance && cfg?.ultramsg_token),
     lineName: cfg?.ultramsg_instance ?? null,
     owner_phone: cfg?.owner_phone ?? '',
     daily_limit: cfg?.daily_limit ?? 15,
-    send_start_hour: cfg?.send_start_hour ?? 9,
-    send_end_hour: cfg?.send_end_hour ?? 18,
     max_followups: cfg?.max_followups ?? 2,
     followup_after_days: cfg?.followup_after_days ?? 3,
   }
