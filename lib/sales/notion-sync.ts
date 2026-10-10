@@ -42,17 +42,48 @@ async function notionPagesByPhone(): Promise<Map<string, string>> {
   return map
 }
 
-export async function syncProspectsToNotion(): Promise<{ updated: number; missing: number; failed: number }> {
-  if (!process.env.NOTION_TOKEN) return { updated: 0, missing: 0, failed: 0 }
+const GIRO_LABEL: Record<string, string> = {
+  barbershop: 'Barbería / Estética', spa: 'Spa / Masajes', dentistry: 'Clínica dental', physiotherapy: 'Consultorio / Clínica',
+  psychology: 'Consultorio / Clínica', consulting: 'Consultorio / Clínica', laboratory: 'Laboratorio', tattoo: 'Tatuajes',
+  tours: 'Tours / Embarcaciones', charter: 'Tours / Embarcaciones', restaurant: 'Restaurante', other: 'Otro',
+}
+
+/** Crea en Notion la fila de un prospecto que entró por otra vía (por ejemplo Google Places). */
+async function createNotionPage(p: { name: string; phone: string; segment: string; city: string | null }): Promise<boolean> {
+  const props: Record<string, unknown> = {
+    Negocio: { title: [{ text: { content: p.name.slice(0, 200) } }] },
+    Teléfono: { phone_number: `+52 ${p.phone.slice(-10)}` },
+    Giro: { select: { name: GIRO_LABEL[p.segment] ?? 'Otro' } },
+    Estado: { select: { name: 'Por contactar' } },
+    'Próxima acción': { select: { name: 'Mensaje de presentación' } },
+    Canal: { multi_select: [{ name: 'WhatsApp' }] },
+    Intentos: { number: 0 },
+    Notas: { rich_text: [{ text: { content: 'Importado desde Google Places' } }] },
+  }
+  if (p.city) props.Ciudad = { select: { name: p.city } }
+  const res = await fetch('https://api.notion.com/v1/pages', {
+    method: 'POST', headers: headers(), body: JSON.stringify({ parent: { data_source_id: DATA_SOURCE }, properties: props }),
+  })
+  if (!res.ok) console.error('[notion-sync] no se pudo crear la fila', res.status, await res.text().catch(() => ''))
+  return res.ok
+}
+
+export async function syncProspectsToNotion(opts: { createMissing?: boolean } = {}): Promise<{ updated: number; created: number; missing: number; failed: number }> {
+  if (!process.env.NOTION_TOKEN) return { updated: 0, created: 0, missing: 0, failed: 0 }
   const db = createServiceClient()
   const [pages, { data: prospects }] = await Promise.all([
     notionPagesByPhone(),
-    db.from('prospects').select('id, phone_key, status, followups_sent, last_contact_at, handoff_reason').neq('status', 'new'),
+    db.from('prospects').select('id, name, phone, phone_key, segment, city, status, followups_sent, last_contact_at, handoff_reason'),
   ])
-  let updated = 0, missing = 0, failed = 0
+  let updated = 0, created = 0, missing = 0, failed = 0
   for (const p of prospects ?? []) {
     const pageId = pages.get(p.phone_key)
-    if (!pageId) { missing++; continue }
+    if (!pageId) {
+      // Prospecto que no está en el CRM: se crea la fila (solo los nuevos; el resto ya existía o se borró a propósito)
+      if (p.status === 'new' && opts.createMissing) { if (await createNotionPage(p)) created++; else failed++ } else missing++
+      continue
+    }
+    if (p.status === 'new') continue
     const { data: last } = await db.from('prospect_messages').select('content').eq('prospect_id', p.id).eq('role', 'user').order('created_at', { ascending: false }).limit(1)
     const s = STATE[p.status] ?? STATE.contacted
     const reply = (last?.[0]?.content as string | undefined)?.slice(0, 1900)
@@ -68,5 +99,5 @@ export async function syncProspectsToNotion(): Promise<{ updated: number; missin
     const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ properties: props }) })
     if (res.ok) updated++; else { failed++; console.error('[notion-sync]', res.status, await res.text().catch(() => '')) }
   }
-  return { updated, missing, failed }
+  return { updated, created, missing, failed }
 }
