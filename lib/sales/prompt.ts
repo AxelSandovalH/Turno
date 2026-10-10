@@ -76,22 +76,49 @@ RESPETO:
 ${p.offer_link ? `\nYa se le dio al negocio este enlace con descuento: ${p.offer_link}. No generes otro.` : ''}`
 }
 
-export function buildOpeningPrompt(p: ProspectCtx): string {
-  return `Escribe el PRIMER mensaje de WhatsApp de Turno, asistente virtual de ventas de QuickTurno, para el negocio "${p.name}"${p.city ? ` de ${p.city}` : ''} (giro: ${p.segment}). Será un contacto en frío: tiene que dar una razón concreta para que valga la pena contestar, sin parecer una plantilla masiva.
+// Variación real del primer mensaje: a cada negocio le toca un enfoque, una estructura y un cierre distintos
+// (elegidos con un valor derivado de su nombre, así el mismo negocio siempre recibe el mismo planteamiento).
+const ANGLES = [
+  'atención al cliente: que los clientes reciban respuesta aunque el dueño esté ocupado o fuera de horario',
+  'consultas frecuentes: dedicar menos tiempo a contestar una y otra vez las mismas preguntas',
+  'gestión de citas, reservas o pedidos (lo que corresponda al giro) con confirmaciones y recordatorios',
+  'organización de solicitudes: tener en un solo lugar lo que piden los clientes por WhatsApp',
+]
+const STRUCTURES = [
+  'empieza explicando brevemente por qué le escribes y luego presenta la solución',
+  'empieza presentando la solución en una frase y luego el beneficio',
+  'abre con el beneficio que más le puede importar y luego di quién eres',
+]
+const CLOSINGS = [
+  'cierra con una pregunta breve sobre si le interesaría conocer cómo funcionaría en su negocio',
+  'cierra con una invitación sencilla, sin pregunta (por ejemplo, que si quiere le cuentas cómo funciona)',
+  'cierra preguntando cómo manejan hoy esa parte de su operación',
+]
+function pick<T>(list: T[], seed: string, salt: number): T {
+  let h = salt
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return list[h % list.length]
+}
 
-Cómo decidir qué decir (hazlo internamente, no lo muestres):
-- Lo que QuickTurno hace de verdad:
+export function buildOpeningPrompt(p: ProspectCtx): string {
+  const angle = pick(ANGLES, p.name, 7), structure = pick(STRUCTURES, p.name, 13), closing = pick(CLOSINGS, p.name, 29)
+  return `Escribe el PRIMER mensaje de WhatsApp de Turno, asistente virtual de ventas de QuickTurno, para el negocio "${p.name}"${p.city ? ` de ${p.city}` : ''} (giro: ${p.segment}). Es un contacto en frío: tiene que dar una razón concreta para que valga la pena contestar, sin parecer una plantilla masiva.
+
+Lo que QuickTurno hace de verdad (no afirmes nada fuera de esto):
 ${CAPABILITIES}
-- Elige UN solo argumento: el que más sentido tenga para la actividad real de este negocio (por ejemplo: ${pitchFor(p.segment)}), no el primero que venga a la mente por el giro.
-- Solo conoces el nombre, el giro y la ciudad. Personaliza con eso, sin fingir que revisaste sus redes o publicaciones, y sin asumir que pierde clientes o está desorganizado.
+
+Planteamiento de ESTE negocio (síguelo; otros negocios reciben otro):
+- Enfoque: ${angle}. Si no encaja con lo que hace "${p.name}", ajústalo a su giro (${pitchFor(p.segment)}).
+- Estructura: ${structure}.
+- Cierre: ${closing}.
 
 Reglas del mensaje:
-- Entre 40 y 70 palabras, párrafos cortos, lectura cómoda desde el teléfono. Español de México, natural, sin emojis.
-- Preséntate con transparencia como el asistente virtual de QuickTurno${p.contact_name ? `; saluda a ${p.contact_name}` : ''}. No finjas ser una persona ni conocer al dueño.
-- Explica un beneficio concreto y cotidiano para su operación. Sin frases publicitarias ("lleva tu negocio al siguiente nivel"), sin elogios genéricos, sin exagerar ni prometer resultados.
-- Debe despertar curiosidad real: que entienda qué podría ganar, sin ocultar que es un mensaje comercial.
-- Varía la apertura y el cierre; no uses una fórmula fija.
-- Termina con UNA pregunta sencilla y adaptada al argumento (por ejemplo si le interesaría ver cómo funcionaría, o si esa tarea forma parte de su día a día).
-- No incluyas precios, descuentos, enlaces, listas de funciones, videos ni más de una llamada a la acción.
+- Escríbelo desde cero para este negocio. No copies una plantilla ni uses una fórmula fija; las diferencias deben ser de fondo (qué se destaca y cómo se plantea), no sinónimos al azar.
+- Solo conoces el nombre, el giro y la ciudad. No inventes que revisaste su negocio, que detectaste un problema, que tiene muchas consultas o citas desordenadas, ni una relación previa. No lo presentes como si hubiera pedido información.
+- Si no hay base para personalizar más, haz una presentación sencilla y honesta de qué es QuickTurno y por qué le escribes.
+- Identifica con transparencia que eres el asistente virtual de QuickTurno${p.contact_name ? `; saluda a ${p.contact_name}` : ''}.
+- Entre 40 y 70 palabras, párrafos cortos, español de México, natural y profesional, sin emojis.
+- Ortografía correcta y texto normal: nada de caracteres raros, espacios extra ni trucos para evitar filtros.
+- Sin precios, descuentos, enlaces, archivos, listas de funciones ni más de una llamada a la acción.
 - Devuelve solo el texto del mensaje, sin comillas.`
 }
