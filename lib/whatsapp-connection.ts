@@ -25,7 +25,12 @@ export async function claimInstanceForOrg(orgId: string): Promise<{ instance: st
     .from('organizations')
     .update({ ultramsg_instance: creds.instance, ultramsg_token: creds.token })
     .eq('id', orgId)
-  if (updError) { console.error('[whatsapp] assign failed:', updError.message); return null }
+  if (updError) {
+    console.error('[whatsapp] assign failed:', updError.message)
+    // No dejar la instancia "asignada" a un negocio que no la recibió
+    await db.from('whatsapp_instances').update({ organization_id: null, assigned_at: null }).eq('instance_id', creds.instance)
+    return null
+  }
 
   await configureInstanceWebhook(creds, WEBHOOK_URL).catch(err => console.error('[whatsapp] webhook config failed:', err))
   return creds

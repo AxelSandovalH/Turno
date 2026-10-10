@@ -25,6 +25,13 @@ export async function POST(req: Request) {
   }
 
   const db = createServiceClient()
+  // Una instancia que ya usa un negocio no puede entrar a la reserva: se asignaría dos veces
+  const digits = instance.replace(/^instance/, '')
+  const { data: inUse } = await db.from('organizations').select('name').in('ultramsg_instance', [instance, digits]).maybeSingle()
+  if (inUse) {
+    return NextResponse.json({ error: `Esa instancia ya la usa ${inUse.name}. Agrega una instancia nueva.` }, { status: 409 })
+  }
+
   const { error } = await db.from('whatsapp_instances').insert({ instance_id: instance, token })
   if (error) {
     const dup = error.code === '23505'
