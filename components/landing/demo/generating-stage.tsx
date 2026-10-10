@@ -1,0 +1,51 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { TurnoLogo } from '@/components/ui/turno-logo'
+import { TypedText } from './motion'
+
+const LINES = [
+  'Leyendo la descripción de tu negocio…',
+  'Eligiendo tus servicios y precios…',
+  'Armando tu página pública de reservas…',
+  'Preparando los módulos de tu sistema…',
+  'Escribiendo la conversación de WhatsApp…',
+]
+
+/** Pantalla de "la IA está trabajando": el logo de QuickTurno y una línea de texto que se escribe y se borra. */
+export function GeneratingStage({ isDay, accent = '#7c3aed' }: { isDay: boolean; accent?: string }) {
+  const [i, setI] = useState(0)
+  const [erasing, setErasing] = useState(false)
+
+  // Cada línea se escribe, se sostiene un momento y se borra antes de pasar a la siguiente
+  useEffect(() => {
+    if (!erasing) return
+    const id = setTimeout(() => { setErasing(false); setI(v => (v + 1) % LINES.length) }, 450)
+    return () => clearTimeout(id)
+  }, [erasing])
+
+  return (
+    <div className="flex min-h-[340px] flex-col items-center justify-center gap-7 py-10" role="status" aria-live="polite" style={{ animation: 'qt-pop .4s ease-out both' }}>
+      <div className="relative flex h-32 w-32 items-center justify-center">
+        <span className="qt-anim absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${accent}55, transparent 68%)`, animation: 'qt-glow 2.4s ease-in-out infinite' }} />
+        <span className="qt-anim absolute inset-2 rounded-full border border-dashed" style={{ borderColor: `${accent}66`, animation: 'qt-orbit 9s linear infinite' }} />
+        <span className="qt-anim absolute inset-2" style={{ animation: 'qt-orbit 3.2s linear infinite' }}>
+          <span className="absolute -top-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full" style={{ background: accent, boxShadow: `0 0 12px ${accent}` }} />
+        </span>
+        <span className="qt-anim relative" style={{ animation: 'qt-pulse 2s ease-in-out infinite' }}>
+          <TurnoLogo height={44} variant={isDay ? 'light' : 'dark'} />
+        </span>
+      </div>
+
+      <p className="h-6 text-center text-sm sm:text-base" style={{ color: isDay ? '#444' : '#cfcfcf' }}>
+        {erasing
+          ? <span style={{ opacity: .35, transition: 'opacity .3s' }}>{LINES[i]}</span>
+          : <TypedText key={i} text={LINES[i]} speed={26} caret onDone={() => setTimeout(() => setErasing(true), 900)} />}
+      </p>
+
+      <div className="relative h-1 w-48 overflow-hidden rounded-full" style={{ background: isDay ? '#e5e2dc' : '#222' }}>
+        <span className="qt-anim absolute inset-y-0 left-0 w-1/3 rounded-full" style={{ background: accent, animation: 'qt-slide 1.4s ease-in-out infinite' }} />
+      </div>
+    </div>
+  )
+}
