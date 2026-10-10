@@ -10,6 +10,7 @@ import { NewAppointmentDialog } from './new-appointment-dialog'
 import { CalendarView } from './calendar-view'
 import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
+import { GettingStartedServer } from '@/components/dashboard/getting-started-server'
 import { staffLabel as getStaffLabel } from '@/lib/business-type'
 import { hasCapability } from '@/lib/profiles/registry'
 import type { Appointment } from '@/types/database'
@@ -84,6 +85,10 @@ export default async function AppointmentsPage({ searchParams }: Props) {
     <div data-wide className="space-y-6">
       <Suspense fallback={null}>
         <PaymentSuccessToast />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <GettingStartedServer />
       </Suspense>
 
       {/* Header */}

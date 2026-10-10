@@ -1,9 +1,11 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { requireOrganization } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { hasCapability } from '@/lib/profiles/registry'
 import { AutoRefresh } from '@/components/dashboard/auto-refresh'
 import { OrderBoard, type BoardOrder } from './order-board'
+import { GettingStartedServer } from '@/components/dashboard/getting-started-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +30,9 @@ export default async function OrdersPage() {
   return (
     <div data-wide className="space-y-6">
       <AutoRefresh intervalMs={8000} />
+      <Suspense fallback={null}>
+        <GettingStartedServer />
+      </Suspense>
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
         <p className="text-muted-foreground text-sm">Cada cambio de estado le avisa al cliente por WhatsApp</p>
