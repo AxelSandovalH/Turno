@@ -26,6 +26,25 @@ export function isOptOut(text: string): boolean {
   return OPT_OUT.some(re => re.test(raw) || re.test(t))
 }
 
+/** Frases típicas de los mensajes automáticos de WhatsApp Business (bienvenida, ausencia, horario). */
+const AUTO_REPLY = [
+  /\bgracias\s+por\s+(comunicarte|comunicarse|contactarnos|contactar(nos)?|escribirnos|escribir(nos)?|tu\s+mensaje|su\s+mensaje|ponerte\s+en\s+contacto)/i,
+  /\b(mensaje|respuesta)\s+autom[aá]tic[oa]/i,
+  /\ben\s+este\s+momento\s+(no\s+(podemos|estamos|nos\s+encontramos|puedo|me\s+encuentro)|nos\s+encontramos\s+(ocupados|fuera))/i,
+  /\b(fuera\s+de|nuestro|nuestros)\s+(horario|horarios)\b/i,
+  /\bhorario\s+de\s+(atenci[oó]n|servicio|oficina)\b/i,
+  /\b(te|le|lo)\s+(responder[ée]mos|atender[ée]mos|contestar[ée]mos)\s+(en\s+breve|a\s+la\s+brevedad|lo\s+antes\s+posible|pronto)/i,
+  /\bnos\s+pondr[ée]mos\s+en\s+contacto\b/i,
+  /\bregresa(mos)?\s+(en|a\s+las)\b.*\bhoras?\b/i,
+  /\bun\s+asesor\s+(te|le)\s+(atender[áa]|responder[áa]|contactar[áa])/i,
+  /\bno\s+(estamos|estoy)\s+disponibles?\b/i,
+]
+/** ¿Es una respuesta automática del negocio y no una persona? Se ignora para no contestarle a un bot. */
+export function isAutoReply(text: string): boolean {
+  const t = text.normalize('NFD').replace(/[̀-ͯ]/g, '')
+  return AUTO_REPLY.some(re => re.test(text) || re.test(t))
+}
+
 /** Giros que se aceptan al cargar prospectos -> business_type de QuickTurno. */
 export function segmentFromText(raw: string): string {
   const t = String(raw ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()

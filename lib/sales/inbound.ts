@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
 import { getSalesConfig, isSalesInstance, salesCreds } from '@/lib/sales/config'
-import { isOptOut, phoneKey } from '@/lib/sales/phone'
+import { isOptOut, isAutoReply, phoneKey } from '@/lib/sales/phone'
 import { runSalesAgent } from '@/lib/sales/agent'
 
 /**
@@ -22,6 +22,13 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   if (prospect.status === 'won') return false
   // Pidió que no le escribamos: se respeta en silencio
   if (prospect.status === 'opted_out') return true
+
+  // Respuesta automática del negocio (bienvenida, ausencia, horario): no es una persona. No se guarda, no cambia
+  // el estado del prospecto y no se le contesta, para no hablarle a un bot ni inflar las respuestas.
+  if (isAutoReply(args.text)) {
+    console.log('[sales] respuesta automática ignorada de', prospect.id)
+    return true
+  }
 
   if (args.msgId) {
     const { data: dup } = await db.from('prospect_messages').select('id').eq('ultramsg_id', args.msgId).maybeSingle()
