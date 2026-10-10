@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
   const patch: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
-    daily_limit: int(b.daily_limit, 1, 50, 15),
+    daily_limit: int(b.daily_limit, 1, 300, 15),
     max_followups: int(b.max_followups, 0, 3, 2),
     followup_after_days: int(b.followup_after_days, 1, 14, 3),
   }
