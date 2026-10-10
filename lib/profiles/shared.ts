@@ -5,6 +5,7 @@ export const ORDER_MODULES: readonly ProfileModule[] = [
   { id: 'orders',        href: '/orders',        title: 'Pedidos' },
   { id: 'menu',          href: '/menu',          title: 'Menú' },
   { id: 'conversations', href: '/conversations', title: 'Conversaciones' },
+  { id: 'whatsapp',      href: '/whatsapp',      title: 'WhatsApp' },
   { id: 'settings',      href: '/settings',      title: 'Configuración' },
 ]
 
@@ -19,6 +20,7 @@ export const APPOINTMENT_MODULES: readonly ProfileModule[] = [
   { id: 'services',      href: '/services',      title: 'Servicios' },
   { id: 'schedule',      href: '/schedule',      title: 'Horarios' },
   { id: 'conversations', href: '/conversations', title: 'Conversaciones' },
+  { id: 'whatsapp',      href: '/whatsapp',      title: 'WhatsApp' },
   { id: 'finanzas',      href: '/finanzas',      title: 'Finanzas' },
   { id: 'analytics',     href: '/analytics',     title: 'Analytics' },
   { id: 'settings',      href: '/settings',      title: 'Configuración' },

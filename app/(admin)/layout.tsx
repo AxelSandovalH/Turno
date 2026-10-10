@@ -2,11 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeSwitch } from '@/components/ui/theme-switch'
 import Link from 'next/link'
-import { LayoutDashboard, LogOut, Tag } from 'lucide-react'
+import { LayoutDashboard, LogOut, Tag, Smartphone } from 'lucide-react'
 
 const NAV = [
   { href: '/admin', label: 'Organizaciones', icon: LayoutDashboard },
   { href: '/admin/ofertas', label: 'Ofertas', icon: Tag },
+  { href: '/admin/instancias', label: 'WhatsApp', icon: Smartphone },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -85,10 +85,10 @@ export async function getSetupSteps(org: Organization): Promise<SetupInfo> {
     steps.push({
       id: 'whatsapp',
       title: 'Conecta tu WhatsApp',
-      desc: org.ultramsg_instance
-        ? 'Tu número ya está conectado al asistente.'
-        : 'Nuestro equipo conecta tu número al asistente. Si aún no te contactan, escríbenos.',
-      done: !!org.ultramsg_instance,
+      desc: 'Escanea un código QR con el teléfono de tu negocio. Toma menos de un minuto.',
+      href: '/whatsapp',
+      cta: 'Conectar',
+      done: !!org.whatsapp_connected_at,
     })
   }
 

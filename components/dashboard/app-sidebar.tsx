@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   CalendarDays, Clock, Settings, Tag, FlaskConical, ClipboardList, Microscope, FileText,
-  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign, ShoppingBag, UtensilsCrossed,
+  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign, ShoppingBag, UtensilsCrossed, QrCode,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -52,6 +52,7 @@ const MODULE_SUBTITLES: Record<string, string> = {
   services:      'Catálogo y precios',
   schedule:      'Disponibilidad y bloqueos',
   conversations: 'Historial de WhatsApp',
+  whatsapp:      'Conecta tu número con QR',
   finanzas:      'Ingresos, comisiones, cortes',
   analytics:     'Citas, ingresos, tendencias',
   settings:      'Negocio, WhatsApp, cuenta',
@@ -70,7 +71,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
   // resuelve aquí con el label del perfil (Pacientes/Clientes, Barberos/etc.)
   const modules: SearchResult[] = profile.modules
     // El módulo de conversaciones solo existe si la org tiene el bot activo
-    .filter(m => m.id !== 'conversations' || organization.whatsapp_bot_enabled)
+    .filter(m => (m.id !== 'conversations' && m.id !== 'whatsapp') || organization.whatsapp_bot_enabled)
     .map(m => {
     const title = m.title ?? (m.id === 'patients' ? patientLabel : m.id === 'staff' ? 'Equipo' : staffLabel)
     return {
@@ -340,6 +341,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                   services:     Tag,
                   schedule:     Clock,
                   conversations: MessageCircle,
+                  whatsapp:     QrCode,
                   finanzas:     DollarSign,
                   analytics:    BarChart2,
                   settings:     Settings,

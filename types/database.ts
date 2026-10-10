@@ -45,6 +45,7 @@ export interface Organization {
   order_payment_info: string | null
   order_accepting: boolean
   order_card_enabled: boolean
+  whatsapp_connected_at: string | null
   created_at: string
   updated_at: string
 }
