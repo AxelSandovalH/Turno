@@ -3,7 +3,7 @@ interface WelcomeEmailProps {
   whatsappNumber: string
 }
 
-export function welcomeEmailHtml({ businessName, whatsappNumber }: WelcomeEmailProps): string {
+export function welcomeEmailHtml({ businessName }: WelcomeEmailProps): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -60,7 +60,7 @@ export function welcomeEmailHtml({ businessName, whatsappNumber }: WelcomeEmailP
                   <td style="padding-left:12px;">
                     <p style="margin:0 0 2px;font-size:14px;font-weight:600;color:#ebebeb;">Conecta tu WhatsApp</p>
                     <p style="margin:0;font-size:13px;color:#555555;line-height:1.5;">
-                      El bot está configurado para el número <strong style="color:#ebebeb;">${whatsappNumber}</strong>. Si necesitas cambiarlo, ve a <strong style="color:#ebebeb;">Configuración</strong>.
+                      Entra a <strong style="color:#ebebeb;">WhatsApp</strong> en el menú y escanea el código QR con el teléfono de tu negocio. Toma menos de un minuto.
                     </p>
                   </td>
                 </tr>
@@ -110,13 +110,13 @@ export function welcomeEmailHtml({ businessName, whatsappNumber }: WelcomeEmailP
 </html>`
 }
 
-export function welcomeEmailText({ businessName, whatsappNumber }: WelcomeEmailProps): string {
+export function welcomeEmailText({ businessName }: WelcomeEmailProps): string {
   return `¡Bienvenido a QuickTurno, ${businessName}!
 
 Tu cuenta está lista. Sigue estos pasos:
 
 1. Agrega tus servicios y horarios en el dashboard.
-2. Tu bot está configurado para el número ${whatsappNumber}.
+2. Conecta tu WhatsApp: entra a WhatsApp en el menú y escanea el código QR.
 3. Prueba el bot mandándole un mensaje a tu WhatsApp.
 
 Ir al dashboard: https://www.quickturno.app/appointments
