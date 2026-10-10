@@ -67,7 +67,8 @@ const FAQ = [
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
-  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Para restaurantes y delivery está el plan Pedidos por $2,800 MXN al mes, con menú, link de pedidos y bot que toma pedidos. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Para restaurantes y delivery está el plan Pedidos por $2,800 MXN al mes, con menú, link de pedidos y bot que toma pedidos. Todos los planes incluyen 7 días de prueba gratis. Sin contratos ni permanencia.' },
+  { q: '¿Cómo funciona la prueba gratis?', a: 'Eliges tu plan, registras tu tarjeta y usas Turno completo durante 7 días sin pagar nada. Hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. Puedes cancelar tú mismo desde Configuración, en menos de un minuto.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -333,7 +334,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              Desde $1,500 MXN/mes · Sin contrato · Cancela cuando quieras
+              7 días gratis · Desde $1,500 MXN/mes · Cancela cuando quieras
             </p>
           </div>
 
@@ -490,14 +491,14 @@ export function LandingPage() {
                         ? { background: t.accent, color: '#fff' }
                         : { border: `1px solid ${t.border}`, color: t.text }}
                     >
-                      Activar ahora
+                      Probar 7 días gratis
                     </button>
                   </Link>
                 </div>
               ))}
             </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
-              Sin contrato · Sin permanencia · Cancela cuando quieras
+              7 días gratis · No se cobra hoy · Sin contrato · Cancela cuando quieras
             </p>
           </div>
         </div>
@@ -529,7 +530,7 @@ export function LandingPage() {
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>Desde $1,500 MXN/mes. Sin contrato. Cancela cuando quieras.</p>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde $1,500 MXN/mes. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · Restaurantes · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import { PLANS } from '@/lib/plans'
+import { PLANS, TRIAL_DAYS } from '@/lib/plans'
 import { OFFER_COUPON_ID, OFFER_PERCENT_OFF, verifyOfferToken } from '@/lib/offer'
 
 // Crea el checkout con 25% de descuento solo en el primer mes (cupón duration: once).
@@ -37,6 +37,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
       phone_number_collection: { enabled: true },
       success_url: `${baseUrl}/register?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/oferta/${token}`,
+      subscription_data: { trial_period_days: TRIAL_DAYS },
       metadata: { source: 'offer-25', plan: plan.key },
     })
     return NextResponse.redirect(session.url!, 303)

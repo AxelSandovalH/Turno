@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { resolvePlan } from '@/lib/plans'
+import { resolvePlan, isPlanKey, TRIAL_DAYS, type PlanKey } from '@/lib/plans'
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
-  const plan = resolvePlan(body?.planKey)
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,7 +15,13 @@ export async function POST(req: Request) {
   if (!orgId) return NextResponse.json({ error: 'Sin organización' }, { status: 400 })
 
   const db = createServiceClient()
-  const { data: org } = await db.from('organizations').select('name, stripe_customer_id').eq('id', orgId).single()
+  const { data: org } = await db.from('organizations').select('name, stripe_customer_id, stripe_subscription_id, business_type, whatsapp_bot_enabled').eq('id', orgId).single()
+
+  // Sin plan explícito (ej. reactivar desde Configuración) se usa el que corresponde al negocio
+  const inferred: PlanKey = org?.business_type === 'restaurant' ? 'pedidos' : org?.whatsapp_bot_enabled ? 'asistente' : 'agenda'
+  const plan = resolvePlan(isPlanKey(body?.planKey) ? body.planKey : inferred)
+  // La prueba gratis es solo para quien nunca ha tenido suscripción
+  const trialDays = org?.stripe_subscription_id ? undefined : TRIAL_DAYS
 
   try {
     // Crear o reutilizar cliente Stripe
@@ -53,7 +58,7 @@ export async function POST(req: Request) {
       cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
       // El webhook usa `plan` para prender/apagar el bot de WhatsApp de la org
       metadata: { organization_id: orgId, plan: plan.key },
-      subscription_data: { metadata: { organization_id: orgId, plan: plan.key } },
+      subscription_data: { metadata: { organization_id: orgId, plan: plan.key }, ...(trialDays ? { trial_period_days: trialDays } : {}) },
     })
 
     return NextResponse.json({ url: session.url })

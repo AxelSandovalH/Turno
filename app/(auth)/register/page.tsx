@@ -228,7 +228,7 @@ export default function RegisterPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, fontSize: 12 }}>
           <span style={{ color: '#c4b5fd', fontWeight: 600 }}>{googleUser ? '1 · Tu negocio' : '1 · Tu cuenta'}</span>
           <span style={{ flex: 1, height: 1, background: '#252525' }} />
-          <span style={{ color: '#555' }}>2 · Pago seguro</span>
+          <span style={{ color: '#555' }}>2 · Tarjeta (sin cobro hoy)</span>
         </div>
       )}
 
@@ -241,7 +241,7 @@ export default function RegisterPage() {
             ? 'Tu suscripción ya está pagada. Este último paso activa tu negocio.'
             : googleUser
               ? `Entraste con ${googleUser.email}. Solo falta lo de tu negocio.`
-              : 'Elige tu plan, llena 4 datos y listo. Sin contratos, cancelas cuando quieras.'}
+              : '7 días gratis. Elige tu plan, llena 4 datos y listo.'}
         </p>
       </div>
 
@@ -360,11 +360,11 @@ export default function RegisterPage() {
           disabled={loading}
           style={{ marginTop: 6, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' }}
         >
-          {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : `Continuar al pago · ${plan.priceLabel} MXN/mes →`}
+          {loading ? <Spinner size={20} color="#fff" /> : paidSessionId ? 'Activar mi negocio →' : 'Empezar 7 días gratis →'}
         </button>
         {!paidSessionId && (
           <p style={{ textAlign: 'center', fontSize: 11.5, color: '#4a4a4a', marginTop: -4 }}>
-            Pagas de forma segura en Stripe. Cancela cuando quieras.
+            Hoy no se te cobra nada. Después de 7 días: {plan.priceLabel} MXN al mes. Cancela antes y no pagas.
           </p>
         )}
       </form>

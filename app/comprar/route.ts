@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import { resolvePlan } from '@/lib/plans'
+import { resolvePlan, TRIAL_DAYS } from '@/lib/plans'
 
 // Compra directa desde el anuncio: 1 clic → Stripe Checkout, sin cuenta previa.
 // /comprar → plan con asistente; /comprar?plan=agenda → solo agenda.
@@ -24,6 +24,7 @@ export async function GET(req: Request) {
       phone_number_collection: { enabled: true },
       success_url: `${baseUrl}/register?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/`,
+      subscription_data: { trial_period_days: TRIAL_DAYS },
       metadata: { source: 'direct-ad', plan: plan.key },
     })
     return NextResponse.redirect(session.url!, 303)

@@ -36,9 +36,13 @@ const s = {
   btn: { height: 38, padding: '0 18px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 } as React.CSSProperties,
 }
 
-interface Props { organization: Organization }
+interface Props {
+  organization: Organization
+  /** Dentro de la prueba gratis de Stripe (calculado en el servidor) */
+  inTrial?: boolean
+}
 
-export function SettingsForm({ organization }: Props) {
+export function SettingsForm({ organization, inTrial = false }: Props) {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
@@ -105,6 +109,14 @@ export function SettingsForm({ organization }: Props) {
     savedRef.current = { ...savedRef.current, logo_url: logoUrl }
     toast.success('Logo actualizado')
     router.refresh()
+  }
+
+  async function handlePortal() {
+    setLoading(true)
+    const res = await fetch('/api/stripe-portal', { method: 'POST' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.url) { toast.error(data?.error ?? 'No se pudo abrir el portal'); setLoading(false); return }
+    window.location.href = data.url
   }
 
   async function handleSubscribe() {
@@ -432,9 +444,14 @@ export function SettingsForm({ organization }: Props) {
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
               {organization.business_type === 'restaurant' ? PLANS.pedidos.priceLabel : organization.whatsapp_bot_enabled ? PLANS.asistente.priceLabel : PLANS.agenda.priceLabel} MXN / mes
             </p>
+            {inTrial && (
+              <p style={{ fontSize: 12, color: '#a78bfa', marginTop: 4 }}>
+                Prueba gratis hasta el {new Date(organization.trial_ends_at!).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}. Después se cobra tu plan.
+              </p>
+            )}
           </div>
           {status === 'active' && (
-            <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 10px', borderRadius: 99 }}>Activo</span>
+            <span style={{ fontSize: 11, fontWeight: 600, background: inTrial ? 'rgba(124,58,237,0.12)' : 'rgba(16,185,129,0.1)', color: inTrial ? '#a78bfa' : '#10b981', padding: '3px 10px', borderRadius: 99 }}>{inTrial ? 'Prueba gratis' : 'Activo'}</span>
           )}
           {status === 'suspended' && (
             <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 10px', borderRadius: 99 }}>Suspendido</span>
@@ -444,6 +461,20 @@ export function SettingsForm({ organization }: Props) {
           )}
         </div>
       </div>
+
+      {organization.stripe_customer_id && (
+        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Cambia tu tarjeta, descarga facturas o cancela cuando quieras.</p>
+          <button
+            type="button"
+            onClick={handlePortal}
+            disabled={loading}
+            style={{ ...s.btn, background: 'transparent', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+          >
+            Administrar suscripción
+          </button>
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10, gridColumn: '1 / -1' }}>

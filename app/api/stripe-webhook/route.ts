@@ -44,10 +44,18 @@ export async function POST(req: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const subId = (session as any).subscription as string | null
       if (orgId) {
+        let trialEnd: string | null = null
+        if (subId) {
+          try {
+            const sub = await stripe.subscriptions.retrieve(subId)
+            trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
+          } catch { /* sin fecha de prueba: no es crítico */ }
+        }
         const { data: org } = await db
           .from('organizations')
           .update({
             subscription_status: 'active',
+            trial_ends_at: trialEnd,
             // El plan 'agenda' no incluye el bot de WhatsApp
             whatsapp_bot_enabled: planHasBot(session.metadata?.plan),
             ...(subId ? { stripe_subscription_id: subId } : {}),

@@ -47,6 +47,9 @@ export const PLANS: Record<PlanKey, Plan> = {
   },
 }
 
+/** Días de prueba gratis en toda suscripción nueva. Stripe cobra el primer mes al terminar. */
+export const TRIAL_DAYS = 7
+
 export const DEFAULT_PLAN: PlanKey = 'asistente'
 
 export function isPlanKey(v: unknown): v is PlanKey {

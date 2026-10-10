@@ -14,11 +14,11 @@ export default async function PaymentPage() {
   const db = createServiceClient()
   const { data: org } = await db
     .from('organizations')
-    .select('subscription_status')
+    .select('subscription_status, stripe_subscription_id')
     .eq('id', orgId)
     .single()
 
   if (org?.subscription_status === 'active') redirect('/appointments')
 
-  return <PaymentClient />
+  return <PaymentClient trial={!org?.stripe_subscription_id} />
 }

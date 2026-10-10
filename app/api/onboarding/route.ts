@@ -33,6 +33,14 @@ async function uniqueSlug(db: ReturnType<typeof createServiceClient>, base: stri
   return `${base}-${Date.now()}`
 }
 
+/** Fin de la prueba gratis de una suscripción (null si no tiene). */
+async function trialEndIso(subId: string): Promise<string | null> {
+  try {
+    const sub = await stripe.subscriptions.retrieve(subId)
+    return sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null
+  } catch { return null }
+}
+
 export async function POST(req: Request) {
   const { userId, name, slug, whatsappNumber, email, businessType, stripeSessionId } = await req.json()
   if (!userId || !name || !whatsappNumber) {
@@ -85,7 +93,8 @@ export async function POST(req: Request) {
       const subId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id
       const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id
       // Solo sesiones de compra directa, pagadas y sin org reclamada aún
-      if (session.payment_status === 'paid' && session.metadata?.source === 'direct-ad' && subId) {
+      const paidOrTrial = session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
+      if (paidOrTrial && ['direct-ad', 'offer-25'].includes(session.metadata?.source ?? '') && subId) {
         const { data: claimed } = await db
           .from('organizations')
           .select('id')
@@ -98,6 +107,7 @@ export async function POST(req: Request) {
             // El plan 'agenda' no incluye el bot de WhatsApp
             whatsapp_bot_enabled: planHasBot(planKey),
             stripe_subscription_id: subId,
+            trial_ends_at: await trialEndIso(subId),
             ...(customerId ? { stripe_customer_id: customerId } : {}),
           }).eq('id', org.id)
           // Liga la suscripción a la org para que los webhooks futuros la encuentren
