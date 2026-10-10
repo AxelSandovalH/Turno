@@ -149,18 +149,6 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
     router.refresh()
   }
 
-  const [giro, setGiro] = useState('barbería')
-  const [city, setCity] = useState('Cabo San Lucas')
-  const [searching, setSearching] = useState(false)
-  async function searchGoogle() {
-    setSearching(true)
-    const { ok, data } = await post('/api/admin/sales/places', { giro, city })
-    setSearching(false)
-    if (!ok) return toast.error(data?.error ?? 'No se pudo buscar')
-    toast.success(`Google encontró ${data.found}: ${data.added} nuevos${data.duplicated ? `, ${data.duplicated} repetidos` : ''}${data.withoutPhone ? `, ${data.withoutPhone} sin teléfono` : ''}`)
-    router.refresh()
-  }
-
   async function syncNotion() {
     setImporting(true)
     const { ok, data } = await post('/api/admin/sales/notion', {}, 'PUT')
@@ -272,21 +260,6 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
         <button onClick={importNotion} disabled={importing} className={`${btn} bg-muted text-foreground ml-2`}>Importar desde Notion</button>
         <button onClick={syncNotion} disabled={importing} className={`${btn} bg-muted text-foreground ml-2`}>Enviar avance a Notion</button>
         <p className="text-xs text-muted-foreground">Giro, ciudad y contacto son opcionales. Los teléfonos repetidos se omiten. «Importar desde Notion» trae los que están en estado «Por contactar» del CRM.</p>
-      </section>
-
-      {/* Buscar en Google */}
-      <section className="rounded-lg border border-border p-4 space-y-3">
-        <p className="text-sm font-semibold">Buscar negocios en Google</p>
-        <div className="flex gap-2 flex-wrap items-center">
-          <select className={input} value={giro} onChange={e => setGiro(e.target.value)}>
-            {['barbería', 'salón de belleza', 'spa masajes', 'dentista', 'fisioterapia', 'psicólogo', 'laboratorio clínico', 'estudio de tatuajes', 'restaurante', 'tours y actividades', 'renta de lanchas pesca deportiva'].map(g => <option key={g} value={g}>{g}</option>)}
-          </select>
-          <select className={input} value={city} onChange={e => setCity(e.target.value)}>
-            {['Cabo San Lucas', 'San José del Cabo', 'Manzanillo', 'Colima', 'Villa de Álvarez'].map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <button onClick={searchGoogle} disabled={searching} className={`${btn} bg-violet-600 text-white`}>{searching ? 'Buscando…' : 'Buscar e importar'}</button>
-        </div>
-        <p className="text-xs text-muted-foreground">Trae hasta 60 negocios abiertos con teléfono, sin repetir los que ya tienes, y los agrega también al CRM de Notion.</p>
       </section>
 
       {/* Lista */}
