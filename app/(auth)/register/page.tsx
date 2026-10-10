@@ -96,6 +96,9 @@ export default function RegisterPage() {
   const [planKey, setPlanKey] = useState<PlanKey>(DEFAULT_PLAN)
   // Demo de la landing: lo que la IA armó con la descripción del negocio, para sembrarlo en la cuenta
   const [demo, setDemo] = useState<DemoHandoff | null>(null)
+  // Si el navegador ya tiene una sesión con negocio, se le avisa y decide (no se le redirige en silencio)
+  const [checking, setChecking] = useState(true)
+  const [existing, setExisting] = useState<{ email: string; orgName: string | null; next: string } | null>(null)
   // Paso 1: cuenta (Google, correo y contraseña). Paso 2: negocio y plan. Con Google ya entró, así que va directo al 2
   const [stepState, setStepState] = useState<1 | 2>(1)
   const [form, setForm] = useState({
@@ -138,13 +141,19 @@ export default function RegisterPage() {
         setForm(p => ({ ...p, businessName: p.businessName || h.plan.businessName }))
       }
     }
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(async ({ data }) => {
       const u = data.user
-      if (!u) return
-      if (u.user_metadata?.organization_id) { goToNextStep(); return }
+      if (!u) { setChecking(false); return }
+      if (u.user_metadata?.organization_id) {
+        const info = await fetch('/api/onboarding/next').then(res => res.json()).catch(() => null)
+        setExisting({ email: info?.email ?? u.email ?? '', orgName: info?.orgName ?? null, next: info?.next ?? '/appointments' })
+        setChecking(false)
+        return
+      }
       const full = String(u.user_metadata?.full_name ?? u.user_metadata?.name ?? '')
       setGoogleUser({ id: u.id, email: u.email ?? '', firstName: full.split(' ')[0] })
-    })
+      setChecking(false)
+    }).catch(() => setChecking(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -269,6 +278,37 @@ export default function RegisterPage() {
   const subheading = step === 1
     ? (paidSessionId ? 'Tu suscripción ya está pagada. Crea tu cuenta para activarla.' : 'Empieza con 7 días gratis en el plan básico.')
     : googleUser ? `Entraste con ${googleUser.email}. Solo falta lo de tu negocio.` : 'Elige tu plan y llena tres datos.'
+
+  async function useAnotherAccount() {
+    await supabase.auth.signOut()
+    setExisting(null)
+    router.refresh()
+  }
+
+  if (checking) {
+    return <p style={{ color: '#8a8a8a', fontSize: 14, textAlign: 'center', padding: '40px 0', fontFamily: 'var(--font-geist-sans)' }}>Un momento…</p>
+  }
+
+  if (existing) {
+    const dest = existing.next === '/payment' ? 'Elegir mi plan y pagar' : existing.next === '/setup' ? 'Ir a mi asistente' : 'Ir a mi panel'
+    return (
+      <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#ebebeb', letterSpacing: '-0.02em' }}>Ya tienes una sesión abierta</h1>
+        <p style={{ marginTop: 8, fontSize: 14, lineHeight: 1.6, color: '#8a8a8a' }}>
+          Este navegador está con <b style={{ color: '#ebebeb' }}>{existing.email}</b>{existing.orgName ? <> (negocio <b style={{ color: '#ebebeb' }}>{existing.orgName}</b>)</> : null}.
+          {demo ? <> Tu demo de <b style={{ color: '#ebebeb' }}>{demo.plan.businessName}</b> sigue guardada.</> : null}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
+          <button type="button" onClick={() => router.replace(existing.next)} style={{ background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, cursor: 'pointer', fontFamily: 'inherit' }}>
+            Continuar con esta cuenta · {dest} →
+          </button>
+          <button type="button" onClick={useAnotherAccount} style={{ background: 'transparent', border: '1px solid #2a2a2a', color: '#ebebeb', fontSize: 14, fontWeight: 500, borderRadius: 10, height: 50, cursor: 'pointer', fontFamily: 'inherit' }}>
+            Salir y crear otra cuenta con otro correo
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const submitStyle = { marginTop: 6, background: '#7c3aed', border: 'none', color: '#fff', fontSize: 14, fontWeight: 600, borderRadius: 10, height: 50, width: '100%', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', transition: 'opacity .15s' } as React.CSSProperties
 

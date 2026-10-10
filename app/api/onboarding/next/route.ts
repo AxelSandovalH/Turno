@@ -13,8 +13,12 @@ export async function GET() {
   const orgId = user.user_metadata?.organization_id as string | undefined
   if (!orgId) return NextResponse.json({ next: null })          // sin negocio: completa los datos en el registro
 
-  const { data: org } = await createServiceClient().from('organizations').select('subscription_status').eq('id', orgId).maybeSingle()
+  const { data: org } = await createServiceClient().from('organizations').select('subscription_status, name').eq('id', orgId).maybeSingle()
   const status = org?.subscription_status
   // Aún no paga: directo a elegir plan. Activo: al asistente de configuración. Otro estado: el panel muestra qué falta
-  return NextResponse.json({ next: status === 'trialing' ? '/payment' : status === 'active' ? '/setup' : '/appointments' })
+  return NextResponse.json({
+    next: status === 'trialing' ? '/payment' : status === 'active' ? '/setup' : '/appointments',
+    orgName: org?.name ?? null,
+    email: user.email ?? null,
+  })
 }
