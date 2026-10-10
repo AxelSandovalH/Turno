@@ -129,6 +129,18 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
     router.refresh()
   }
 
+  async function handleRemoveAssistant() {
+    const base = money(PLANS[planKeyFor(segment, false)].amount)
+    if (!window.confirm(`¿Quitar el ${ASSISTANT.name}?\n\nEl bot deja de contestar de inmediato y tu WhatsApp se desconecta. Tu plan baja a ${base} al mes y la parte proporcional que no uses se abona a tu próxima factura.\n\nPuedes volver a agregarlo cuando quieras (tendrás que escanear el código QR otra vez).`)) return
+    setLoading(true)
+    const res = await fetch('/api/stripe-addon', { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    setLoading(false)
+    if (!res.ok) { toast.error(data?.error ?? 'No se pudo quitar el asistente'); return }
+    toast.success('Asistente quitado. Tu plan ahora es el básico.')
+    router.refresh()
+  }
+
   async function handlePortal() {
     setLoading(true)
     const res = await fetch('/api/stripe-portal', { method: 'POST' })
@@ -494,7 +506,27 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
               {segment === 'pedidos' ? 'Toma pedidos por WhatsApp y manda las fotos de tus platillos' : segment === 'tours' ? 'Contesta a turistas y reserva salidas por WhatsApp, 24/7' : 'Contesta y agenda por WhatsApp, 24/7'} · +{money(ASSISTANT.amountBySegment[segment])} MXN/mes
             </p>
           </div>
-          {organization.payment_mode === 'prepaid' ? (
+          {/* Quitar el asistente (suscripción con tarjeta) */}
+      {organization.whatsapp_bot_enabled && status === 'active' && organization.payment_mode !== 'prepaid' && organization.stripe_subscription_id && (
+        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>{ASSISTANT.name} activo</p>
+            <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
+              Si lo quitas, tu plan baja a {money(PLANS[planKeyFor(segment, false)].amount)} MXN/mes y se abona lo que no uses.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRemoveAssistant}
+            disabled={loading}
+            style={{ ...s.btn, background: 'transparent', border: '1px solid var(--border)', color: 'var(--foreground)', opacity: loading ? 0.7 : 1 }}
+          >
+            Quitar asistente
+          </button>
+        </div>
+      )}
+
+      {organization.payment_mode === 'prepaid' ? (
             <a
               href={`/payment?renew=1&plan=${planKeyFor(segment, true)}`}
               style={{ ...s.btn, textDecoration: 'none', background: 'var(--primary)', color: '#fff' }}
@@ -516,7 +548,7 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
 
       {organization.payment_mode === 'prepaid' ? (
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Renueva con OXXO, transferencia SPEI o tarjeta antes de que venza.</p>
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Renueva con OXXO, transferencia SPEI o tarjeta antes de que venza.{organization.whatsapp_bot_enabled ? ' Si ya no quieres el asistente, elige el plan básico al renovar.' : ''}</p>
           <a
             href="/payment?renew=1"
             style={{ ...s.btn, textDecoration: 'none', background: 'transparent', border: '1px solid var(--border)', color: 'var(--foreground)' }}

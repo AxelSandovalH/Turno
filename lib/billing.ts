@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { stripe } from '@/lib/stripe'
-import { ASSISTANT, planHasBot, planKeyFor, segmentForType, type PlanKey } from '@/lib/plans'
+import { releaseInstanceFromOrg } from '@/lib/whatsapp-connection'
+import { ASSISTANT, BASES, planHasBot, planKeyFor, segmentForType, type PlanKey } from '@/lib/plans'
 
 export function addMonths(from: Date, months: number): Date {
   const d = new Date(from)
@@ -54,18 +55,15 @@ export async function activatePrepaid(
 
 export type AddonResult = { ok: true } | { ok: false; status: number; error: string }
 
-/** Producto de Stripe del complemento (se crea una sola vez y se reutiliza). */
-async function assistantProductId(): Promise<string> {
+/** Producto de Stripe de una pieza de precio (se crea una sola vez y se reutiliza). */
+async function ensureProduct(tag: string, name: string, description: string): Promise<string> {
   const list = await stripe.products.list({ active: true, limit: 100 })
-  const found = list.data.find(p => p.metadata?.qt_addon === 'asistente')
+  const found = list.data.find(p => p.metadata?.qt_addon === tag)
   if (found) return found.id
-  const created = await stripe.products.create({
-    name: ASSISTANT.name,
-    description: ASSISTANT.description,
-    metadata: { qt_addon: 'asistente' },
-  })
+  const created = await stripe.products.create({ name, description, metadata: { qt_addon: tag } })
   return created.id
 }
+const assistantProductId = () => ensureProduct('asistente', ASSISTANT.name, ASSISTANT.description)
 
 /**
  * Agrega el Asistente de WhatsApp a la suscripción con tarjeta de un negocio.
@@ -123,5 +121,68 @@ export async function addAssistant(orgId: string): Promise<AddonResult> {
   }
 
   await db.from('organizations').update({ whatsapp_bot_enabled: true, trial_ends_at: null }).eq('id', orgId)
+  return { ok: true }
+}
+
+/**
+ * Quita el Asistente de WhatsApp de la suscripción con tarjeta de un negocio.
+ * Se aplica de inmediato: el bot deja de contestar, la parte proporcional que no se
+ * usó se abona a la próxima factura, y el WhatsApp se desconecta y su instancia vuelve
+ * a la reserva. Funciona también con suscripciones anteriores a los renglones separados.
+ */
+export async function removeAssistant(orgId: string): Promise<AddonResult> {
+  const db = createServiceClient()
+  const { data: org } = await db
+    .from('organizations')
+    .select('business_type, whatsapp_bot_enabled, payment_mode, stripe_subscription_id, subscription_status')
+    .eq('id', orgId)
+    .single()
+  if (!org) return { ok: false, status: 404, error: 'Negocio no encontrado' }
+  if (!org.whatsapp_bot_enabled) return { ok: false, status: 409, error: 'Tu plan no incluye el Asistente de WhatsApp' }
+  if (org.payment_mode === 'prepaid') return { ok: false, status: 409, error: 'Tu plan es prepagado: elige el plan básico cuando renueves' }
+  if (!org.stripe_subscription_id) return { ok: false, status: 409, error: 'No encontramos tu suscripción' }
+
+  const segment = segmentForType(org.business_type)
+  const basePlan = planKeyFor(segment, false)
+
+  try {
+    const sub = await stripe.subscriptions.retrieve(org.stripe_subscription_id, { expand: ['items.data.price.product'] })
+    if (sub.status !== 'trialing' && sub.status !== 'active') {
+      return { ok: false, status: 409, error: 'Tu suscripción no está activa' }
+    }
+
+    // El renglón del asistente (si el cobro se creó con renglones separados)
+    const productOf = (i: (typeof sub.items.data)[number]) => i.price.product as unknown as { id: string; name?: string; metadata?: Record<string, string> }
+    const addonItem = sub.items.data.find(i => productOf(i).metadata?.qt_addon === 'asistente' || productOf(i).name === ASSISTANT.name)
+
+    const items = addonItem
+      ? [{ id: addonItem.id, deleted: true as const }]
+      // Suscripción anterior: un solo renglón con todo junto -> se cambia por el plan base
+      : [
+          ...sub.items.data.map(i => ({ id: i.id, deleted: true as const })),
+          {
+            price_data: {
+              currency: 'mxn',
+              product: await ensureProduct(`base-${segment}`, BASES[segment].name, BASES[segment].description),
+              recurring: { interval: 'month' as const },
+              unit_amount: BASES[segment].amount,
+            },
+            quantity: 1,
+          },
+        ]
+
+    await stripe.subscriptions.update(org.stripe_subscription_id, {
+      items,
+      proration_behavior: 'create_prorations', // abona lo no usado a la próxima factura
+      metadata: { ...sub.metadata, plan: basePlan },
+    })
+  } catch (err) {
+    console.error('[billing] removeAssistant failed:', err)
+    return { ok: false, status: 502, error: 'No se pudo quitar el asistente. Intenta de nuevo en un momento.' }
+  }
+
+  // Primero se apaga el bot (el webhook deja de contestar) y después se libera la línea
+  await db.from('organizations').update({ whatsapp_bot_enabled: false }).eq('id', orgId)
+  await releaseInstanceFromOrg(orgId)
   return { ok: true }
 }
