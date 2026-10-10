@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isPlanKey } from '@/lib/plans'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -17,8 +18,15 @@ export async function GET(request: Request) {
       if (meta.organization_id) {
         return NextResponse.redirect(`${origin}/appointments`)
       }
-      // Google user with no org yet → onboarding
-      return NextResponse.redirect(`${origin}/onboarding`)
+      // Usuario de Google sin negocio todavía: completa los datos en el registro,
+      // conservando el plan elegido y, si ya pagó desde un anuncio, su sesión de Stripe
+      const plan = searchParams.get('plan')
+      const sessionId = searchParams.get('session_id')
+      const next = new URLSearchParams()
+      if (isPlanKey(plan)) next.set('plan', plan)
+      if (sessionId) next.set('session_id', sessionId)
+      const qs = next.toString()
+      return NextResponse.redirect(`${origin}/register${qs ? `?${qs}` : ''}`)
     }
   }
 

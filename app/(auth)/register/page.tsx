@@ -89,6 +89,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const [paidSessionId, setPaidSessionId] = useState<string | null>(null)
+  // Usuario que ya entró con Google pero aún no tiene negocio: solo falta crearlo
+  const [googleUser, setGoogleUser] = useState<{ id: string; email: string; firstName: string } | null>(null)
   const [planKey, setPlanKey] = useState<PlanKey>(DEFAULT_PLAN)
   const [form, setForm] = useState({
     businessName: '', email: '', password: '', whatsappNumber: '', businessType: 'barbershop',
@@ -120,7 +122,26 @@ export default function RegisterPage() {
       setPlanKey(plan)
       if (plan === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
     }
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user
+      if (!u) return
+      if (u.user_metadata?.organization_id) { router.push('/appointments'); return }
+      const full = String(u.user_metadata?.full_name ?? u.user_metadata?.name ?? '')
+      setGoogleUser({ id: u.id, email: u.email ?? '', firstName: full.split(' ')[0] })
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function handleGoogle() {
+    setLoading(true)
+    const next = new URLSearchParams({ plan: planKey })
+    if (paidSessionId) next.set('session_id', paidSessionId)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback?${next.toString()}` },
+    })
+    if (error) { toast.error('No se pudo conectar con Google. Intenta con tu correo.'); setLoading(false) }
+  }
 
   const plan = PLANS[planKey]
 
@@ -136,16 +157,28 @@ export default function RegisterPage() {
     setLoading(true)
     const slug = form.businessName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
-    // 1. Crear usuario
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-    })
-    if (authError || !authData.user) {
-      const already = /already|registered/i.test(authError?.message ?? '')
-      toast.error(already ? 'Ese correo ya tiene una cuenta. Inicia sesión para continuar.' : (authError?.message ?? 'Error al crear la cuenta'))
-      setLoading(false)
-      return
+    // 1. Crear usuario (con Google ya existe: solo falta su negocio)
+    let userId: string
+    let userEmail: string
+    let hasSession = false
+    if (googleUser) {
+      userId = googleUser.id
+      userEmail = googleUser.email
+      hasSession = true
+    } else {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+      })
+      if (authError || !authData.user) {
+        const already = /already|registered/i.test(authError?.message ?? '')
+        toast.error(already ? 'Ese correo ya tiene una cuenta. Inicia sesión para continuar.' : (authError?.message ?? 'Error al crear la cuenta'))
+        setLoading(false)
+        return
+      }
+      userId = authData.user.id
+      userEmail = form.email
+      hasSession = !!authData.session
     }
 
     // 2. Crear organización
@@ -153,11 +186,11 @@ export default function RegisterPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: authData.user.id,
+        userId,
         name: form.businessName,
         slug,
         whatsappNumber,
-        email: form.email,
+        email: userEmail,
         businessType: form.businessType,
         stripeSessionId: paidSessionId,
       }),
@@ -170,7 +203,9 @@ export default function RegisterPage() {
     }
 
     // 3. Asegurar sesión activa (por si Supabase requiere confirmación de email)
-    if (!authData.session) {
+    if (googleUser) {
+      await supabase.auth.refreshSession() // para que la sesión ya traiga el negocio nuevo
+    } else if (!hasSession) {
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email,
         password: form.password,
@@ -193,7 +228,7 @@ export default function RegisterPage() {
       {/* Progreso: dos pasos, sin sorpresas */}
       {!paidSessionId && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, fontSize: 12 }}>
-          <span style={{ color: '#c4b5fd', fontWeight: 600 }}>1 · Tu cuenta</span>
+          <span style={{ color: '#c4b5fd', fontWeight: 600 }}>{googleUser ? '1 · Tu negocio' : '1 · Tu cuenta'}</span>
           <span style={{ flex: 1, height: 1, background: '#252525' }} />
           <span style={{ color: '#555' }}>2 · Pago seguro</span>
         </div>
@@ -201,12 +236,14 @@ export default function RegisterPage() {
 
       <div style={{ marginBottom: 22 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.03em', marginBottom: 4 }}>
-          {paidSessionId ? '¡Pago recibido! Activa tu negocio' : 'Empieza en un minuto'}
+          {paidSessionId ? '¡Pago recibido! Activa tu negocio' : googleUser ? `Casi listo${googleUser.firstName ? `, ${googleUser.firstName}` : ''}` : 'Empieza en un minuto'}
         </h1>
         <p style={{ fontSize: 13, color: paidSessionId ? '#10b981' : '#555' }}>
           {paidSessionId
             ? 'Tu suscripción ya está pagada. Este último paso activa tu negocio.'
-            : 'Elige tu plan, llena 4 datos y listo. Sin contratos, cancelas cuando quieras.'}
+            : googleUser
+              ? `Entraste con ${googleUser.email}. Solo falta lo de tu negocio.`
+              : 'Elige tu plan, llena 4 datos y listo. Sin contratos, cancelas cuando quieras.'}
         </p>
       </div>
 
@@ -253,6 +290,30 @@ export default function RegisterPage() {
           </div>
         )}
 
+        {!googleUser && (
+          <>
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={loading}
+              style={{ width: '100%', height: 48, border: '1.5px solid #252525', borderRadius: 10, background: '#141414', color: '#ebebeb', fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontFamily: 'inherit' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Continuar con Google
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '16px 0' }}>
+              <div style={{ flex: 1, height: 1, background: '#252525' }} />
+              <span style={{ fontSize: 12, color: '#444' }}>o con tu correo</span>
+              <div style={{ flex: 1, height: 1, background: '#252525' }} />
+            </div>
+          </>
+        )}
+
         <Field label="Nombre del negocio" icon={<IconBuilding />} type="text" placeholder="Barbería El Estilo" name="businessName" value={form.businessName} onChange={set('businessName')} required autoFocus autoComplete="organization" />
 
         {/* Tipo de negocio */}
@@ -268,17 +329,22 @@ export default function RegisterPage() {
         </div>
 
         <Field label="WhatsApp del negocio" icon={<IconPhone />} type="tel" inputMode="tel" prefix="+52" placeholder="624 123 4567" name="whatsappNumber" value={form.whatsappNumber} onChange={set('whatsappNumber')} hint="Tus 10 dígitos. Es el número donde recibirás los avisos." required autoComplete="tel-national" />
-        <Field label="Correo electrónico" icon={<IconMail />} type="email" inputMode="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required autoComplete="email" />
-        <Field
-          label="Contraseña" icon={<IconLock />} type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" name="password"
-          value={form.password} onChange={set('password')} minLength={8} required autoComplete="new-password"
-          right={
-            <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              style={{ background: 'none', border: 'none', color: '#777', fontSize: 12, cursor: 'pointer', padding: '0 12px', fontFamily: 'inherit' }}>
-              {showPass ? 'Ocultar' : 'Mostrar'}
-            </button>
-          }
-        />
+        {!googleUser && (
+          <>
+            <Field label="Correo electrónico" icon={<IconMail />} type="email" inputMode="email" placeholder="tu@negocio.com" name="email" value={form.email} onChange={set('email')} required autoComplete="email" />
+            <Field
+              label="Contraseña" icon={<IconLock />} type={showPass ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" name="password"
+              value={form.password} onChange={set('password')} minLength={8} required autoComplete="new-password"
+              right={
+                <button type="button" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  style={{ background: 'none', border: 'none', color: '#777', fontSize: 12, cursor: 'pointer', padding: '0 12px', fontFamily: 'inherit' }}>
+                  {showPass ? 'Ocultar' : 'Mostrar'}
+                </button>
+              }
+            />
+
+          </>
+        )}
 
         <button
           type="submit"
