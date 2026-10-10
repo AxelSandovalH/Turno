@@ -99,6 +99,15 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
     router.refresh()
   }
 
+  async function importNotion() {
+    setImporting(true)
+    const { ok, data } = await post('/api/admin/sales/notion', {})
+    setImporting(false)
+    if (!ok) return toast.error(data?.error ?? 'No se pudo leer Notion')
+    toast.success(`${data.added} agregados desde Notion${data.duplicated ? `, ${data.duplicated} repetidos` : ''}${data.skippedNoPhone ? `, ${data.skippedNoPhone} sin teléfono` : ''}`)
+    router.refresh()
+  }
+
   async function setStatus(id: string, status: string) {
     const { ok, data } = await post('/api/admin/sales/prospects', { id, status }, 'PATCH')
     if (!ok) return toast.error(data?.error ?? 'No se pudo cambiar')
@@ -177,7 +186,8 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
           value={text} onChange={e => setText(e.target.value)}
         />
         <button onClick={importList} disabled={importing || !text.trim()} className={`${btn} bg-violet-600 text-white`}>{importing ? 'Importando…' : 'Importar'}</button>
-        <p className="text-xs text-muted-foreground">Giro, ciudad y contacto son opcionales. Los teléfonos repetidos se omiten.</p>
+        <button onClick={importNotion} disabled={importing} className={`${btn} bg-muted text-foreground ml-2`}>Importar desde Notion</button>
+        <p className="text-xs text-muted-foreground">Giro, ciudad y contacto son opcionales. Los teléfonos repetidos se omiten. «Importar desde Notion» trae los que están en estado «Por contactar» del CRM.</p>
       </section>
 
       {/* Lista */}
