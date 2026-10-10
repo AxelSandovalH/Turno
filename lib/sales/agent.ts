@@ -181,7 +181,9 @@ export async function generateOpening(p: ProspectCtx): Promise<string> {
   try {
     const res = await anthropic.messages.create({ model: MODEL, max_tokens: 300, messages: [{ role: 'user', content: buildOpeningPrompt(p) }] })
     const text = res.content.find(b => b.type === 'text')?.text?.trim().replace(/^["“]|["”]$/g, '')
-    return text && text.length > 20 ? text : fallback
+    const words = text ? text.split(/\s+/).length : 0
+    // Un mensaje vacío o larguísimo no sirve como primer contacto: se usa el texto fijo
+    return text && words >= 15 && words <= 110 ? text : fallback
   } catch (err) {
     console.error('[sales] no se pudo generar la apertura, se usa el texto fijo:', err)
     return fallback
