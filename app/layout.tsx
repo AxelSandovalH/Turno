@@ -3,6 +3,7 @@ import { Inter, Geist_Mono, Instrument_Serif } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SplashScreen } from '@/components/splash-screen'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const geistSans = Inter({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <Toaster richColors position="top-right" />
         </TooltipProvider>
+        <Analytics />
       </body>
     </html>
   )
