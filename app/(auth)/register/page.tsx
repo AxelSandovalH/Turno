@@ -70,7 +70,7 @@ function Field({ label, icon, type, placeholder, value, onChange, name, hint, mi
         />
         {right}
       </div>
-      {hint && <p style={{ fontSize: 11, color: '#4a4a4a', marginTop: 5 }}>{hint}</p>}
+      {hint && <p style={{ fontSize: 11.5, color: '#6b6b6b', marginTop: 5 }}>{hint}</p>}
     </div>
   )
 }
@@ -245,7 +245,7 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         {/* Plan */}
         {!paidSessionId && (
           <div>
@@ -280,7 +280,7 @@ export default function RegisterPage() {
                     onClick={() => choosePlan(pl.key)}
                     aria-pressed={active}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 10,
+                      display: 'flex', alignItems: 'center', gap: 12, padding: active ? '12px 14px' : '10px 14px', borderRadius: 10,
                       border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414',
                       cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all .15s', width: '100%',
                     }}
@@ -296,7 +296,7 @@ export default function RegisterPage() {
                       <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: active ? '#e9e3ff' : '#ccc' }}>
                         {pl.name.replace('Turno — ', '')}
                       </span>
-                      <span style={{ display: 'block', fontSize: 11.5, color: '#666', marginTop: 1 }}>{pl.description}</span>
+                      {active && <span style={{ display: 'block', fontSize: 11.5, color: '#8b8b8b', marginTop: 2 }}>{pl.description}</span>}
                     </span>
                     <span style={{ fontSize: 15, fontWeight: 700, color: active ? '#e9e3ff' : '#aaa', whiteSpace: 'nowrap' }}>
                       {pl.priceLabel}<span style={{ fontSize: 10.5, fontWeight: 400, color: '#666' }}>/mes</span>
