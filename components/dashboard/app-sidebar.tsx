@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   CalendarDays, Clock, Settings, Tag, FlaskConical, ClipboardList, Microscope, FileText,
-  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign, ShoppingBag, UtensilsCrossed, QrCode,
+  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign, ShoppingBag, UtensilsCrossed, QrCode, Sparkles,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -44,6 +44,7 @@ function useDebounce<T>(value: T, delay = 250): T {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 const MODULE_SUBTITLES: Record<string, string> = {
+  setup:         'Arma tu negocio con ayuda de la IA',
   appointments:  'Agenda del día',
   orders:        'Pedidos en curso',
   menu:          'Platillos, fotos y extras',
@@ -333,6 +334,7 @@ export function AppSidebar({ organization }: { organization: Organization }) {
             <SidebarMenu className="gap-0.5">
               {(query.trim() ? [] : modules).map(({ href, title, id }) => {
                 const Icon = {
+                  setup:        Sparkles,
                   appointments: CalendarDays,
                   orders:       ShoppingBag,
                   menu:         UtensilsCrossed,

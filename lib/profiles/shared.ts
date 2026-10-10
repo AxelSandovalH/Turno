@@ -2,6 +2,7 @@ import type { ProfileModule } from './types'
 
 /** Módulos para negocios de pedidos y delivery (sin agenda de citas). */
 export const ORDER_MODULES: readonly ProfileModule[] = [
+  { id: 'setup',         href: '/setup',         title: 'Asistente IA' },
   { id: 'orders',        href: '/orders',        title: 'Pedidos' },
   { id: 'menu',          href: '/menu',          title: 'Menú' },
   { id: 'conversations', href: '/conversations', title: 'Conversaciones' },
@@ -14,6 +15,7 @@ export const ORDER_MODULES: readonly ProfileModule[] = [
  * consultorios). title: null = el label lo resuelve el perfil (staff/patients).
  */
 export const APPOINTMENT_MODULES: readonly ProfileModule[] = [
+  { id: 'setup',         href: '/setup',         title: 'Asistente IA' },
   { id: 'appointments',  href: '/appointments',  title: 'Citas' },
   { id: 'patients',      href: '/patients',      title: null },
   { id: 'staff',         href: '/staff',         title: null },

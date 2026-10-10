@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       // activos en el dashboard (tarjeta, Apple Pay, Google Pay, Link) —
       // pagar con wallet es un toque, sin teclear la tarjeta.
       line_items: planLineItems(plan, { recurring: true }),
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/setup?payment=success`,
       cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
       // El webhook usa `plan` para prender/apagar el bot de WhatsApp de la org
       metadata: { organization_id: orgId, plan: plan.key },

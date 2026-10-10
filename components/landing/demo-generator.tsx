@@ -6,6 +6,7 @@ import type { Tokens } from './feature-visuals'
 import type { DemoPlan } from '@/lib/demo/types'
 import { DemoStyles, usePrefersReducedMotion } from './demo/motion'
 import { GeneratingStage } from './demo/generating-stage'
+import { saveDemoHandoff } from '@/lib/demo/handoff'
 import { PublicLinkView } from './demo/public-link-view'
 import { SystemView } from './demo/system-view'
 import { WhatsAppView } from './demo/whatsapp-view'
@@ -143,9 +144,10 @@ export function DemoGenerator({ t, isDay }: Props) {
             </div>
             <p className="mx-auto mt-6 max-w-md text-center text-xs" style={{ color: t.muted }}>Datos de ejemplo armados a partir de tu descripción.</p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <a href={`/register?type=${plan.segment}`} className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white" style={{ background: t.accent }}>
+              <a href={`/register?type=${plan.segment}&demo=1`} onClick={() => saveDemoHandoff(plan, text)} className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white" style={{ background: t.accent }}>
                 Crear mi cuenta con esto <ArrowRight size={16} />
               </a>
+              <p className="basis-full text-center text-xs" style={{ color: t.muted }}>Te registras con tu correo y la IA te ayuda a armar tu sitio con lo que viste.</p>
               <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border px-5 py-3 text-sm font-medium" style={{ borderColor: t.border, color: t.muted }}>
                 <RotateCcw size={14} /> Probar con otro negocio
               </button>

@@ -22,9 +22,12 @@ export async function GET(request: Request) {
       // conservando el plan elegido y, si ya pagó desde un anuncio, su sesión de Stripe
       const plan = searchParams.get('plan')
       const sessionId = searchParams.get('session_id')
+      const demo = searchParams.get('demo')
       const next = new URLSearchParams()
       if (isPlanKey(plan)) next.set('plan', plan)
       if (sessionId) next.set('session_id', sessionId)
+      // La demo de la landing sigue viva (está en el navegador): se conserva para sembrarla en la cuenta nueva
+      if (demo === '1') next.set('demo', '1')
       const qs = next.toString()
       return NextResponse.redirect(`${origin}/register${qs ? `?${qs}` : ''}`)
     }

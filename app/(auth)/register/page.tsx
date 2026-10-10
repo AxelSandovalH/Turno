@@ -13,6 +13,7 @@ import { isPlanKey, PLANS, DEFAULT_PLAN, planKeyFor, segmentForType, trialEligib
 import { PlanComposer } from '@/components/pricing/plan-composer'
 import { buildPhone } from '@/lib/booking-format'
 import { GoogleButton } from '@/components/auth/google-button'
+import { readDemoHandoff, clearDemoHandoff, type DemoHandoff } from '@/lib/demo/handoff'
 
 const s = {
   label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#888', marginBottom: 7, fontFamily: 'inherit' } as React.CSSProperties,
@@ -93,6 +94,8 @@ export default function RegisterPage() {
   // Usuario que ya entró con Google pero aún no tiene negocio: solo falta crearlo
   const [googleUser, setGoogleUser] = useState<{ id: string; email: string; firstName: string } | null>(null)
   const [planKey, setPlanKey] = useState<PlanKey>(DEFAULT_PLAN)
+  // Demo de la landing: lo que la IA armó con la descripción del negocio, para sembrarlo en la cuenta
+  const [demo, setDemo] = useState<DemoHandoff | null>(null)
   // Paso 1: cuenta (Google, correo y contraseña). Paso 2: negocio y plan. Con Google ya entró, así que va directo al 2
   const [stepState, setStepState] = useState<1 | 2>(1)
   const [form, setForm] = useState({
@@ -127,6 +130,13 @@ export default function RegisterPage() {
     if (type && ALL_PROFILES.some(pr => pr.type === type)) {
       setForm(p => ({ ...p, businessType: type }))
       setPlanKey(k => planKeyFor(segmentForType(type), PLANS[k].bot))
+    }
+    if (params.get('demo') === '1') {
+      const h = readDemoHandoff()
+      if (h) {
+        setDemo(h)
+        setForm(p => ({ ...p, businessName: p.businessName || h.plan.businessName }))
+      }
     }
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user
@@ -209,6 +219,7 @@ export default function RegisterPage() {
         email: userEmail,
         businessType: form.businessType,
         stripeSessionId: paidSessionId,
+        demoPlan: demo ? { accent: demo.plan.accent, services: demo.plan.services } : undefined,
       }),
     })
     const onboarding = await res.json().catch(() => null)
@@ -233,9 +244,10 @@ export default function RegisterPage() {
       }
     }
 
+    clearDemoHandoff()
     // Si pagó desde el anuncio, la org ya quedó activa — directo al panel.
     // Si no, directo a Stripe con el plan que eligió en esta misma pantalla.
-    router.push(onboarding?.alreadyPaid ? '/appointments' : `/payment?auto=1&plan=${planKey}`)
+    router.push(onboarding?.alreadyPaid ? '/setup' : `/payment?auto=1&plan=${planKey}`)
     router.refresh()
   }
 
@@ -252,6 +264,13 @@ export default function RegisterPage() {
 
   return (
     <div style={{ fontFamily: 'var(--font-geist-sans)' }}>
+      {demo && (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 18, padding: '12px 14px', borderRadius: 12, border: '1px solid #7c3aed55', background: '#7c3aed14', fontSize: 12.5, lineHeight: 1.5, color: '#d8ccff' }}>
+          <span aria-hidden="true">✨</span>
+          <span>Guardamos la demo de <b style={{ color: '#fff' }}>{demo.plan.businessName}</b>. Al terminar de registrarte, la IA te ayudará a convertirla en tu sitio real.</span>
+        </div>
+      )}
+
       {/* Progreso */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, fontSize: 12 }}>
         {labels.map((label, i) => {
@@ -282,7 +301,7 @@ export default function RegisterPage() {
         <form onSubmit={handleNext} style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
           <GoogleButton
             onSignedIn={handleGoogleSignedIn}
-            fallbackRedirectTo={`?plan=${planKey}${paidSessionId ? `&session_id=${paidSessionId}` : ''}`}
+            fallbackRedirectTo={`?plan=${planKey}${paidSessionId ? `&session_id=${paidSessionId}` : ''}${demo ? '&demo=1' : ''}`}
             disabled={loading}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0' }}>

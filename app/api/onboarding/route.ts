@@ -4,6 +4,8 @@ import { stripe } from '@/lib/stripe'
 import { planHasBot } from '@/lib/plans'
 import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
+import { hasCapability } from '@/lib/profiles/registry'
+import { sanitizeDemoSeed } from '@/lib/demo/seed'
 
 function slugify(text: string): string {
   return text
@@ -42,7 +44,7 @@ async function trialEndIso(subId: string): Promise<string | null> {
 }
 
 export async function POST(req: Request) {
-  const { userId, name, slug, whatsappNumber, email, businessType, stripeSessionId } = await req.json()
+  const { userId, name, slug, whatsappNumber, email, businessType, stripeSessionId, demoPlan } = await req.json()
   if (!userId || !name || !whatsappNumber) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
@@ -71,6 +73,22 @@ export async function POST(req: Request) {
   const last10 = String(whatsappNumber).replace(/\D/g, '').slice(-10)
   if (last10.length === 10) {
     await db.from('prospects').update({ status: 'won' }).eq('phone_key', last10).neq('status', 'opted_out')
+  }
+
+  // Demo de la landing: el color de marca y los servicios que la IA armó quedan como BORRADOR. Los servicios
+  // se siembran inactivos: sus precios son de ejemplo y el asistente de configuración los confirma con el dueño
+  // antes de publicarlos en su página de reservas.
+  const seed = sanitizeDemoSeed(demoPlan)
+  if (seed) {
+    try {
+      if (seed.accent) await db.from('organizations').update({ primary_color: seed.accent }).eq('id', org.id)
+      if (seed.services.length && hasCapability(businessType ?? 'barbershop', 'appointments')) {
+        await db.from('services').insert(seed.services.map(s => ({
+          organization_id: org.id, name: s.name, description: s.description || null,
+          duration_minutes: s.duration, price: s.price, is_active: false,
+        })))
+      }
+    } catch (err) { console.error('[onboarding] no se pudo sembrar la demo:', err) }
   }
 
   // Create staff record as owner

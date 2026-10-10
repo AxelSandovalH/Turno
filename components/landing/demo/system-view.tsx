@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { BarChart3, CalendarDays, Check, Clock, DollarSign, MessageSquare, Settings, ShoppingBag, Smartphone, Tag, UserRound, Users, UtensilsCrossed } from 'lucide-react'
+import { BarChart3, CalendarDays, Sparkles, Check, Clock, DollarSign, MessageSquare, Settings, ShoppingBag, Smartphone, Tag, UserRound, Users, UtensilsCrossed } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getProfile } from '@/lib/profiles/registry'
 import { customerLabel } from '@/lib/business-type'
@@ -9,6 +9,7 @@ import type { DemoPlan } from '@/lib/demo/types'
 import { BrowserFrame, Photo, money, slugify } from './shared'
 
 const ICONS: Record<string, LucideIcon> = {
+  setup: Sparkles,
   appointments: CalendarDays, patients: Users, staff: UserRound, services: Tag, schedule: Clock, conversations: MessageSquare,
   whatsapp: Smartphone, finanzas: DollarSign, analytics: BarChart3, settings: Settings, orders: ShoppingBag, menu: UtensilsCrossed,
 }
@@ -62,6 +63,15 @@ function Content({ mod, plan, c }: { mod: Mod; plan: DemoPlan; c: Palette }) {
               </Row>
             ))}
           </div>
+        </div>
+      )
+    case 'setup':
+      return (
+        <div className="space-y-2.5">
+          <Row i={0}><div className="max-w-[88%] rounded-2xl px-3 py-2 text-xs leading-relaxed" style={{ background: c.soft, color: c.text }}>Armé {plan.services.length} servicios con lo que me contaste. ¿Los precios están bien o los ajustamos?</div></Row>
+          <Row i={1}><div className="ml-auto max-w-[80%] rounded-2xl px-3 py-2 text-xs" style={{ background: plan.accent, color: '#fff' }}>Están bien, publícalos</div></Row>
+          <Row i={2}><div className="max-w-[88%] rounded-2xl px-3 py-2 text-xs leading-relaxed" style={{ background: c.soft, color: c.text }}>Listo, tu página de reservas ya está publicada. ¿Seguimos con tus horarios?</div></Row>
+          <Row i={3}><p className="flex items-center gap-1.5 text-[11px]" style={{ color: '#10b981' }}><Check size={12} /> {plan.services.length} servicios publicados</p></Row>
         </div>
       )
     case 'patients':
