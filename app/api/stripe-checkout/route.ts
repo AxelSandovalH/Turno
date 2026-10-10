@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { resolvePlan, isPlanKey, isPrepaidMonths, TRIAL_DAYS, type PlanKey } from '@/lib/plans'
+import { resolvePlan, isPlanKey, isPrepaidMonths, planKeyForOrg, planLineItems, TRIAL_DAYS } from '@/lib/plans'
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   const { data: org } = await db.from('organizations').select('name, stripe_customer_id, stripe_subscription_id, business_type, whatsapp_bot_enabled').eq('id', orgId).single()
 
   // Sin plan explícito (ej. reactivar desde Configuración) se usa el que corresponde al negocio
-  const inferred: PlanKey = org?.business_type === 'restaurant' ? 'pedidos' : org?.whatsapp_bot_enabled ? 'asistente' : 'agenda'
+  const inferred = planKeyForOrg(org?.business_type, !!org?.whatsapp_bot_enabled)
   const plan = resolvePlan(isPlanKey(body?.planKey) ? body.planKey : inferred)
   // La prueba gratis es solo para quien nunca ha tenido suscripción
   const trialDays = org?.stripe_subscription_id ? undefined : TRIAL_DAYS
@@ -49,17 +49,7 @@ export async function POST(req: Request) {
           oxxo: { expires_after_days: 3 },
           customer_balance: { funding_type: 'bank_transfer', bank_transfer: { type: 'mx_bank_transfer' } },
         },
-        line_items: [{
-          quantity: 1,
-          price_data: {
-            currency: 'mxn',
-            unit_amount: plan.amount * months,
-            product_data: {
-              name: `${plan.name} · ${months} ${months === 1 ? 'mes' : 'meses'}`,
-              description: 'Prepago sin renovación automática',
-            },
-          },
-        }],
+        line_items: planLineItems(plan, { recurring: false, months }),
         success_url: `${baseUrl}/payment/pendiente`,
         cancel_url: `${baseUrl}/payment`,
         metadata: { type: 'prepaid', organization_id: orgId, plan: plan.key, months: String(months) },
@@ -73,18 +63,7 @@ export async function POST(req: Request) {
       // Sin payment_method_types fijo: Stripe habilita solo los métodos
       // activos en el dashboard (tarjeta, Apple Pay, Google Pay, Link) —
       // pagar con wallet es un toque, sin teclear la tarjeta.
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency: 'mxn',
-          unit_amount: plan.amount,
-          recurring: { interval: 'month' },
-          product_data: {
-            name: plan.name,
-            description: plan.description,
-          },
-        },
-      }],
+      line_items: planLineItems(plan, { recurring: true }),
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/appointments?payment=success`,
       cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/payment`,
       // El webhook usa `plan` para prender/apagar el bot de WhatsApp de la org

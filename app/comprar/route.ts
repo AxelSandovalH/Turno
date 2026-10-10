@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import { resolvePlan, TRIAL_DAYS } from '@/lib/plans'
+import { resolvePlan, planLineItems, TRIAL_DAYS } from '@/lib/plans'
 
 // Compra directa desde el anuncio: 1 clic → Stripe Checkout, sin cuenta previa.
 // /comprar → plan con asistente; /comprar?plan=agenda → solo agenda.
@@ -12,15 +12,7 @@ export async function GET(req: Request) {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency: 'mxn',
-          unit_amount: plan.amount,
-          recurring: { interval: 'month' },
-          product_data: { name: plan.name, description: plan.description },
-        },
-      }],
+      line_items: planLineItems(plan, { recurring: true }),
       phone_number_collection: { enabled: true },
       success_url: `${baseUrl}/register?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/`,

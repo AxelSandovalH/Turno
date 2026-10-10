@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resend, FROM } from '@/lib/resend'
-import { resolvePlan } from '@/lib/plans'
+import { resolvePlan, planKeyForOrg } from '@/lib/plans'
 import { prepaidExpiringHtml, prepaidExpiringSubject, prepaidExpiringText } from '@/lib/emails/prepaid-expiring'
 
 // Corre una vez al día para los negocios con plan prepagado (OXXO / SPEI):
@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const to = owner?.email ?? org.email
       if (!to) continue
 
-      const planKey = org.business_type === 'restaurant' ? 'pedidos' : org.whatsapp_bot_enabled ? 'asistente' : 'agenda'
+      const planKey = planKeyForOrg(org.business_type, !!org.whatsapp_bot_enabled)
       const dueDate = new Date(org.paid_until as string).toLocaleDateString('es-MX', {
         timeZone: 'America/Mexico_City', weekday: 'long', day: 'numeric', month: 'long',
       })

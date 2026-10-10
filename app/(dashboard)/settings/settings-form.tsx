@@ -7,7 +7,7 @@ import { Check, Copy, ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { BookingQr } from '@/components/dashboard/booking-qr'
-import { PLANS } from '@/lib/plans'
+import { PLANS, planKeyForOrg } from '@/lib/plans'
 import { hasCapability } from '@/lib/profiles/registry'
 import type { Organization } from '@/types/database'
 
@@ -439,10 +439,10 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>
-              {organization.business_type === 'restaurant' ? 'Pedidos' : organization.whatsapp_bot_enabled ? 'Agenda + Asistente' : 'Agenda'}
+              {PLANS[planKeyForOrg(organization.business_type, organization.whatsapp_bot_enabled)].name.replace('Turno — ', '')}
             </p>
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
-              {organization.business_type === 'restaurant' ? PLANS.pedidos.priceLabel : organization.whatsapp_bot_enabled ? PLANS.asistente.priceLabel : PLANS.agenda.priceLabel} MXN / mes
+              {PLANS[planKeyForOrg(organization.business_type, organization.whatsapp_bot_enabled)].priceLabel} MXN / mes
             </p>
             {organization.payment_mode === 'prepaid' && organization.paid_until && (
               <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 4 }}>

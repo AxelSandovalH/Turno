@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import { PLANS, TRIAL_DAYS } from '@/lib/plans'
+import { PLANS, planLineItems, TRIAL_DAYS } from '@/lib/plans'
 import { OFFER_COUPON_ID, OFFER_PERCENT_OFF, verifyOfferToken } from '@/lib/offer'
 
 // Crea el checkout con 25% de descuento solo en el primer mes (cupón duration: once).
@@ -24,15 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     }
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{
-        quantity: 1,
-        price_data: {
-          currency: 'mxn',
-          unit_amount: plan.amount,
-          recurring: { interval: 'month' },
-          product_data: { name: plan.name, description: plan.description },
-        },
-      }],
+      line_items: planLineItems(plan, { recurring: true }),
       discounts: [{ coupon: OFFER_COUPON_ID }],
       phone_number_collection: { enabled: true },
       success_url: `${baseUrl}/register?session_id={CHECKOUT_SESSION_ID}`,

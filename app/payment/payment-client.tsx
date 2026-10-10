@@ -5,9 +5,9 @@ import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
-import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, type PlanKey, type PrepaidMonths } from '@/lib/plans'
+import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, type PlanKey, type PrepaidMonths } from '@/lib/plans'
+import { PlanComposer } from '@/components/pricing/plan-composer'
 
-const PLAN_LIST = [PLANS.agenda, PLANS.asistente, PLANS.pedidos]
 
 export function PaymentClient({ trial = false }: { trial?: boolean }) {
   const [selected, setSelected] = useState<PlanKey>(DEFAULT_PLAN)
@@ -70,48 +70,13 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
           <p style={{ fontSize: 13, color: '#555' }}>Sin contratos · Cancela cuando quieras</p>
         </div>
 
-        {/* Plan selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-          {PLAN_LIST.map(p => {
-            const active = selected === p.key
-            return (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => setSelected(p.key)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  padding: '14px 18px', borderRadius: 12, cursor: 'pointer',
-                  border: `1.5px solid ${active ? '#7c3aed' : '#1f1f1f'}`,
-                  background: active ? '#7c3aed12' : '#111',
-                  textAlign: 'left', width: '100%', fontFamily: 'inherit',
-                  transition: 'all .15s',
-                }}
-              >
-                <div style={{
-                  width: 18, height: 18, borderRadius: 99, flexShrink: 0,
-                  border: `2px solid ${active ? '#7c3aed' : '#333'}`,
-                  background: active ? '#7c3aed' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {active && <div style={{ width: 6, height: 6, borderRadius: 99, background: '#fff' }} />}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: '#ebebeb' }}>{p.name.replace('Turno — ', '')}</span>
-                    {p.key === 'asistente' && (
-                      <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', border: '1px solid #7c3aed55', borderRadius: 99, padding: '1px 7px' }}>Popular</span>
-                    )}
-                  </div>
-                  <span style={{ fontSize: 12, color: '#555' }}>{p.description}</span>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: '#ebebeb' }}>{p.priceLabel}</span>
-                  <span style={{ fontSize: 11, color: '#555' }}> MXN/mes</span>
-                </div>
-              </button>
-            )
-          })}
+        {/* Plan armado con piezas: base + asistente */}
+        <div style={{ marginBottom: 20 }}>
+          <PlanComposer
+            segment={PLANS[selected].segment}
+            assistant={PLANS[selected].bot}
+            onToggle={() => setSelected(k => planKeyFor(PLANS[k].segment, !PLANS[k].bot))}
+          />
         </div>
 
         {/* Features del plan seleccionado */}

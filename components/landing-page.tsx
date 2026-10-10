@@ -13,6 +13,7 @@ import { DashboardMockup } from '@/components/landing/dashboard-mockup'
 import { FeaturesBento } from '@/components/landing/features-bento'
 import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { SEGMENTS } from '@/components/landing/segments-data'
+import { BASES, ASSISTANT, planKeyFor, money } from '@/lib/plans'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
@@ -67,7 +68,7 @@ const FAQ = [
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
-  { q: '¿Cuánto cuesta?', a: 'Dos planes: Agenda por $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios) o Agenda + Asistente por $2,700 MXN al mes, que suma el bot que contesta y agenda por WhatsApp 24/7. Para restaurantes y delivery está el plan Pedidos por $2,800 MXN al mes, con menú, link de pedidos y bot que toma pedidos. Todos los planes incluyen 7 días de prueba gratis. Sin contratos ni permanencia.' },
+  { q: '¿Cuánto cuesta?', a: 'Pagas un plan base y agregas solo lo que necesitas. Para citas y reservas, Agenda cuesta $1,500 MXN al mes (calendario, página de reservas, anticipos y recordatorios). Para restaurantes, Menú y pedidos cuesta $1,500 MXN al mes (menú con fotos, link de pedidos con carrito, cobro con tarjeta y tablero). Si quieres que WhatsApp conteste y atienda solo, 24/7, agregas el Asistente por $1,200 MXN al mes en citas o $1,300 MXN al mes en restaurantes. Todos los planes incluyen 7 días de prueba gratis. Sin contratos ni permanencia.' },
   { q: '¿Cómo funciona la prueba gratis?', a: 'Eliges tu plan, registras tu tarjeta y usas Turno completo durante 7 días sin pagar nada. Hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. Puedes cancelar tú mismo desde Configuración, en menos de un minuto.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
@@ -151,6 +152,7 @@ export function LandingPage() {
   const [activeSegment, setActiveSegment] = useState(0)
   // Los planes se muestran según el tipo de negocio: citas o pedidos
   const [pricingSegment, setPricingSegment] = useState<'citas' | 'pedidos'>('citas')
+  const [pricingAssistant, setPricingAssistant] = useState(true)
 
   useEffect(() => {
     // Por defecto SIEMPRE se adapta a la hora actual. Si el visitante toca el
@@ -426,77 +428,74 @@ export function LandingPage() {
                 ? 'Barberías, spas, clínicas, estudios de tatuaje, charters y tours.'
                 : 'Restaurantes, taquerías y cafeterías con pedidos a domicilio o para recoger.'}
             </p>
-            <div className={pricingSegment === 'citas' ? 'grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto' : 'grid gap-4 max-w-md mx-auto'}>
-              {[
-                {
-                  key: 'agenda',
-                  segment: 'citas',
-                  name: 'Agenda',
-                  price: '$1,500',
-                  desc: 'Tu agenda en orden, sin bot de WhatsApp',
-                  features: ['Calendario de citas', 'Página pública de reservas', 'Anticipos por Stripe', 'Recordatorios automáticos', 'Hasta 5 profesionales'],
-                  highlight: false,
-                },
-                {
-                  key: 'asistente',
-                  segment: 'citas',
-                  name: 'Agenda + Asistente',
-                  price: '$2,700',
-                  desc: 'Tu WhatsApp contesta y agenda solo, 24/7',
-                  features: ['Todo lo de Agenda', 'Contesta WhatsApp 24/7', 'Agenda y reagenda citas por ti', 'Conversaciones en tu panel', 'Soporte prioritario'],
-                  highlight: true,
-                },
-                {
-                  key: 'pedidos',
-                  segment: 'pedidos',
-                  name: 'Pedidos',
-                  price: '$2,800',
-                  desc: 'Pedidos y delivery por WhatsApp',
-                  features: ['Menú con fotos, extras y notas', 'Link de pedidos con carrito', 'Bot que toma pedidos 24/7', 'Cobro con tarjeta por Stripe', 'Tablero con avisos al cliente'],
-                  highlight: true,
-                },
-              ].filter(plan => plan.segment === pricingSegment).map(({ key, name, price, desc, features, highlight }) => (
-                <div
-                  key={key}
-                  className="rounded-xl p-7 flex flex-col"
-                  style={{
-                    border: `1px solid ${highlight ? t.accent : t.border}`,
-                    background: highlight ? `${t.accent}0d` : t.card,
-                  }}
-                >
-                  {highlight && (
-                    <span
-                      className="inline-block self-start text-[10px] font-semibold uppercase tracking-widest rounded-full px-2.5 py-0.5 mb-3"
-                      style={{ color: t.accent, border: `1px solid ${t.accent}66` }}
-                    >{key === 'pedidos' ? 'Para restaurantes' : 'Popular'}</span>
-                  )}
-                  <p className="text-[15px] font-semibold mb-1" style={{ color: t.text }}>{name}</p>
-                  <p className="text-[12px] mb-5" style={{ color: t.muted }}>{desc}</p>
-                  <div className="flex items-baseline gap-2 mb-6">
-                    <span className="text-[36px] font-bold tracking-tight" style={{ color: t.text }}>{price}</span>
-                    <span className="text-[14px]" style={{ color: t.muted }}>MXN/mes</span>
+            {/* Una sola tarjeta armada con piezas: plan base + complemento del asistente */}
+            {(() => {
+              const base = BASES[pricingSegment]
+              const addonAmount = ASSISTANT.amountBySegment[pricingSegment]
+              const total = base.amount + (pricingAssistant ? addonAmount : 0)
+              const planKey = planKeyFor(pricingSegment, pricingAssistant)
+              return (
+                <div className="max-w-xl mx-auto rounded-xl p-7 flex flex-col" style={{ border: `1px solid ${t.accent}`, background: `${t.accent}0d` }}>
+                  <div className="flex items-baseline justify-between gap-4 mb-1">
+                    <p className="text-[16px] font-semibold" style={{ color: t.text }}>{base.name}</p>
+                    <p className="text-[15px] font-semibold" style={{ color: t.text }}>{money(base.amount)}<span className="text-[12px] font-normal" style={{ color: t.muted }}> MXN/mes</span></p>
                   </div>
-                  <ul className="space-y-2.5 mb-7 flex-1">
-                    {features.map(f => (
+                  <p className="text-[12px] mb-5" style={{ color: t.muted }}>{base.description}</p>
+                  <ul className="space-y-2.5 mb-6">
+                    {base.features.map(f => (
                       <li key={f} className="flex items-center gap-2.5">
                         <Check className="h-3.5 w-3.5 shrink-0" style={{ color: t.accent }} />
                         <span className="text-[13px]" style={{ color: t.muted }}>{f}</span>
                       </li>
                     ))}
                   </ul>
-                  <Link href={`/register?plan=${key}`} className="block">
-                    <button
-                      className="w-full py-2.5 rounded-md text-[13px] font-medium transition-colors"
-                      style={highlight
-                        ? { background: t.accent, color: '#fff' }
-                        : { border: `1px solid ${t.border}`, color: t.text }}
-                    >
+
+                  {/* Complemento */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={pricingAssistant}
+                    onClick={() => setPricingAssistant(v => !v)}
+                    className="w-full text-left rounded-lg p-4 mb-6 transition-colors"
+                    style={{ border: `1px solid ${pricingAssistant ? t.accent : t.border}`, background: pricingAssistant ? `${t.accent}14` : t.card }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors" style={{ background: pricingAssistant ? t.accent : t.border }}>
+                        <span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all" style={{ left: pricingAssistant ? 18 : 2 }} />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[14px] font-semibold" style={{ color: t.text }}>Agregar {ASSISTANT.name}</span>
+                        <span className="block text-[12px]" style={{ color: t.muted }}>{ASSISTANT.description}</span>
+                      </span>
+                      <span className="text-[14px] font-semibold whitespace-nowrap" style={{ color: t.text }}>+{money(addonAmount)}<span className="text-[11px] font-normal" style={{ color: t.muted }}>/mes</span></span>
+                    </div>
+                    {pricingAssistant && (
+                      <ul className="mt-3 ml-12 space-y-1.5">
+                        {ASSISTANT.featuresBySegment[pricingSegment].map(f => (
+                          <li key={f} className="flex items-center gap-2">
+                            <Check className="h-3 w-3 shrink-0" style={{ color: t.accent }} />
+                            <span className="text-[12px]" style={{ color: t.muted }}>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </button>
+
+                  <div className="flex items-end justify-between mb-5">
+                    <span className="text-[13px]" style={{ color: t.muted }}>Total</span>
+                    <span>
+                      <span className="text-[38px] font-bold tracking-tight" style={{ color: t.text }}>{money(total)}</span>
+                      <span className="text-[14px]" style={{ color: t.muted }}> MXN/mes</span>
+                    </span>
+                  </div>
+                  <Link href={`/register?plan=${planKey}`} className="block">
+                    <button className="w-full py-3 rounded-md text-[14px] font-medium transition-colors" style={{ background: t.accent, color: '#fff' }}>
                       Probar 7 días gratis
                     </button>
                   </Link>
                 </div>
-              ))}
-            </div>
+              )
+            })()}
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
               7 días gratis · No se cobra hoy · Sin contrato · Cancela cuando quieras
             </p>

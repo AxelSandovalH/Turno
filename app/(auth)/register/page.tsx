@@ -9,7 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { ALL_PROFILES } from '@/lib/profiles/registry'
-import { isPlanKey, PLANS, DEFAULT_PLAN, type PlanKey } from '@/lib/plans'
+import { isPlanKey, PLANS, DEFAULT_PLAN, planKeyFor, type PlanKey } from '@/lib/plans'
+import { PlanComposer } from '@/components/pricing/plan-composer'
 import { buildPhone } from '@/lib/booking-format'
 import { GoogleButton } from '@/components/auth/google-button'
 
@@ -20,8 +21,6 @@ const s = {
 }
 
 const TYPES = ALL_PROFILES.map(p => ({ value: p.type, label: `${p.emoji} ${p.displayName}` }))
-const PLANS_CITAS = [PLANS.agenda, PLANS.asistente]
-const PLANS_PEDIDOS = [PLANS.pedidos]
 
 const IconBuilding = () => (
   <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -101,18 +100,13 @@ export default function RegisterPage() {
   })
   const set = (k: keyof typeof form) => (v: string) => setForm(p => ({ ...p, [k]: v }))
 
-  // El plan y el giro van de la mano: Pedidos es para restaurantes, y al revés
-  function choosePlan(key: PlanKey) {
-    setPlanKey(key)
-    setForm(p => ({
-      ...p,
-      businessType: key === 'pedidos' ? 'restaurant' : p.businessType === 'restaurant' ? 'barbershop' : p.businessType,
-    }))
+  // El plan y el giro van de la mano: el tipo de negocio decide la base y el interruptor agrega el asistente
+  function toggleAssistant() {
+    setPlanKey(k => planKeyFor(PLANS[k].segment, !PLANS[k].bot))
   }
   function chooseType(type: string) {
     setForm(p => ({ ...p, businessType: type }))
-    if (type === 'restaurant') setPlanKey('pedidos')
-    else if (planKey === 'pedidos') setPlanKey('asistente')
+    setPlanKey(k => planKeyFor(type === 'restaurant' ? 'pedidos' : 'citas', PLANS[k].bot))
   }
 
   // Compra directa desde el anuncio: llega de Stripe ya pagado (?session_id=...).
@@ -124,7 +118,7 @@ export default function RegisterPage() {
     const plan = params.get('plan')
     if (isPlanKey(plan)) {
       setPlanKey(plan)
-      if (plan === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
+      if (PLANS[plan].segment === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
     }
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user
@@ -330,41 +324,7 @@ export default function RegisterPage() {
                   )
                 })}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(form.businessType === 'restaurant' ? PLANS_PEDIDOS : PLANS_CITAS).map(pl => {
-                  const active = planKey === pl.key
-                  return (
-                    <button
-                      key={pl.key}
-                      type="button"
-                      onClick={() => choosePlan(pl.key)}
-                      aria-pressed={active}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: active ? '12px 14px' : '10px 14px', borderRadius: 10,
-                        border: `1.5px solid ${active ? '#7c3aed' : '#252525'}`, background: active ? '#7c3aed18' : '#141414',
-                        cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all .15s', width: '100%',
-                      }}
-                    >
-                      <span style={{
-                        width: 16, height: 16, borderRadius: 99, flexShrink: 0,
-                        border: `2px solid ${active ? '#7c3aed' : '#333'}`, background: active ? '#7c3aed' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        {active && <span style={{ width: 5, height: 5, borderRadius: 99, background: '#fff' }} />}
-                      </span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: active ? '#e9e3ff' : '#ccc' }}>
-                          {pl.name.replace('Turno — ', '')}
-                        </span>
-                        {active && <span style={{ display: 'block', fontSize: 11.5, color: '#8b8b8b', marginTop: 2 }}>{pl.description}</span>}
-                      </span>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: active ? '#e9e3ff' : '#aaa', whiteSpace: 'nowrap' }}>
-                        {pl.priceLabel}<span style={{ fontSize: 10.5, fontWeight: 400, color: '#666' }}>/mes</span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+              <PlanComposer segment={PLANS[planKey].segment} assistant={PLANS[planKey].bot} onToggle={toggleAssistant} />
             </div>
           )}
 
