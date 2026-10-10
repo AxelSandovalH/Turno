@@ -89,6 +89,16 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
   {
+    emoji: '🌴',
+    business: 'Cabo Aventuras',
+    messages: [
+      { from: 'customer', text: 'Hola! ¿Tienen tour de snorkel mañana para 4 personas? 🤿', time: '23:12' },
+      { from: 'bot', text: '¡Hola! 🌊 Sí, mañana salimos:\n\n1️⃣ 8:00 am · Snorkel Santa María\n2️⃣ 11:00 am · Snorkel + cueva\n\nTe mando las fotos de cada uno. ¿Cuál te late?', time: '23:12' },
+      { from: 'customer', text: 'El de las 8', time: '23:13' },
+      { from: 'bot', text: '✅ ¡Listo!\n\n🤿 Snorkel · 4 personas\n📅 Mañana 8:00 am\n💳 Anticipo de $800 para apartar tu salida', time: '23:13' },
+    ],
+  },
+  {
     emoji: '🎨',
     business: 'Tinta Negra Studio',
     messages: [

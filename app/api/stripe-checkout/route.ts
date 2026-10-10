@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { resolvePlan, isPlanKey, isPrepaidMonths, planKeyForOrg, planLineItems, trialEligible, TRIAL_DAYS } from '@/lib/plans'
+import { PLANS, resolvePlan, isPlanKey, isPrepaidMonths, planKeyFor, planKeyForOrg, planLineItems, segmentForType, trialEligible, TRIAL_DAYS } from '@/lib/plans'
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
@@ -19,7 +19,9 @@ export async function POST(req: Request) {
 
   // Sin plan explícito (ej. reactivar desde Configuración) se usa el que corresponde al negocio
   const inferred = planKeyForOrg(org?.business_type, !!org?.whatsapp_bot_enabled)
-  const plan = resolvePlan(isPlanKey(body?.planKey) ? body.planKey : inferred)
+  const requested = resolvePlan(isPlanKey(body?.planKey) ? body.planKey : inferred)
+  // El precio lo decide el giro del negocio (tours, restaurante o citas); de la pantalla solo se toma si lleva asistente
+  const plan = PLANS[planKeyFor(segmentForType(org?.business_type), requested.bot)]
   // La prueba gratis es solo para el plan básico y para quien nunca ha tenido suscripción
   const trialDays = org?.stripe_subscription_id || org?.paid_until || !trialEligible(plan) ? undefined : TRIAL_DAYS
 

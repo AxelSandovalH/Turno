@@ -102,7 +102,7 @@ export default function RegisterPage() {
 
   // El plan y el giro van de la mano: el tipo de negocio decide la base y el interruptor agrega el asistente
   function toggleAssistant() {
-    setPlanKey(k => planKeyFor(PLANS[k].segment, !PLANS[k].bot))
+    setPlanKey(k => planKeyFor(segmentForType(form.businessType), !PLANS[k].bot))
   }
   function chooseType(type: string) {
     setForm(p => ({ ...p, businessType: type }))
@@ -121,6 +121,12 @@ export default function RegisterPage() {
       const seg = PLANS[plan].segment
       if (seg === 'pedidos') setForm(p => ({ ...p, businessType: 'restaurant' }))
       else if (seg === 'tours') setForm(p => ({ ...p, businessType: 'tours' }))
+    }
+    // ?type= viene de la landing (ej. tours): fija el giro y con él el precio
+    const type = params.get('type')
+    if (type && ALL_PROFILES.some(pr => pr.type === type)) {
+      setForm(p => ({ ...p, businessType: type }))
+      setPlanKey(k => planKeyFor(segmentForType(type), PLANS[k].bot))
     }
     supabase.auth.getUser().then(({ data }) => {
       const u = data.user
@@ -326,7 +332,7 @@ export default function RegisterPage() {
                   )
                 })}
               </div>
-              <PlanComposer segment={PLANS[planKey].segment} assistant={PLANS[planKey].bot} onToggle={toggleAssistant} />
+              <PlanComposer segment={segmentForType(form.businessType)} assistant={PLANS[planKey].bot} onToggle={toggleAssistant} />
             </div>
           )}
 

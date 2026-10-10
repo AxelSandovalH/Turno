@@ -138,6 +138,24 @@ export const SEGMENTS: Segment[] = [
     ],
   },
   {
+    emoji: '🌴',
+    name: 'Tours y actividades',
+    short: 'Tours',
+    accent: '#f97316',
+    pain: 'Un turista que escribe a medianoche no espera: si no le contestas en minutos, reserva con otro operador.',
+    bullets: [
+      'Turno contesta a turistas 24/7 y les manda el link con las fotos de cada tour',
+      'Anticipo por Stripe al reservar: la salida queda asegurada',
+      'Cada guía con su propio calendario y precios "desde" según el grupo',
+    ],
+    staffLabel: 'Guía',
+    preview: [
+      { time: '07:30', title: 'Snorkel · Santa María', who: 'Guía Marco' },
+      { time: '10:00', title: 'Avistamiento de ballenas', who: 'Guía Ana' },
+      { time: '16:30', title: 'Atardecer en velero', who: 'Guía Marco' },
+    ],
+  },
+  {
     emoji: '🎨',
     name: 'Estudios de tatuaje',
     short: 'Tattoo',

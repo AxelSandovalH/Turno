@@ -309,8 +309,8 @@ export function LandingPage() {
               consultorios, restaurantes y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
-              {/* Si el visitante eligió restaurantes en el selector, el registro ya arranca con su plan */}
-              <FancyButton href={SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : '/register'}>Empezar 7 días gratis →</FancyButton>
+              {/* Si el visitante eligió restaurantes o tours en el selector, el registro ya arranca con su tipo de negocio */}
+              <FancyButton href={SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : SEGMENTS[activeSegment]?.short === 'Tours' ? '/register?plan=agenda&type=tours' : '/register'}>Empezar 7 días gratis →</FancyButton>
               <a href="#pricing">
                 <button
                   onMouseEnter={() => setLoginHover(true)}

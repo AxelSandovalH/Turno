@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { PaymentClient } from './payment-client'
+import { segmentForType } from '@/lib/plans'
 
 export default async function PaymentPage({ searchParams }: { searchParams: Promise<{ renew?: string }> }) {
   const { renew } = await searchParams
@@ -15,7 +16,7 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   const db = createServiceClient()
   const { data: org } = await db
     .from('organizations')
-    .select('subscription_status, stripe_subscription_id, paid_until')
+    .select('subscription_status, stripe_subscription_id, paid_until, business_type')
     .eq('id', orgId)
     .single()
 
@@ -23,5 +24,5 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   if (org?.subscription_status === 'active' && renew !== '1') redirect('/appointments')
 
   // La prueba gratis es solo para quien nunca ha pagado (ni con tarjeta ni con prepago)
-  return <PaymentClient trial={!org?.stripe_subscription_id && !org?.paid_until} />
+  return <PaymentClient segment={segmentForType(org?.business_type)} trial={!org?.stripe_subscription_id && !org?.paid_until} />
 }

@@ -5,12 +5,14 @@ import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
-import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, trialEligible, type PlanKey, type PrepaidMonths } from '@/lib/plans'
+import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, trialEligible, type PlanKey, type PrepaidMonths, type Segment } from '@/lib/plans'
 import { PlanComposer } from '@/components/pricing/plan-composer'
 
 
-export function PaymentClient({ trial = false }: { trial?: boolean }) {
+export function PaymentClient({ trial = false, segment }: { trial?: boolean; segment: Segment }) {
   const [selected, setSelected] = useState<PlanKey>(DEFAULT_PLAN)
+  // El precio sale del giro del negocio: lo único que se elige aquí es si lleva el asistente
+  const effectiveKey = planKeyFor(segment, PLANS[selected].bot)
   const [loading, setLoading] = useState(false)
   const autoStarted = useRef(false)
   const [months, setMonths] = useState<PrepaidMonths>(1)
@@ -32,7 +34,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function handleCheckout(planKey: PlanKey = selected, prepaid = false) {
+  async function handleCheckout(planKey: PlanKey = effectiveKey, prepaid = false) {
     setLoading(true)
     try {
       const res = await fetch('/api/stripe-checkout', {
@@ -55,7 +57,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
     }
   }
 
-  const plan = PLANS[selected]
+  const plan = PLANS[effectiveKey]
 
   return (
     <div style={{ minHeight: '100vh', background: '#0c0c0c', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'var(--font-geist-sans)' }}>
@@ -73,9 +75,9 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
         {/* Plan armado con piezas: base + asistente */}
         <div style={{ marginBottom: 20 }}>
           <PlanComposer
-            segment={PLANS[selected].segment}
-            assistant={PLANS[selected].bot}
-            onToggle={() => setSelected(k => planKeyFor(PLANS[k].segment, !PLANS[k].bot))}
+            segment={segment}
+            assistant={plan.bot}
+            onToggle={() => setSelected(planKeyFor(segment, !plan.bot))}
           />
         </div>
 
@@ -125,7 +127,7 @@ export function PaymentClient({ trial = false }: { trial?: boolean }) {
           </div>
           <button
             type="button"
-            onClick={() => handleCheckout(selected, true)}
+            onClick={() => handleCheckout(effectiveKey, true)}
             disabled={loading}
             style={{ width: '100%', height: 46, background: 'transparent', border: '1.5px solid #333', borderRadius: 10, color: '#ebebeb', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, fontFamily: 'inherit' }}
           >
