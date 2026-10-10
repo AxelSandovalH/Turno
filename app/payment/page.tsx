@@ -15,12 +15,13 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
   const db = createServiceClient()
   const { data: org } = await db
     .from('organizations')
-    .select('subscription_status, stripe_subscription_id')
+    .select('subscription_status, stripe_subscription_id, paid_until')
     .eq('id', orgId)
     .single()
 
   // Un negocio activo no necesita esta pantalla, salvo para renovar un prepago
   if (org?.subscription_status === 'active' && renew !== '1') redirect('/appointments')
 
-  return <PaymentClient trial={!org?.stripe_subscription_id} />
+  // La prueba gratis es solo para quien nunca ha pagado (ni con tarjeta ni con prepago)
+  return <PaymentClient trial={!org?.stripe_subscription_id && !org?.paid_until} />
 }

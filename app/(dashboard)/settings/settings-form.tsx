@@ -7,7 +7,7 @@ import { Check, Copy, ImageUp } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { BookingQr } from '@/components/dashboard/booking-qr'
-import { PLANS, planKeyForOrg } from '@/lib/plans'
+import { PLANS, ASSISTANT, planKeyForOrg, planKeyFor, money } from '@/lib/plans'
 import { hasCapability } from '@/lib/profiles/registry'
 import type { Organization } from '@/types/database'
 
@@ -71,6 +71,7 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
   // Negocios de pedidos comparten su link de menú (/pedir) en lugar del de reservas (/book)
   // El anticipo por Stripe es de citas: los negocios de pedidos cobran cada pedido con tarjeta
   const hasDeposits = hasCapability(organization.business_type, 'deposits')
+  const segment = organization.business_type === 'restaurant' ? 'pedidos' : 'citas'
   const publicPath = organization.business_type === 'restaurant' ? 'pedir' : 'book'
 
   const copyBookingLink = async () => {
@@ -108,6 +109,22 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
     setForm(p => ({ ...p, logo_url: logoUrl }))
     savedRef.current = { ...savedRef.current, logo_url: logoUrl }
     toast.success('Logo actualizado')
+    router.refresh()
+  }
+
+  async function handleAddAssistant() {
+    const price = money(ASSISTANT.amountBySegment[segment])
+    const detail = inTrial
+      ? `Hoy no se cobra nada: empieza cuando termine tu prueba gratis, y después se suman ${price} al mes.`
+      : `Se cobra a tu tarjeta la parte proporcional de este mes, y después se suman ${price} al mes.`
+    if (!window.confirm(`¿Agregar el ${ASSISTANT.name}?\n\n${detail}`)) return
+    setLoading(true)
+    const res = await fetch('/api/stripe-addon', { method: 'POST' })
+    const data = await res.json().catch(() => null)
+    setLoading(false)
+    if (!res.ok) { toast.error(data?.error ?? 'No se pudo agregar el asistente'); return }
+    toast.success('Asistente agregado. Ahora conecta tu WhatsApp.')
+    router.push('/whatsapp')
     router.refresh()
   }
 
@@ -466,6 +483,35 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
           )}
         </div>
       </div>
+
+      {/* Agregar el asistente después de contratar */}
+      {!organization.whatsapp_bot_enabled && status === 'active' && (
+        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>Agrega el {ASSISTANT.name}</p>
+            <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
+              {segment === 'pedidos' ? 'Toma pedidos por WhatsApp y manda las fotos de tus platillos' : 'Contesta y agenda por WhatsApp, 24/7'} · +{money(ASSISTANT.amountBySegment[segment])} MXN/mes
+            </p>
+          </div>
+          {organization.payment_mode === 'prepaid' ? (
+            <a
+              href={`/payment?renew=1&plan=${planKeyFor(segment, true)}`}
+              style={{ ...s.btn, textDecoration: 'none', background: 'var(--primary)', color: '#fff' }}
+            >
+              Agregar al renovar
+            </a>
+          ) : organization.stripe_subscription_id ? (
+            <button
+              type="button"
+              onClick={handleAddAssistant}
+              disabled={loading}
+              style={{ ...s.btn, background: 'var(--primary)', color: '#fff', opacity: loading ? 0.7 : 1 }}
+            >
+              Agregar asistente
+            </button>
+          ) : null}
+        </div>
+      )}
 
       {organization.payment_mode === 'prepaid' ? (
         <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

@@ -15,13 +15,13 @@ export async function POST(req: Request) {
   if (!orgId) return NextResponse.json({ error: 'Sin organización' }, { status: 400 })
 
   const db = createServiceClient()
-  const { data: org } = await db.from('organizations').select('name, stripe_customer_id, stripe_subscription_id, business_type, whatsapp_bot_enabled').eq('id', orgId).single()
+  const { data: org } = await db.from('organizations').select('name, stripe_customer_id, stripe_subscription_id, paid_until, business_type, whatsapp_bot_enabled').eq('id', orgId).single()
 
   // Sin plan explícito (ej. reactivar desde Configuración) se usa el que corresponde al negocio
   const inferred = planKeyForOrg(org?.business_type, !!org?.whatsapp_bot_enabled)
   const plan = resolvePlan(isPlanKey(body?.planKey) ? body.planKey : inferred)
   // La prueba gratis es solo para quien nunca ha tenido suscripción
-  const trialDays = org?.stripe_subscription_id ? undefined : TRIAL_DAYS
+  const trialDays = org?.stripe_subscription_id || org?.paid_until ? undefined : TRIAL_DAYS
 
   try {
     // Crear o reutilizar cliente Stripe
