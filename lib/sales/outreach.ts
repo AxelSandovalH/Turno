@@ -1,6 +1,6 @@
 import { fromZonedTime } from 'date-fns-tz'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendMessage } from '@/lib/ultramsg'
+import { sendMessage, hasWhatsapp } from '@/lib/ultramsg'
 import { getSalesConfig, salesCreds } from '@/lib/sales/config'
 import { generateOpening } from '@/lib/sales/agent'
 import type { ProspectCtx } from '@/lib/sales/prompt'
@@ -67,12 +67,18 @@ export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Pr
   let sent = 0, followups = 0
 
   for (const [i, { p, kind }] of jobs.entries()) {
+    // Un número sin WhatsApp (p. ej. un fijo del directorio) se descarta antes de escribirle
+    if (await hasWhatsapp(p.phone, creds) === false) {
+      await db.from('prospects').update({ status: 'invalid', notes: 'Este número no tiene WhatsApp' }).eq('id', p.id)
+      continue
+    }
     const ctx: ProspectCtx = { name: p.name, contact_name: p.contact_name, segment: p.segment, city: p.city, status: p.status, offer_link: p.offer_link }
     const body = kind === 'first'
       ? `${await generateOpening(ctx)}\n\n${OPT_OUT_LINE}`
       : followupText(p.contact_name, p.name, p.followups_sent)
 
     const res = await sendMessage(p.phone, body, creds).catch(err => ({ error: String(err) }))
+    console.log('[sales] respuesta de UltraMsg', p.name, JSON.stringify(res))
     if ((res as { error?: unknown })?.error) {
       console.error('[sales] envío falló para', p.id, res)
       // Número que no recibe mensajes: se descarta para no seguir intentando

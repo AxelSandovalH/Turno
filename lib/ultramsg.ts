@@ -8,6 +8,23 @@ export interface UltramsgCreds {
  * Pass the org's credentials for multi-tenant routing; falls back to the
  * global env vars (founder instance) when the org has none configured.
  */
+/**
+ * ¿Este número tiene WhatsApp? UltraMsg responde { status: 'valid' | 'invalid' }.
+ * Devuelve null si no se pudo comprobar (en ese caso no se bloquea el envío).
+ */
+export async function hasWhatsapp(phone: string, creds: UltramsgCreds): Promise<boolean | null> {
+  try {
+    const q = new URLSearchParams({ token: creds.token, chatId: `${phone.replace(/\D/g, '')}@c.us` })
+    const res = await fetch(`https://api.ultramsg.com/${creds.instance}/contacts/check?${q}`)
+    const data = await res.json() as { status?: string }
+    if (data?.status === 'valid') return true
+    if (data?.status === 'invalid') return false
+    return null
+  } catch {
+    return null
+  }
+}
+
 export async function sendMessage(to: string, body: string, creds?: UltramsgCreds) {
   const instance = creds?.instance || process.env.ULTRAMSG_INSTANCE
   const token = creds?.token || process.env.ULTRAMSG_TOKEN
