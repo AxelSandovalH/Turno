@@ -11,9 +11,9 @@ export async function GET() {
   const creds = cfg ? salesCreds(cfg) : null
   if (!creds) return NextResponse.json({ state: 'none' })
   try {
-    const { state } = await getInstanceStatus(creds)
-    if (state === 'qr') return NextResponse.json({ state, instance: creds.instance, qr: await getInstanceQr(creds).catch(() => null) })
-    return NextResponse.json({ state, instance: creds.instance })
+    const { state, raw } = await getInstanceStatus(creds)
+    if (state === 'qr') return NextResponse.json({ state, raw, instance: creds.instance, qr: await getInstanceQr(creds).catch(() => null) })
+    return NextResponse.json({ state, raw, instance: creds.instance })
   } catch (err) {
     console.error('[sales] estado de la línea falló:', err)
     return NextResponse.json({ state: 'unknown', instance: creds.instance })

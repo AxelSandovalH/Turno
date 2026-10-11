@@ -312,7 +312,7 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
   )
 }
 
-interface LineState { state: string; qr?: string | null; instance?: string }
+interface LineState { state: string; raw?: string | null; qr?: string | null; instance?: string }
 
 /** Línea de WhatsApp de ventas: su estado en vivo, el QR para vincularla y cómo cambiarla. */
 function LineSection({ ready, name, freeInstances, orgs, choice, onChoice, onChange, onRemove }: {
@@ -359,6 +359,18 @@ function LineSection({ ready, name, freeInstances, orgs, choice, onChoice, onCha
           ? <span className={connected ? 'text-emerald-500' : 'text-amber-500'}>{name} · {line ? (label[line.state] ?? line.state) : 'revisando…'}</span>
           : <span className="text-amber-500">sin elegir</span>}
       </p>
+
+      {ready && line && ['disconnected', 'unknown', 'loading'].includes(line.state) && (
+        <div className="flex flex-wrap items-center gap-4 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+          <div className="min-w-[220px] flex-1 text-xs text-muted-foreground">
+            {line.state === 'loading'
+              ? <><p className="text-sm font-medium text-foreground">Iniciando la línea…</p><p className="mt-0.5">El código QR aparece aquí en unos segundos.</p></>
+              : <><p className="text-sm font-medium text-foreground">La línea no tiene un teléfono vinculado</p><p className="mt-0.5">Para ver el código QR hay que iniciar la instancia primero.</p></>}
+            {line.raw && <p className="mt-1.5 font-mono text-[10px] opacity-70">Estado en UltraMsg: {line.raw}</p>}
+          </div>
+          {line.state !== 'loading' && <button disabled={busy} onClick={() => act('restart')} className={`${btn} bg-violet-600 text-white`}>{busy ? 'Iniciando…' : 'Generar código QR'}</button>}
+        </div>
+      )}
 
       {ready && line?.state === 'qr' && (
         <div className="flex gap-4 items-center flex-wrap rounded-md border border-border p-3">
