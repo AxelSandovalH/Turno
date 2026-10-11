@@ -11,9 +11,11 @@ const FUNNEL = ['/register', '/payment', '/setup', '/onboarding', '/comprar', '/
 
 export function SplashScreen() {
   const ref = useRef<HTMLDivElement>(null)
-  const [done, setDone] = useState(false)
   const pathname = usePathname() ?? ''
   const skip = FUNNEL.some(p => pathname === p || pathname.startsWith(`${p}/`))
+  // Si la carga empezó en una pantalla del camino de compra, la cortinilla ya cuenta como terminada: sin esto,
+  // al navegar después a otra pantalla (p. ej. de /setup a /whatsapp) aparecía el fondo negro y nunca se quitaba
+  const [done, setDone] = useState(skip)
 
   useLayoutEffect(() => {
     // Se muestra en cada carga completa (abrir o refrescar la página). Al cambiar de
