@@ -63,7 +63,14 @@ export async function POST(req: Request) {
     .select()
     .single()
 
-  if (orgError) return NextResponse.json({ error: orgError.message }, { status: 500 })
+  if (orgError) {
+    console.error('[onboarding] no se pudo crear el negocio:', orgError.message)
+    // Giro que existe en el código pero no en la base de datos (falta una migración): mensaje claro en vez del error crudo
+    if (/enum business_type/i.test(orgError.message)) {
+      return NextResponse.json({ error: 'Ese tipo de negocio aún no está activado en el sistema. Elige otro por ahora o escríbenos y lo activamos.' }, { status: 500 })
+    }
+    return NextResponse.json({ error: orgError.message }, { status: 500 })
+  }
 
   // Sucursal por defecto — sin esta fila, el bot de WhatsApp no puede crear
   // citas (create_appointment necesita un branch_id válido)
