@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runSetupAssistant, type SetupMessage } from '@/lib/setup/assistant'
+import { recordFunnel } from '@/lib/funnel/server'
 
 export const maxDuration = 60
 const PER_ORG_PER_DAY = 150
@@ -31,7 +32,9 @@ export async function POST(req: Request) {
   await db.from('demo_generations').upsert({ ip_hash: key, day, count: used + 1 }, { onConflict: 'ip_hash,day' })
 
   try {
-    return NextResponse.json(await runSetupAssistant(orgId, history))
+    const result = await runSetupAssistant(orgId, history)
+    if (result.changes.length) await recordFunnel('setup_applied', { orgId })
+    return NextResponse.json(result)
   } catch (err) {
     console.error('[setup] falló:', err)
     return NextResponse.json({ error: 'No pude responder. Intenta de nuevo en un momento.' }, { status: 502 })

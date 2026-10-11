@@ -7,6 +7,7 @@ import type { DemoPlan } from '@/lib/demo/types'
 import { DemoStyles, TypedText, usePrefersReducedMotion } from './demo/motion'
 import { GeneratingStage, RefineOverlay } from './demo/generating-stage'
 import { saveDemoHandoff } from '@/lib/demo/handoff'
+import { track } from '@/lib/funnel/client'
 import { PublicLinkView } from './demo/public-link-view'
 import { SystemView } from './demo/system-view'
 import { WhatsAppView } from './demo/whatsapp-view'
@@ -42,6 +43,7 @@ export function DemoGenerator({ t, isDay }: Props) {
   async function generate(description = text) {
     if (busy.current || description.trim().length < 15) return
     busy.current = true
+    track('demo_started')
     setError(''); setText(description); setShown(description)
 
     // La petición sale de inmediato; la animación corre en paralelo y dura al menos MIN_WORKING_MS
@@ -76,6 +78,7 @@ export function DemoGenerator({ t, isDay }: Props) {
       const wait = Math.max(0, MIN_WORKING_MS - (nowMs() - started))
       if (wait) await new Promise(r => setTimeout(r, wait))
       setPlan(result); setView('link'); setPhase('result')
+      track('demo_ready', result.segment)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos armar la demo.')
       setShown(description); setPhase('idle')   // se restaura el texto para que pueda reintentar
@@ -97,6 +100,7 @@ export function DemoGenerator({ t, isDay }: Props) {
       const wait = Math.max(0, 1200 - (nowMs() - started))
       if (wait) await new Promise(r => setTimeout(r, wait))
       setPlan(data.plan as DemoPlan); setVersion(v => v + 1)
+      track('demo_refined', (data.plan as DemoPlan).segment)
       setLog(l => [...l, { role: 'ai', text: data.note || 'Listo, ya lo cambié.', fresh: true }])
     } catch (err) {
       setLog(l => [...l, { role: 'ai', text: err instanceof Error ? err.message : 'No pude aplicar ese cambio.', fresh: true }])
@@ -201,7 +205,7 @@ export function DemoGenerator({ t, isDay }: Props) {
 
             <p className="mx-auto mt-6 max-w-md text-center text-xs" style={{ color: t.muted }}>Datos de ejemplo armados a partir de tu descripción.</p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <a href={`/register?type=${plan.segment}&demo=1`} onClick={() => saveDemoHandoff(plan, text)} className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition-transform hover:scale-[1.03]" style={{ background: t.accent }}>
+              <a href={`/register?type=${plan.segment}&demo=1`} onClick={() => { saveDemoHandoff(plan, text); track('publish_click', plan.segment) }} className="inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold text-white transition-transform hover:scale-[1.03]" style={{ background: t.accent }}>
                 Publicar mi sitio con esto <ArrowRight size={16} />
               </a>
               <button type="button" onClick={reset} className="inline-flex items-center gap-2 rounded-xl border px-5 py-3.5 text-sm font-medium" style={{ borderColor: t.border, color: t.muted }}>

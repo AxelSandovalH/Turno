@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
+import { recordFunnel } from '@/lib/funnel/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { PLANS, resolvePlan, isPlanKey, isPrepaidMonths, planKeyFor, planKeyForOrg, planLineItems, segmentForType, trialEligible, TRIAL_DAYS } from '@/lib/plans'
@@ -56,6 +57,7 @@ export async function POST(req: Request) {
         cancel_url: `${baseUrl}/payment`,
         metadata: { type: 'prepaid', organization_id: orgId, plan: plan.key, months: String(months) },
       })
+      await recordFunnel('payment_started', { orgId })
       return NextResponse.json({ url: prepaid.url })
     }
 
@@ -73,6 +75,7 @@ export async function POST(req: Request) {
       subscription_data: { metadata: { organization_id: orgId, plan: plan.key }, ...(trialDays ? { trial_period_days: trialDays } : {}) },
     })
 
+    await recordFunnel('payment_started', { orgId })
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('[stripe-checkout]', error)

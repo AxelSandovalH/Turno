@@ -16,6 +16,7 @@ import { DemoGenerator } from '@/components/landing/demo-generator'
 import { SEGMENTS } from '@/components/landing/segments-data'
 import { BASES, ASSISTANT, PLANS, planKeyFor, money } from '@/lib/plans'
 import gsap from 'gsap'
+import { track } from '@/lib/funnel/client'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -148,6 +149,7 @@ const THEME_KEY = 'turno-landing-theme'
 
 export function LandingPage() {
   const root = useRef<HTMLDivElement>(null)
+  useEffect(() => { track('landing_view') }, [])
   const [isDay, setIsDay] = useState(false) // dark default for SSR
   const [loginHover, setLoginHover] = useState(false)
   const [activeSegment, setActiveSegment] = useState(0)

@@ -6,6 +6,7 @@ import { resend, FROM } from '@/lib/resend'
 import { welcomeEmailHtml, welcomeEmailText } from '@/lib/emails/welcome'
 import { hasCapability } from '@/lib/profiles/registry'
 import { sanitizeDemoSeed } from '@/lib/demo/seed'
+import { recordFunnel } from '@/lib/funnel/server'
 
 function slugify(text: string): string {
   return text
@@ -44,7 +45,7 @@ async function trialEndIso(subId: string): Promise<string | null> {
 }
 
 export async function POST(req: Request) {
-  const { userId, name, slug, whatsappNumber, email, businessType, stripeSessionId, demoPlan } = await req.json()
+  const { userId, name, slug, whatsappNumber, email, businessType, stripeSessionId, demoPlan, funnelSession } = await req.json()
   if (!userId || !name || !whatsappNumber) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
   }
@@ -71,6 +72,8 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: orgError.message }, { status: 500 })
   }
+
+  await recordFunnel('org_created', { session: typeof funnelSession === 'string' ? funnelSession : null, orgId: org.id, segment: businessType ?? 'barbershop' })
 
   // Sucursal por defecto — sin esta fila, el bot de WhatsApp no puede crear
   // citas (create_appointment necesita un branch_id válido)

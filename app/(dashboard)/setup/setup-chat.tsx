@@ -6,6 +6,7 @@ import { ArrowRight, ArrowUp, Check, ExternalLink, Loader2, Sparkles } from 'luc
 import { TypedText } from '@/components/landing/demo/motion'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { readDemoHandoff, clearDemoHandoff } from '@/lib/demo/handoff'
+import { track } from '@/lib/funnel/client'
 import type { SetupStep } from '@/lib/setup/progress'
 
 interface Msg { role: 'user' | 'assistant'; content: string; changes?: string[]; fresh?: boolean }
@@ -63,6 +64,8 @@ export function SetupChat({ orgName, slug, usesAgenda, drafts, steps }: { orgNam
       setBusy(false)
     }
   }, [])
+
+  useEffect(() => { track('setup_opened') }, [])
 
   // Al entrar: recupera la conversación de esta sesión o arranca con el repaso del negocio
   useEffect(() => {

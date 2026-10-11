@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { recordFunnel } from '@/lib/funnel/server'
 import { stripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
           .eq('id', orgId)
           .select('name, whatsapp_number')
           .single()
+        await recordFunnel('subscribed', { orgId })
 
         // Bienvenida hasta que el cobro está confirmado — antes salía al crear
         // la cuenta y llegaba mientras el usuario seguía en el checkout.
@@ -160,6 +162,7 @@ async function handlePrepaidPaid(session: Stripe.Checkout.Session) {
   const orgId = session.metadata?.organization_id
   const plan = session.metadata?.plan
   const months = Number(session.metadata?.months)
+  if (orgId) await recordFunnel('subscribed', { orgId })
   if (!orgId || !isPlanKey(plan) || !isPrepaidMonths(months)) {
     console.error('[stripe-webhook] prepago con metadata incompleta', session.id)
     return

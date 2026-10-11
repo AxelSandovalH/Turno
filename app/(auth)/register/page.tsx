@@ -14,6 +14,7 @@ import { PlanComposer } from '@/components/pricing/plan-composer'
 import { buildPhone } from '@/lib/booking-format'
 import { GoogleButton } from '@/components/auth/google-button'
 import { readDemoHandoff, clearDemoHandoff, type DemoHandoff } from '@/lib/demo/handoff'
+import { track, getFunnelSession } from '@/lib/funnel/client'
 
 const s = {
   label: { display: 'block', fontSize: 13, fontWeight: 500, color: '#888', marginBottom: 7, fontFamily: 'inherit' } as React.CSSProperties,
@@ -176,6 +177,8 @@ export default function RegisterPage() {
 
   const plan = PLANS[planKey]
   const step: 1 | 2 = googleUser ? 2 : stepState
+  useEffect(() => { track('register_view') }, [])
+  useEffect(() => { if (step === 2) track('register_step2', form.businessType) }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function goToStep(n: 1 | 2) {
     setStepState(n)
@@ -239,6 +242,7 @@ export default function RegisterPage() {
         businessType: form.businessType,
         stripeSessionId: paidSessionId,
         demoPlan: demo ? { accent: demo.plan.accent, services: demo.plan.services } : undefined,
+        funnelSession: getFunnelSession(),
       }),
     })
     const onboarding = await res.json().catch(() => null)
