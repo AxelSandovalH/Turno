@@ -76,6 +76,13 @@ export async function runOutreach(opts: { now?: Date; sleep?: (ms: number) => Pr
   let sent = 0, followups = 0
 
   for (const [i, { p, kind }] of jobs.entries()) {
+    // Se reclama al prospecto ANTES de trabajarlo: si otra pasada (el cron o un clic manual al mismo tiempo) ya lo tomó,
+    // se salta. Sin esto, dos pasadas simultáneas podían escribirle dos veces al mismo negocio.
+    const claim = kind === 'first'
+      ? await db.from('prospects').update({ status: 'contacted', last_contact_at: now.toISOString() }).eq('id', p.id).eq('status', 'new').select('id')
+      : await db.from('prospects').update({ last_contact_at: now.toISOString() }).eq('id', p.id).eq('last_contact_at', p.last_contact_at).select('id')
+    if (!claim.data?.length) continue
+
     // Un número sin WhatsApp (p. ej. un fijo del directorio) se descarta antes de escribirle
     if (await hasWhatsapp(p.phone, creds) === false) {
       await db.from('prospects').update({ status: 'invalid', notes: 'Este número no tiene WhatsApp' }).eq('id', p.id)
