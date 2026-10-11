@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AccessButton } from './access-button'
+import { ReleaseLineButton } from './release-line-button'
 
 const STATUS_LABEL: Record<string, string> = {
   trialing: 'Trial',
@@ -23,7 +24,7 @@ async function getStats() {
   const db = createServiceClient()
 
   const [{ data: orgs }, { count: totalAppointments }, { count: totalCustomers }] = await Promise.all([
-    db.from('organizations').select('id, name, slug, whatsapp_number, email, subscription_status, trial_ends_at, created_at, stripe_subscription_id, paid_until').order('created_at', { ascending: false }),
+    db.from('organizations').select('id, name, slug, whatsapp_number, email, subscription_status, trial_ends_at, created_at, stripe_subscription_id, paid_until, ultramsg_instance').order('created_at', { ascending: false }),
     db.from('appointments').select('id', { count: 'exact', head: true }),
     db.from('customers').select('id', { count: 'exact', head: true }),
   ])
@@ -78,6 +79,7 @@ export default async function AdminPage() {
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Trial vence</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Registrado</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Acceso</th>
+                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Línea WhatsApp</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -103,11 +105,14 @@ export default async function AdminPage() {
                   <td className="px-4 py-3">
                     <AccessButton id={org.id} name={org.name} status={org.subscription_status} managedByStripe={!!(org.stripe_subscription_id || org.paid_until)} />
                   </td>
+                  <td className="px-4 py-3">
+                    <ReleaseLineButton id={org.id} name={org.name} instance={org.ultramsg_instance} />
+                  </td>
                 </tr>
               ))}
               {orgs.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
                     No hay organizaciones registradas.
                   </td>
                 </tr>
