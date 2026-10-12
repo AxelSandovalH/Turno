@@ -71,7 +71,7 @@ export const isDemoOrg = (org: { slug?: string | null; name?: string | null }) =
  * (no es cliente del demo), así que lo atiende siempre el agente de ventas.
  * Siempre devuelve true: esta línea es solo de ventas y la recepcionista del demo (tours) nunca contesta aquí.
  */
-export async function handleDemoLineInbound(args: { orgId: string; phone: string; text: string; msgId: string; creds: { instance: string; token: string } }): Promise<boolean> {
+export async function handleDemoLineInbound(args: { orgId: string; phone: string; text: string; msgId: string; creds?: { instance: string; token: string } }): Promise<boolean> {
   const cfg = await getSalesConfig()
   if (!cfg) return true // esta línea es solo de ventas: nunca contesta la recepcionista del demo
   const db = createServiceClient()

@@ -103,8 +103,8 @@ export async function POST(req: Request) {
 
     // Línea de un negocio de demostración: quien escribe ahí busca QuickTurno, lo atiende ventas
     console.log('[whatsapp] org', organization.slug, organization.name, 'demo:', isDemoOrg(organization))
-    if (isDemoOrg(organization) && organization.ultramsg_instance && organization.ultramsg_token) {
-      const handled = await handleDemoLineInbound({ orgId: organization.id, phone, text, msgId, creds: { instance: organization.ultramsg_instance, token: organization.ultramsg_token } })
+    if (isDemoOrg(organization)) {
+      const handled = await handleDemoLineInbound({ orgId: organization.id, phone, text, msgId, creds: organization.ultramsg_instance && organization.ultramsg_token ? { instance: organization.ultramsg_instance, token: organization.ultramsg_token } : undefined })
       if (handled) return NextResponse.json({ ok: true })
     }
 
