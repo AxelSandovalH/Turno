@@ -101,13 +101,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    // Org sin bot contratado: no respondemos sus mensajes
     // Línea de un negocio de demostración: quien escribe ahí busca QuickTurno, lo atiende ventas
+    console.log('[whatsapp] org slug', organization.slug, 'demo:', isDemoOrgSlug(organization.slug))
     if (isDemoOrgSlug(organization.slug) && organization.ultramsg_instance && organization.ultramsg_token) {
       const handled = await handleDemoLineInbound({ orgId: organization.id, phone, text, msgId, creds: { instance: organization.ultramsg_instance, token: organization.ultramsg_token } })
       if (handled) return NextResponse.json({ ok: true })
     }
 
+    // Org sin bot contratado: no respondemos sus mensajes
     if (organization.whatsapp_bot_enabled === false) {
       console.log('[whatsapp] bot deshabilitado para org:', organization.id)
       return NextResponse.json({ ok: true })
