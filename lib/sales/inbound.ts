@@ -3,6 +3,7 @@ import { sendMessage } from '@/lib/ultramsg'
 import { getSalesConfig, isSalesInstance, salesCreds } from '@/lib/sales/config'
 import { isOptOut, isAutoReply, phoneKey } from '@/lib/sales/phone'
 import { runSalesAgent } from '@/lib/sales/agent'
+import { isOwnerPhone, handleOwnerInbound } from '@/lib/sales/owner'
 
 export const AUTO_REPLY_NOTE = 'Respuesta automática (tiene bot)'
 
@@ -13,9 +14,12 @@ export const AUTO_REPLY_NOTE = 'Respuesta automática (tiene bot)'
  */
 export async function handleSalesInbound(args: { instanceId: string; phone: string; text: string; msgId: string }): Promise<boolean> {
   const cfg = await getSalesConfig()
-  if (!cfg?.enabled || !isSalesInstance(args.instanceId, cfg)) return false
+  if (!cfg || !isSalesInstance(args.instanceId, cfg)) return false
   const creds = salesCreds(cfg)
   if (!creds) return false
+  // El dueño consulta el estado aunque el agente esté apagado
+  if (isOwnerPhone(args.phone, cfg)) return handleOwnerInbound({ text: args.text, phone: args.phone, cfg, creds })
+  if (!cfg.enabled) return false
 
   const db = createServiceClient()
   const { data: prospect } = await db.from('prospects').select('id, status, phone').eq('phone_key', phoneKey(args.phone)).maybeSingle()
@@ -74,6 +78,7 @@ export const isDemoOrg = (org: { slug?: string | null; name?: string | null }) =
 export async function handleDemoLineInbound(args: { orgId: string; phone: string; text: string; msgId: string; creds?: { instance: string; token: string } }): Promise<boolean> {
   const cfg = await getSalesConfig()
   if (!cfg) return true // esta línea es solo de ventas: nunca contesta la recepcionista del demo
+  if (isOwnerPhone(args.phone, cfg)) return handleOwnerInbound({ text: args.text, phone: args.phone, cfg, creds: args.creds })
   const db = createServiceClient()
   const key = phoneKey(args.phone)
 
