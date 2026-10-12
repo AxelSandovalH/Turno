@@ -364,14 +364,14 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Demo con IA: el visitante describe su negocio y ve cómo quedaría */}
+      <DemoGenerator t={t} isDay={isDay} />
+
       {/* Funciones — bento asimétrico, las celdas grandes muestran producto real */}
       <FeaturesBento t={t} isDay={isDay} />
 
       {/* Segmentos — un solo panel por giro en vez de 7 columnas de bullets */}
       <SegmentShowcase t={t} isDay={isDay} />
-
-      {/* Demo con IA: el visitante describe su negocio y ve cómo quedaría */}
-      <DemoGenerator t={t} isDay={isDay} />
 
       {/* Pricing */}
       <section id="pricing" style={{ borderTop: `1px solid ${t.border}` }}>
