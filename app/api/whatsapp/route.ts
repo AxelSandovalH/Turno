@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
-import { handleSalesInbound, handleDemoLineInbound, isDemoOrgSlug } from '@/lib/sales/inbound'
+import { handleSalesInbound, handleDemoLineInbound, isDemoOrg } from '@/lib/sales/inbound'
 
 export const maxDuration = 60
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const ORG_FIELDS = 'id, slug, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token, whatsapp_bot_enabled'
+    const ORG_FIELDS = 'id, slug, name, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token, whatsapp_bot_enabled'
 
     // Find org — primary route: by UltraMsg instance ID (multi-tenant)
     const instanceId: string = body?.instanceId ?? body?.instance_id ?? ''
@@ -102,8 +102,8 @@ export async function POST(req: Request) {
     }
 
     // Línea de un negocio de demostración: quien escribe ahí busca QuickTurno, lo atiende ventas
-    console.log('[whatsapp] org slug', organization.slug, 'demo:', isDemoOrgSlug(organization.slug))
-    if (isDemoOrgSlug(organization.slug) && organization.ultramsg_instance && organization.ultramsg_token) {
+    console.log('[whatsapp] org', organization.slug, organization.name, 'demo:', isDemoOrg(organization))
+    if (isDemoOrg(organization) && organization.ultramsg_instance && organization.ultramsg_token) {
       const handled = await handleDemoLineInbound({ orgId: organization.id, phone, text, msgId, creds: { instance: organization.ultramsg_instance, token: organization.ultramsg_token } })
       if (handled) return NextResponse.json({ ok: true })
     }

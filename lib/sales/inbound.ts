@@ -63,8 +63,8 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   return true
 }
 
-/** Los negocios de demostración llevan "-demo" al final de su enlace público (p. ej. cabo-tours-demo). */
-export const isDemoOrgSlug = (slug: string | null | undefined) => !!slug && slug.endsWith('-demo')
+/** Negocio de demostración: "demo" en su enlace público o en su nombre (p. ej. cabo-tours-demo, "Cabo Tours Demo"). */
+export const isDemoOrg = (org: { slug?: string | null; name?: string | null }) => /demo/i.test(`${org.slug ?? ''} ${org.name ?? ''}`)
 
 /**
  * Mensaje entrante en la línea de un negocio de DEMOSTRACIÓN. Quien escribe ahí casi siempre busca QuickTurno
