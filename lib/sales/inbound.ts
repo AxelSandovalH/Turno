@@ -68,29 +68,25 @@ export const isDemoOrgSlug = (slug: string | null | undefined) => !!slug && slug
 
 /**
  * Mensaje entrante en la línea de un negocio de DEMOSTRACIÓN. Quien escribe ahí casi siempre busca QuickTurno
- * (no es cliente del demo), así que lo atiende el agente de ventas en lugar de la recepcionista del demo.
- * Devuelve true si lo atendió; false si es alguien que ya viene hablando con el demo (sigue el flujo normal).
+ * (no es cliente del demo), así que lo atiende siempre el agente de ventas.
+ * Siempre devuelve true: esta línea es solo de ventas y la recepcionista del demo (tours) nunca contesta aquí.
  */
 export async function handleDemoLineInbound(args: { orgId: string; phone: string; text: string; msgId: string; creds: { instance: string; token: string } }): Promise<boolean> {
   const cfg = await getSalesConfig()
-  if (!cfg) return false
+  if (!cfg) return true // esta línea es solo de ventas: nunca contesta la recepcionista del demo
   const db = createServiceClient()
   const key = phoneKey(args.phone)
 
   let { data: prospect } = await db.from('prospects').select('id, status, phone').eq('phone_key', key).maybeSingle()
-  if (prospect?.status === 'won') return false
   if (prospect?.status === 'opted_out') return true
 
   if (!prospect) {
-    // Alguien que ya conversaba con el demo (probando la reserva) sigue con el demo
-    const { data: convo } = await db.from('conversations').select('id').eq('organization_id', args.orgId).eq('whatsapp_phone', args.phone).maybeSingle()
-    if (convo) return false
     if (isAutoReply(args.text)) return true
     const { data: created } = await db.from('prospects').insert({
       name: 'Interesado en QuickTurno', phone: args.phone, phone_key: key, segment: 'other', source: 'whatsapp-entrante', status: 'replied',
       notes: 'Escribió por su cuenta al número de QuickTurno',
     }).select('id, status, phone').single()
-    if (!created) return false
+    if (!created) return true
     prospect = created
   } else if (isAutoReply(args.text)) {
     return true
