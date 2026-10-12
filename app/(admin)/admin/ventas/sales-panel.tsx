@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 export interface ProspectRow {
   id: string; name: string; contact_name: string | null; phone: string; segment: string; city: string | null
-  status: string; followups_sent: number; handoff_reason: string | null; offer_link: string | null
+  status: string; followups_sent: number; handoff_reason: string | null; notes: string | null; offer_link: string | null
   last_contact_at: string | null; last_inbound_at: string | null; created_at: string
 }
 export interface ConfigView {
@@ -284,6 +284,7 @@ export function SalesPanel({ config, prospects, sentToday, orgs, freeInstances }
                       <span className="font-medium">{p.name}</span>
                       <span className="text-xs text-muted-foreground"> · {p.phone.slice(-10)}{p.city ? ` · ${p.city}` : ''}</span>
                       {p.handoff_reason && <span className="block text-xs text-red-400">{p.handoff_reason}</span>}
+                      {p.notes === 'Respuesta automática (tiene bot)' && p.status !== 'replied' && <span className="block text-xs text-amber-500">🤖 Respondió su bot automático: escríbele tú a mano</span>}
                     </button>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs ${st.cls}`}>{st.label}</span>
                     <select className="h-8 rounded-md border border-border bg-background px-2 text-xs" value="" onChange={e => e.target.value && setStatus(p.id, e.target.value)}>

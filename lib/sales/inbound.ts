@@ -4,6 +4,8 @@ import { getSalesConfig, isSalesInstance, salesCreds } from '@/lib/sales/config'
 import { isOptOut, isAutoReply, phoneKey } from '@/lib/sales/phone'
 import { runSalesAgent } from '@/lib/sales/agent'
 
+export const AUTO_REPLY_NOTE = 'Respuesta automática (tiene bot)'
+
 /**
  * Mensaje entrante en la línea de ventas. Si quien escribe es un prospecto cargado, lo atiende el
  * agente de ventas y se devuelve true (el webhook ya no debe tratarlo como cliente de un negocio).
@@ -27,6 +29,8 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   // el estado del prospecto y no se le contesta, para no hablarle a un bot ni inflar las respuestas.
   if (isAutoReply(args.text)) {
     console.log('[sales] respuesta automática ignorada de', prospect.id)
+    // Se deja marcado en el panel: el negocio ya tiene bot, conviene seguirlo a mano
+    await db.from('prospects').update({ notes: AUTO_REPLY_NOTE }).eq('id', prospect.id)
     return true
   }
 
