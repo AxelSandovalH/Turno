@@ -62,3 +62,60 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   if (reply) await sendMessage(prospect.phone, reply, creds)
   return true
 }
+
+/** Los negocios de demostración llevan "-demo" al final de su enlace público (p. ej. cabo-tours-demo). */
+export const isDemoOrgSlug = (slug: string | null | undefined) => !!slug && slug.endsWith('-demo')
+
+/**
+ * Mensaje entrante en la línea de un negocio de DEMOSTRACIÓN. Quien escribe ahí casi siempre busca QuickTurno
+ * (no es cliente del demo), así que lo atiende el agente de ventas en lugar de la recepcionista del demo.
+ * Devuelve true si lo atendió; false si es alguien que ya viene hablando con el demo (sigue el flujo normal).
+ */
+export async function handleDemoLineInbound(args: { orgId: string; phone: string; text: string; msgId: string; creds: { instance: string; token: string } }): Promise<boolean> {
+  const cfg = await getSalesConfig()
+  if (!cfg) return false
+  const db = createServiceClient()
+  const key = phoneKey(args.phone)
+
+  let { data: prospect } = await db.from('prospects').select('id, status, phone').eq('phone_key', key).maybeSingle()
+  if (prospect?.status === 'won') return false
+  if (prospect?.status === 'opted_out') return true
+
+  if (!prospect) {
+    // Alguien que ya conversaba con el demo (probando la reserva) sigue con el demo
+    const { data: convo } = await db.from('conversations').select('id').eq('organization_id', args.orgId).eq('whatsapp_phone', args.phone).maybeSingle()
+    if (convo) return false
+    if (isAutoReply(args.text)) return true
+    const { data: created } = await db.from('prospects').insert({
+      name: 'Interesado en QuickTurno', phone: args.phone, phone_key: key, segment: 'other', source: 'whatsapp-entrante', status: 'replied',
+      notes: 'Escribió por su cuenta al número de QuickTurno',
+    }).select('id, status, phone').single()
+    if (!created) return false
+    prospect = created
+  } else if (isAutoReply(args.text)) {
+    return true
+  }
+
+  if (args.msgId) {
+    const { data: dup } = await db.from('prospect_messages').select('id').eq('ultramsg_id', args.msgId).maybeSingle()
+    if (dup) return true
+  }
+  await db.from('prospect_messages').insert({ prospect_id: prospect.id, role: 'user', kind: 'chat', content: args.text, ultramsg_id: args.msgId || null })
+  await db.from('prospects').update({
+    last_inbound_at: new Date().toISOString(),
+    ...(['new', 'contacted', 'lost', 'invalid'].includes(prospect.status) ? { status: 'replied' } : {}),
+  }).eq('id', prospect.id)
+
+  if (isOptOut(args.text)) {
+    await db.from('prospects').update({ status: 'opted_out' }).eq('id', prospect.id)
+    const bye = 'Entendido, no te volveremos a escribir. Disculpa la molestia y que tengas excelente día.'
+    await db.from('prospect_messages').insert({ prospect_id: prospect.id, role: 'assistant', kind: 'chat', content: bye })
+    await sendMessage(prospect.phone, bye, args.creds)
+    return true
+  }
+  if (prospect.status === 'handoff') return true
+
+  const reply = await runSalesAgent(prospect.id, cfg)
+  if (reply) await sendMessage(prospect.phone, reply, args.creds)
+  return true
+}
