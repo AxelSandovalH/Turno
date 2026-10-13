@@ -15,8 +15,17 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'Turno — Recepcionista digital para tu negocio',
-  description: 'Agenda, confirma y cancela citas automáticamente por WhatsApp.',
+  metadataBase: new URL('https://www.quickturno.app'),
+  title: 'QuickTurno — Recepcionista por WhatsApp que agenda citas y toma pedidos',
+  description: 'QuickTurno contesta tu WhatsApp las 24 horas, agenda citas, confirma y recuerda a tus clientes, cobra anticipos y toma pedidos. Barberías, spas, consultorios, tours y restaurantes. 7 días gratis.',
+  openGraph: {
+    title: 'QuickTurno — Recepcionista por WhatsApp para tu negocio',
+    description: 'Agenda citas, confirma, recuerda y cobra anticipos por WhatsApp, sin que tú contestes. 7 días gratis.',
+    url: 'https://www.quickturno.app',
+    siteName: 'QuickTurno',
+    locale: 'es_MX',
+    type: 'website',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
