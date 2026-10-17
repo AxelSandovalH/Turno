@@ -51,7 +51,8 @@ export async function getSetupSteps(org: Organization): Promise<SetupInfo> {
       cta: 'Armar menú',
       done: (count ?? 0) > 0,
     })
-  } else {
+  }
+  if (isAppointments) {
     const [{ count: services }, { data: staff }] = await Promise.all([
       db.from('services').select('id', { count: 'exact', head: true }).eq('organization_id', org.id),
       db.from('staff').select('id').eq('organization_id', org.id),
@@ -92,5 +93,5 @@ export async function getSetupSteps(org: Organization): Promise<SetupInfo> {
     })
   }
 
-  return { steps, shareUrl: `${baseUrl}/${isOrders ? 'pedir' : 'book'}/${org.slug}` }
+  return { steps, shareUrl: `${baseUrl}/${isAppointments ? 'book' : 'pedir'}/${org.slug}` }
 }

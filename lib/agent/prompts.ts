@@ -8,7 +8,9 @@ export function buildSystemPrompt(
   customerPhone?: string,
   isFirstMessage?: boolean
 ) {
-  if (hasCapability(org.business_type, 'orders')) {
+  const sellsProducts = hasCapability(org.business_type, 'orders')
+  const bookingOnly = hasCapability(org.business_type, 'appointments')
+  if (sellsProducts && !bookingOnly) {
     return buildOrderPrompt(org, customer, customerPhone, isFirstMessage)
   }
 
@@ -42,9 +44,12 @@ El cliente tiene dos caminos y debe quedarle claro desde el primer mensaje, sin 
 - Nunca inventes ni acortes otros links; este es el único.`
     : ''
 
-  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}
+  // Negocio con citas y pedidos (farmacia): se agrega la parte de productos al mismo asistente
+  const productsCtx = sellsProducts ? buildProductsAddendum(org, customerPhone) : ''
 
-Tu único trabajo es ayudar a los clientes a:
+  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}${productsCtx}
+
+Tu trabajo es ayudar a los clientes con lo siguiente (y con pedidos de productos, si más abajo se indica que este negocio los vende):
 1. Agendar citas
 2. Consultar sus citas activas
 3. Reagendar una cita existente
@@ -153,4 +158,20 @@ FLUJO DE PEDIDO:
 ${org.welcome_message ? `MENSAJE DE BIENVENIDA PERSONALIZADO: ${org.welcome_message}` : ''}
 ${isFirstMessage ? `\nCONVERSACIÓN NUEVA O REABIERTA: antes de responder, PRESÉNTATE brevemente: di que eres Turno, el asistente de pedidos de "${org.name}"${org.welcome_message ? ', incorporando el MENSAJE DE BIENVENIDA PERSONALIZADO (parafraséalo, sin emojis)' : ''}, y luego atiende su mensaje. La presentación es obligatoria en esta respuesta.` : ''}
 `
+}
+
+/** Sección extra del prompt para negocios que, además de citas, venden productos por pedido (farmacia). */
+function buildProductsAddendum(org: { name: string; slug?: string | null; order_accepting?: boolean }, customerPhone?: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+  const orderUrl = org.slug ? `${baseUrl}/pedir/${org.slug}` : null
+  return `
+
+ADEMÁS DE CITAS, ESTE NEGOCIO VENDE PRODUCTOS POR PEDIDO (entrega a domicilio o para recoger). También atiendes pedidos: es parte de tu trabajo, no "fuera de tu alcance".
+${orderUrl ? `LINK PÚBLICO DE PEDIDOS: ${orderUrl}. Ofrécelo solo cuando el cliente quiera ver el catálogo con fotos o pedir por su cuenta; nunca lo inventes ni lo modifiques.\n` : ''}- Los productos y precios son SOLO los que devuelve get_menu (es el catálogo del negocio). Llámala antes de mostrar productos, dar un precio o armar un pedido. Nunca inventes productos, existencias, precios ni promociones.
+- Si el producto no aparece o está agotado (available en false), dilo y sugiere algo similar del catálogo. Si accepting_orders es false, no tomes pedidos por ahora.
+- MEDICAMENTOS: no des diagnósticos, dosis ni recomendaciones médicas, y no sustituyas a un medicamento por otro por tu cuenta. Si piden algo que requiere receta, dile que se debe presentar la receta en la farmacia al recoger o a la entrega, y si es una duda médica, que consulte al farmacéutico o a su médico.
+- FLUJO DE PEDIDO: arma la lista con cantidades; pregunta si es a domicilio o para recoger (solo lo que permita get_menu); si es a domicilio pide dirección completa con referencias; el teléfono es el del WhatsApp desde el que escribe${customerPhone ? ` (${customerPhone})` : ''} y nunca se pide. Antes de registrar muestra un resumen corto con productos, envío si aplica y total; cuando responda que sí, llama create_order con el nombre exacto de cada producto según get_menu.
+- El pago de un pedido es SIEMPRE con tarjeta en línea mediante el payment_link que devuelve create_order (compártelo completo, sin modificarlo; el pedido llega al negocio hasta que se pague). No hay efectivo ni transferencia. Esto aplica solo a pedidos: las citas siguen sus propias reglas de anticipo.
+- Para saber cómo va un pedido usa get_order_status (pending: recibido; preparing: en preparación; on_the_way: en camino o listo para recoger; delivered: entregado; cancelled: cancelado). No prometas tiempos.
+- Puedes enviar fotos del catálogo con send_menu_photos al mostrar productos concretos.`
 }

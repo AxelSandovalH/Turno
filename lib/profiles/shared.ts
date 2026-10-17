@@ -10,6 +10,22 @@ export const ORDER_MODULES: readonly ProfileModule[] = [
   { id: 'settings',      href: '/settings',      title: 'Configuración' },
 ]
 
+/** Módulos para negocios con citas Y pedidos (farmacia): agenda de servicios más catálogo de productos. */
+export const PHARMACY_MODULES: readonly ProfileModule[] = [
+  { id: 'setup',         href: '/setup',         title: 'Asistente IA' },
+  { id: 'orders',        href: '/orders',        title: 'Pedidos' },
+  { id: 'menu',          href: '/menu',          title: 'Productos' },
+  { id: 'appointments',  href: '/appointments',  title: 'Citas' },
+  { id: 'patients',      href: '/patients',      title: null },
+  { id: 'staff',         href: '/staff',         title: null },
+  { id: 'services',      href: '/services',      title: 'Servicios' },
+  { id: 'schedule',      href: '/schedule',      title: 'Horarios' },
+  { id: 'conversations', href: '/conversations', title: 'Conversaciones' },
+  { id: 'whatsapp',      href: '/whatsapp',      title: 'WhatsApp' },
+  { id: 'finanzas',      href: '/finanzas',      title: 'Finanzas' },
+  { id: 'settings',      href: '/settings',      title: 'Configuración' },
+]
+
 /**
  * Módulos del dashboard para perfiles basados en citas (barbería, spa,
  * consultorios). title: null = el label lo resuelve el perfil (staff/patients).

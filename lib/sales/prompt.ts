@@ -16,6 +16,7 @@ const SEGMENT_PITCH: Record<string, string> = {
   charter: 'anticipo al reservar y respuesta a turistas a cualquier hora, con calendario por capitán',
   tours: 'respuesta a turistas 24/7, link con fotos de cada tour y anticipo por Stripe para asegurar la salida',
   tattoo: 'anticipo para apartar la sesión, agenda por tatuador y respuestas a medianoche',
+  pharmacy: 'pedidos de productos por WhatsApp para entrega o para recoger, y agenda para inyecciones, toma de presión o consulta, con recordatorios',
   restaurant: 'menú con fotos, link de pedidos con carrito, cobro con tarjeta y un asistente que toma pedidos por WhatsApp',
   laboratory: 'resultados por WhatsApp y recepción sin filas',
   consulting: 'agenda de citas, recordatorios y reagendar por WhatsApp',

@@ -72,7 +72,7 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
   // El anticipo por Stripe es de citas: los negocios de pedidos cobran cada pedido con tarjeta
   const hasDeposits = hasCapability(organization.business_type, 'deposits')
   const segment = segmentForType(organization.business_type)
-  const publicPath = organization.business_type === 'restaurant' ? 'pedir' : 'book'
+  const publicPath = hasCapability(organization.business_type, 'orders') && !hasCapability(organization.business_type, 'appointments') ? 'pedir' : 'book'
 
   const copyBookingLink = async () => {
     try {

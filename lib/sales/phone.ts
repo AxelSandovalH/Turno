@@ -49,6 +49,7 @@ export function isAutoReply(text: string): boolean {
 export function segmentFromText(raw: string): string {
   const t = String(raw ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   if (/tour|actividad|snorkel|excurs/.test(t)) return 'tours'
+  if (/farmac|botica|drogue/.test(t)) return 'pharmacy'
   if (/restaur|taquer|cafe|comida|pizz|sushi|alitas|lonche/.test(t)) return 'restaurant'
   if (/barber|estetic|peluq|salon/.test(t)) return 'barbershop'
   if (/spa|masaj|bienestar|facial|uñas|unas|belleza/.test(t)) return 'spa'

@@ -25,9 +25,10 @@ export async function getSetupProgress(db: Db, orgId: string): Promise<SetupProg
     steps.push({ id: 'services', label: 'Servicios publicados', done: active > 0, href: '/services',
       detail: active > 0 ? `${active} en tu página${drafts ? ` · ${drafts} en borrador` : ''}` : drafts ? `${drafts} en borrador por confirmar` : 'Aún no tienes' })
     steps.push({ id: 'schedule', label: 'Horarios', done: schedules > 0, href: '/schedule', detail: schedules > 0 ? 'Definidos' : 'Sin definir' })
-  } else {
+  }
+  if (hasCapability(org.business_type, 'orders')) {
     const items = await count('menu_items')
-    steps.push({ id: 'menu', label: 'Menú con platillos', done: items > 0, href: '/menu', detail: items > 0 ? `${items} platillos` : 'Aún vacío' })
+    steps.push({ id: 'menu', label: 'Catálogo de productos', done: items > 0, href: '/menu', detail: items > 0 ? `${items} productos` : 'Aún vacío' })
   }
   steps.push({ id: 'profile', label: 'Datos del negocio', done: !!(org.address || org.welcome_message), href: '/settings', detail: org.address || org.welcome_message ? 'Completos' : 'Falta dirección y mensajes' })
   steps.push({ id: 'logo', label: 'Logo y marca', done: !!org.logo_url, href: '/settings', detail: org.logo_url ? 'Cargado' : 'Sube tu logo' })

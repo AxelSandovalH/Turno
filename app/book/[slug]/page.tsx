@@ -25,8 +25,8 @@ export default async function BookingPage({ params }: Props) {
     .single()
 
   if (!org || !org.is_active) notFound()
-  // Negocios de pedidos no tienen agenda: su link público es el menú
-  if (hasCapability(org.business_type, 'orders')) redirect(`/pedir/${org.slug}`)
+  // Negocios solo de pedidos no tienen agenda: su link público es el menú (la farmacia tiene ambos)
+  if (hasCapability(org.business_type, 'orders') && !hasCapability(org.business_type, 'appointments')) redirect(`/pedir/${org.slug}`)
 
   const [{ data: servicesRaw }, { data: staff }] = await Promise.all([
     db.from('services')

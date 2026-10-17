@@ -12,6 +12,7 @@ export type BusinessType =
   | 'consulting'
   | 'tours'
   | 'restaurant'
+  | 'pharmacy'
   | 'other'
 
 /**

@@ -95,7 +95,10 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     deposit: { enabled: org.deposit_enabled, amount: Number(org.deposit_amount ?? 0) },
     customerPhone,
   }
-  const agentTools = hasCapability(org.business_type, 'orders') ? orderTools : tools
+  const sellsProducts = hasCapability(org.business_type, 'orders')
+  const booksAppointments = hasCapability(org.business_type, 'appointments')
+  // Farmacia: citas y pedidos de productos en la misma conversación
+  const agentTools = sellsProducts && booksAppointments ? [...tools, ...orderTools] : sellsProducts ? orderTools : tools
 
   // Agentic loop. Si algo falla (API caída, error inesperado) el cliente recibe una
   // respuesta en lugar de silencio, y el error queda en los logs.
