@@ -1,5 +1,5 @@
--- Catálogo de Cabo Pharmacy generado de catalogo_farmacia_inicial.csv: 156 productos en 25 categorías.
--- Fuera del catálogo (no se venden por delivery): 61 con receta, 0 controlados, 3 por revisar.
+-- Catálogo de Cabo Pharmacy generado de catalogo_farmacia_inicial.csv: 158 productos en 26 categorías.
+-- Fuera del catálogo (no se venden por delivery): 156 con receta, 0 controlados, 3 por revisar.
 -- Los productos sin precio entran como NO disponibles; ponles precio en Catálogo (o llena precio_venta en el CSV y vuelve a generar y correr este SQL).
 do $$
 declare v_org uuid;
@@ -163,9 +163,11 @@ begin
     ('Cotonetes', 'Cuidado personal', 'Frasco 100 piezas', 0),
     ('Agua purificada 1 L', 'Bebidas', 'Botella 1 L', 0),
     ('Agua purificada 600 ml', 'Bebidas', 'Botella 600 ml', 0),
-    ('Bebida rehidratante deportiva', 'Bebidas', 'Botella 600 ml', 0);
+    ('Bebida rehidratante deportiva', 'Bebidas', 'Botella 600 ml', 0),
+    ('Nistatina suspensión oral 100,000 UI/ml', 'Antimicóticos', 'Frasco 24 ml · Nistatina', 0),
+    ('Nistatina óvulos 100,000 UI', 'Ginecológicos', 'Caja 12 óvulos · Nistatina', 0);
   insert into menu_categories (organization_id, name, sort_order)
-  select v_org, c.name, c.ord from (values ('Analgésicos', 0), ('Cardiovascular', 1), ('Antialérgicos', 2), ('Respiratorio', 3), ('Gastrointestinal', 4), ('Antiparasitarios', 5), ('Antimicóticos', 6), ('Antivirales', 7), ('Diabetes', 8), ('Dermatológicos', 9), ('Suplementos', 10), ('Vitaminas', 11), ('Salud sexual', 12), ('Oftálmicos', 13), ('Óticos', 14), ('Curación', 15), ('Dispositivos', 16), ('Cuidado personal', 17), ('Higiene bucal', 18), ('Higiene femenina', 19), ('Bebé', 20), ('Incontinencia', 21), ('Cuidado de la piel', 22), ('Hogar', 23), ('Bebidas', 24)) as c(name, ord)
+  select v_org, c.name, c.ord from (values ('Analgésicos', 0), ('Cardiovascular', 1), ('Antialérgicos', 2), ('Respiratorio', 3), ('Gastrointestinal', 4), ('Antiparasitarios', 5), ('Antimicóticos', 6), ('Antivirales', 7), ('Diabetes', 8), ('Dermatológicos', 9), ('Suplementos', 10), ('Vitaminas', 11), ('Salud sexual', 12), ('Oftálmicos', 13), ('Óticos', 14), ('Curación', 15), ('Dispositivos', 16), ('Cuidado personal', 17), ('Higiene bucal', 18), ('Higiene femenina', 19), ('Bebé', 20), ('Incontinencia', 21), ('Cuidado de la piel', 22), ('Hogar', 23), ('Bebidas', 24), ('Ginecológicos', 25)) as c(name, ord)
   where not exists (select 1 from menu_categories x where x.organization_id = v_org and x.name = c.name);
   -- Ya existentes: solo se tocan precio y disponibilidad cuando el CSV trae precio (no pisa lo que cambies a mano)
   update menu_items m set price = t.price, is_available = true
