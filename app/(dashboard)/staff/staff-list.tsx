@@ -28,13 +28,15 @@ interface StaffListProps {
   roleTags: StaffRoleTag[]
   organizationId: string
   staffLabel: string
+  currency?: string | null
 }
 
 function emptyForm(role: string) {
-  return { name: '', phone: '', role, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session', commission_value: '' }
+  return { name: '', phone: '', role, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session' | 'fixed_weekly', commission_value: '' }
 }
 
-export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel }: StaffListProps) {
+export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, currency }: StaffListProps) {
+  const cur = currency === 'usd' ? 'USD' : 'MXN'
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -311,17 +313,18 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
                 <Label>Tipo</Label>
                 <Select
                   value={form.commission_type}
-                  onValueChange={v => v && setForm(p => ({ ...p, commission_type: v as 'percentage' | 'fixed_per_session' }))}
+                  onValueChange={v => v && setForm(p => ({ ...p, commission_type: v as 'percentage' | 'fixed_per_session' | 'fixed_weekly' }))}
                 >
-                  <SelectTrigger><SelectValue>{ form.commission_type === 'percentage' ? '% sobre ingreso' : 'Monto fijo por sesión' }</SelectValue></SelectTrigger>
+                  <SelectTrigger><SelectValue>{ form.commission_type === 'percentage' ? '% sobre ingreso' : form.commission_type === 'fixed_weekly' ? 'Monto fijo por semana' : 'Monto fijo por sesión' }</SelectValue></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="percentage">% sobre ingreso</SelectItem>
                     <SelectItem value="fixed_per_session">Monto fijo por sesión</SelectItem>
+                    <SelectItem value="fixed_weekly">Monto fijo por semana</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>{form.commission_type === 'percentage' ? 'Porcentaje (%)' : 'Monto (MXN)'}</Label>
+                <Label>{form.commission_type === 'percentage' ? 'Porcentaje (%)' : `Monto (${cur})`}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -336,7 +339,9 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
               <p className="text-xs text-muted-foreground">
                 {form.commission_type === 'percentage'
                   ? `Por cada $1,000 cobrados → $${(parseFloat(form.commission_value) * 10).toFixed(0)} de comisión`
-                  : `Cada sesión completada → $${form.commission_value} de comisión`}
+                  : form.commission_type === 'fixed_weekly'
+                    ? `Cada semana → $${form.commission_value} ${cur}, sin importar cuántas consultas haga`
+                    : `Cada sesión completada → $${form.commission_value} de comisión`}
               </p>
             )}
           </div>

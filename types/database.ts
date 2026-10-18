@@ -93,7 +93,7 @@ export interface Staff {
   is_active: boolean
   specialty: string | null
   license_number: string | null
-  commission_type: 'percentage' | 'fixed_per_session' | null
+  commission_type: 'percentage' | 'fixed_per_session' | 'fixed_weekly' | null
   commission_value: number | null
   created_at: string
   updated_at: string

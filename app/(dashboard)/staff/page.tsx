@@ -65,6 +65,7 @@ export default async function StaffPage() {
         roleTags={roleTags ?? []}
         organizationId={organization.id}
         staffLabel={label}
+        currency={organization.currency}
       />
     </div>
   )

@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { isMedicalVertical } from '@/lib/business-type'
 
+// Fuera del componente: el render no puede llamar funciones impuras
+const nowMs = () => Date.now()
+
 type Period = 'day' | 'week' | 'month' | 'all'
 
 interface Payment {
@@ -33,7 +36,7 @@ interface Appointment {
 interface StaffMember {
   id: string
   name: string
-  commission_type: 'percentage' | 'fixed_per_session' | null
+  commission_type: 'percentage' | 'fixed_per_session' | 'fixed_weekly' | null
   commission_value: number | null
   role: string
 }
@@ -126,14 +129,18 @@ export function FinanzasClient({ payments, appointments, staff, businessType }: 
         const sessions = filteredAppointments
           .filter(a => a.staff_id === s.id).length
 
-        const commission = s.commission_type === 'fixed_per_session'
-          ? sessions * (s.commission_value ?? 0)
-          : revenue * ((s.commission_value ?? 0) / 100)
+        // Pago fijo semanal: se cobra igual haya o no consultas. Día = 1/7 de la semana; semana = 1; mes y 90 días = semanas transcurridas
+        const weeks = period === 'day' ? 1 / 7 : period === 'week' ? 1 : Math.max(1, (nowMs() - periodStart.getTime()) / (7 * 86400_000))
+        const commission = s.commission_type === 'fixed_weekly'
+          ? (s.commission_value ?? 0) * weeks
+          : s.commission_type === 'fixed_per_session'
+            ? sessions * (s.commission_value ?? 0)
+            : revenue * ((s.commission_value ?? 0) / 100)
 
         return { staff: s, revenue, sessions, commission }
       })
-      .filter(c => c.sessions > 0 || c.revenue > 0)
-  }, [staff, filteredPayments, filteredAppointments])
+      .filter(c => c.staff.commission_type === 'fixed_weekly' || c.sessions > 0 || c.revenue > 0)
+  }, [staff, filteredPayments, filteredAppointments, period, periodStart])
 
   const totalCommissions = commissions.reduce((s, c) => s + c.commission, 0)
 
@@ -273,7 +280,9 @@ export function FinanzasClient({ payments, appointments, staff, businessType }: 
                           {sessions} sesiones · ${revenue.toLocaleString('es-MX')} generados
                           {s.commission_type === 'percentage'
                             ? ` · ${s.commission_value}%`
-                            : ` · $${s.commission_value}/sesión`}
+                            : s.commission_type === 'fixed_weekly'
+                              ? ` · $${s.commission_value}/semana`
+                              : ` · $${s.commission_value}/sesión`}
                         </p>
                       </div>
                       <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 font-semibold">
