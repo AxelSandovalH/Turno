@@ -348,12 +348,12 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
                     <span>{sv.name}{!sv.is_active && <span className="text-xs text-muted-foreground"> · inactivo</span>}</span>
                   </label>
                   {serviceIds.includes(sv.id) && (
-                    <div className="ml-6 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="ml-6 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground whitespace-nowrap">
                       <span>Solo de</span>
-                      <input type="time" className="h-7 rounded-md border border-border bg-background px-1.5" value={windows[sv.id]?.start ?? ''} onChange={e => setWindows(p => ({ ...p, [sv.id]: { start: e.target.value, end: p[sv.id]?.end ?? '' } }))} />
+                      <input type="time" className="h-7 w-[7.5rem] rounded-md border border-border bg-background px-1.5" value={windows[sv.id]?.start ?? ''} onChange={e => setWindows(p => ({ ...p, [sv.id]: { start: e.target.value, end: p[sv.id]?.end ?? '' } }))} />
                       <span>a</span>
-                      <input type="time" className="h-7 rounded-md border border-border bg-background px-1.5" value={windows[sv.id]?.end ?? ''} onChange={e => setWindows(p => ({ ...p, [sv.id]: { start: p[sv.id]?.start ?? '', end: e.target.value } }))} />
-                      <span>(vacío = todo su horario)</span>
+                      <input type="time" className="h-7 w-[7.5rem] rounded-md border border-border bg-background px-1.5" value={windows[sv.id]?.end ?? ''} onChange={e => setWindows(p => ({ ...p, [sv.id]: { start: p[sv.id]?.start ?? '', end: e.target.value } }))} />
+                      <span className="basis-full">Vacío = todo su horario</span>
                     </div>
                   )}
                   </div>
