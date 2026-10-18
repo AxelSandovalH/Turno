@@ -279,7 +279,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? `Editar ${staffLabel.toLowerCase()}` : `Agregar ${staffLabel.toLowerCase()}`}</DialogTitle>
           </DialogHeader>
