@@ -30,7 +30,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
 
   const [{ data: categories }, { data: items }] = await Promise.all([
     db.from('menu_categories').select('id, name').eq('organization_id', org.id).order('sort_order').order('created_at'),
-    db.from('menu_items').select('id, category_id, name, description, price, image_url, extras, is_available').eq('organization_id', org.id).order('sort_order').order('created_at'),
+    db.from('menu_items').select('id, category_id, name, description, price, image_url, extras, is_available, requires_prescription').eq('organization_id', org.id).order('sort_order').order('created_at'),
   ])
 
   return (

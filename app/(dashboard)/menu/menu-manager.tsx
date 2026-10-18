@@ -17,10 +17,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 
 interface Extra { name: string; price: number }
 interface Category { id: string; name: string }
-interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean }
+interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean; requires_prescription?: boolean }
 interface Settings { accepting: boolean; deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: string; minAmount: string }
 
-const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true }
+const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true, requires_prescription: false }
 const nativeSelect = 'flex h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring'
 
 export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items, currency = 'mxn', catalog = false }: {
@@ -89,7 +89,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
     setEditing(i)
     setForm({
       name: i.name, description: i.description ?? '', price: String(i.price), category_id: i.category_id ?? '',
-      image_url: i.image_url ?? '', extras: i.extras.map(e => ({ name: e.name, price: String(e.price) })), is_available: i.is_available,
+      image_url: i.image_url ?? '', extras: i.extras.map(e => ({ name: e.name, price: String(e.price) })), is_available: i.is_available, requires_prescription: !!i.requires_prescription,
     })
     setOpen(true)
   }
@@ -125,6 +125,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
       image_url: form.image_url || null,
       extras,
       is_available: form.is_available,
+      requires_prescription: form.requires_prescription,
     }
     setSaving(true)
     const { error } = editing
@@ -207,7 +208,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
                     <p className="text-sm">{money(i.price)}{i.extras.length > 0 && <span className="text-xs text-muted-foreground"> · {i.extras.length} extra(s)</span>}</p>
                     <label className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                       <Switch size="sm" checked={i.is_available} onCheckedChange={() => toggleAvailable(i)} />
-                      {i.is_available ? 'Disponible' : 'Agotado'}
+                      {i.is_available ? 'Disponible' : 'Agotado'}{i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
                     </label>
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -292,6 +293,15 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? `Editar ${thing}` : `Agregar ${thing}`}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            {catalog && (
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="mt-1" checked={form.requires_prescription} onChange={e => setForm(p => ({ ...p, requires_prescription: e.target.checked }))} />
+                <span>
+                  <span className="font-medium">Requiere receta médica</span>
+                  <span className="block text-xs text-muted-foreground">Se muestra en el catálogo pero no se puede pedir directo: lo atiende una persona que verifica la receta.</span>
+                </span>
+              </label>
+            )}
             <div className="space-y-2">
               <Label>Foto (opcional)</Label>
               <div className="flex items-center gap-3">

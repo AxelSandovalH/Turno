@@ -1,9 +1,11 @@
 /**
  * Genera el SQL que carga el catálogo de la farmacia (Cabo Pharmacy) desde el CSV del inventario.
  *   npx tsx scripts/build-pharmacy-catalog.ts /ruta/catalogo.csv > supabase/seeds/pharmacy_catalog.sql
- * Reglas: solo entran productos SIN receta y sin grupo de control; los de receta o controlados no se venden por
- * delivery. Un producto sin precio entra como NO disponible (agotado) hasta que tenga precio; al volver a correr
- * el SQL con precios llenos en el CSV, se actualizan precio y disponibilidad.
+ * Reglas: entran los productos SIN receta (compra directa) y los CON receta (marcados requires_prescription: se ven en
+ * el catálogo pero NO se pueden pedir directo; los atiende una persona que verifica la receta). Quedan fuera SIEMPRE los
+ * controlados de fracción I, II y III (opioides, benzodiacepinas, estimulantes, tramadol): no se venden por este medio.
+ * Un producto sin precio entra como NO disponible hasta que tenga precio; al volver a correr el SQL con precios
+ * llenos en el CSV se actualizan precio y disponibilidad.
  */
 import { readFileSync } from 'node:fs'
 
@@ -26,10 +28,10 @@ const rows: Row[] = lines.map(l => {
   return { sku: f[0], nombre: f.slice(1, f.length - 8).join(','), sustancia, presentacion, categoria, tipo, receta: receta.toLowerCase(), grupo, precio: Number(String(precio).replace(/[^0-9.]/g, '')) || 0 }
 })
 
-const skipped = { receta: 0, controlado: 0, revisar: 0 }
+const skipped = { controlado: 0, revisar: 0 }
+const FUERTE = /fracci[oó]n\s+(i|ii|iii)$/i
 const kept = rows.filter(r => {
-  if (r.receta !== 'no') { skipped.receta++; return false }
-  if (r.grupo) { skipped.controlado++; return false }
+  if (FUERTE.test(r.grupo)) { skipped.controlado++; return false }
   if (REVISAR.test(r.nombre)) { skipped.revisar++; return false }
   return true
 })
@@ -42,28 +44,31 @@ const items = kept.map(r => ({
   descr: [r.presentacion, r.sustancia].filter(Boolean).join(' · '),
   cat: r.categoria,
   price: r.precio,
+  rx: r.receta !== 'no',
 }))
 const cats = [...new Set(items.map(i => i.cat))]
 
 const out: string[] = []
 out.push(`-- Catálogo de Cabo Pharmacy generado de ${file.split('/').pop()}: ${items.length} productos en ${cats.length} categorías.`)
-out.push(`-- Fuera del catálogo (no se venden por delivery): ${skipped.receta} con receta, ${skipped.controlado} controlados, ${skipped.revisar} por revisar.`)
+out.push(`-- Con receta (se ven pero no se piden directo): ${items.filter(i => i.rx).length}. Fuera siempre: ${skipped.controlado} controlados (fracción I-III); por revisar: ${skipped.revisar}.`)
 out.push(`-- Los productos sin precio entran como NO disponibles; ponles precio en Catálogo (o llena precio_venta en el CSV y vuelve a generar y correr este SQL).`)
 out.push(`do $$`, `declare v_org uuid;`, `begin`)
 out.push(`  select id into v_org from organizations where slug = 'cabo-pharmacy' and business_type = 'pharmacy' limit 1;`)
 out.push(`  if v_org is null then raise exception 'No existe el negocio cabo-pharmacy'; end if;`)
-out.push(`  create temp table _cat (name text, cat text, descr text, price numeric) on commit drop;`)
+out.push(`  create temp table _cat (name text, cat text, descr text, price numeric, rx boolean) on commit drop;`)
 out.push(`  insert into _cat values`)
-out.push(items.map(i => `    (${q(i.name)}, ${q(i.cat)}, ${q(i.descr)}, ${i.price})`).join(',\n') + ';')
+out.push(items.map(i => `    (${q(i.name)}, ${q(i.cat)}, ${q(i.descr)}, ${i.price}, ${i.rx})`).join(',\n') + ';')
 out.push(`  insert into menu_categories (organization_id, name, sort_order)`)
 out.push(`  select v_org, c.name, c.ord from (values ${cats.map((c, i) => `(${q(c)}, ${i})`).join(', ')}) as c(name, ord)`)
 out.push(`  where not exists (select 1 from menu_categories x where x.organization_id = v_org and x.name = c.name);`)
-out.push(`  -- Ya existentes: solo se tocan precio y disponibilidad cuando el CSV trae precio (no pisa lo que cambies a mano)`)
-out.push(`  update menu_items m set price = t.price, is_available = true`)
-out.push(`  from _cat t where m.organization_id = v_org and m.name = t.name and t.price > 0;`)
-out.push(`  insert into menu_items (organization_id, category_id, name, description, price, is_available, sort_order)`)
-out.push(`  select v_org, (select id from menu_categories c where c.organization_id = v_org and c.name = t.cat limit 1), t.name, t.descr, t.price, t.price > 0, 0`)
+out.push(`  -- Ya existentes: el precio solo cambia si el CSV trae precio; un producto con receta nunca queda disponible para pedir directo`)
+out.push(`  update menu_items m set requires_prescription = t.rx,`)
+out.push(`    price = case when t.price > 0 then t.price else m.price end,`)
+out.push(`    is_available = case when t.rx then false when t.price > 0 then true else m.is_available end`)
+out.push(`  from _cat t where m.organization_id = v_org and m.name = t.name;`)
+out.push(`  insert into menu_items (organization_id, category_id, name, description, price, is_available, requires_prescription, sort_order)`)
+out.push(`  select v_org, (select id from menu_categories c where c.organization_id = v_org and c.name = t.cat limit 1), t.name, t.descr, t.price, t.price > 0 and not t.rx, t.rx, 0`)
 out.push(`  from _cat t where not exists (select 1 from menu_items x where x.organization_id = v_org and x.name = t.name);`)
 out.push(`end $$;`)
 console.log(out.join('\n'))
-console.error(`OK: ${items.length} productos, ${cats.length} categorías | fuera: receta ${skipped.receta}, controlados ${skipped.controlado}, por revisar ${skipped.revisar} | con precio: ${items.filter(i => i.price > 0).length}`)
+console.error(`OK: ${items.length} productos (${items.filter(i => i.rx).length} con receta), ${cats.length} categorías | fuera: controlados ${skipped.controlado}, por revisar ${skipped.revisar} | con precio: ${items.filter(i => i.price > 0).length}`)
