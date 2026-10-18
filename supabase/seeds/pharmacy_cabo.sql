@@ -1,4 +1,4 @@
--- Deja listos los servicios y el horario de la farmacia (correo pharmacycabo69@gmail.com).
+-- Deja listos los servicios y el horario de la farmacia (Cabo Pharmacy, enlace cabo-pharmacy).
 -- Correr DESPUÉS de la migración 036 y de registrar la cuenta. Se puede correr más de una vez sin duplicar.
 -- Los servicios entran como BORRADOR (inactivos) y con precio 0: pon precio y duración reales en Servicios
 -- y actívalos; mientras estén inactivos no aparecen en la página de reservas ni el bot los ofrece.
@@ -7,8 +7,8 @@ declare
   v_org   uuid;
   v_staff uuid;
 begin
-  select id into v_org from organizations where lower(email) = 'pharmacycabo69@gmail.com' limit 1;
-  if v_org is null then raise exception 'No existe un negocio con ese correo: registra primero la cuenta'; end if;
+  select id into v_org from organizations where slug = 'cabo-pharmacy' and business_type = 'pharmacy' limit 1;
+  if v_org is null then raise exception 'No existe el negocio cabo-pharmacy con giro farmacia: registra primero la cuenta'; end if;
 
   insert into services (organization_id, name, description, duration_minutes, price, is_active)
   select v_org, s.name, s.descr, s.mins, 0, false
