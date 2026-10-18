@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { fmtMoney, currencyName } from '@/lib/currency'
 import { useRouter } from 'next/navigation'
-import { Plus, Pencil, Trash2, ImageUp, X, Copy, ExternalLink } from 'lucide-react'
+import { Plus, Pencil, Trash2, ImageUp, X, Copy, ExternalLink, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -73,6 +73,8 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
   }
 
   // ── Platillos ───────────────────────────────────────────────────────────────
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'noprice' | 'soldout' | 'available'>('all')
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
   const [form, setForm] = useState(emptyItem)
@@ -148,10 +150,16 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
     router.refresh()
   }
 
+  // Buscador: sin importar mayúsculas ni acentos, por nombre o descripción; más un filtro por estado
+  const fold = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const q = fold(query.trim())
+  const visible = items.filter(i =>
+    (!q || fold(`${i.name} ${i.description ?? ''}`).includes(q)) &&
+    (statusFilter === 'all' || (statusFilter === 'noprice' ? !(Number(i.price) > 0) : statusFilter === 'soldout' ? !i.is_available : i.is_available)))
   const groups = [
-    ...categories.map(c => ({ id: c.id, name: c.name, category: c, items: items.filter(i => i.category_id === c.id) })),
-    ...(items.some(i => !i.category_id || !categories.some(c => c.id === i.category_id))
-      ? [{ id: '', name: 'Sin categoría', category: null, items: items.filter(i => !i.category_id || !categories.some(c => c.id === i.category_id)) }]
+    ...categories.map(c => ({ id: c.id, name: c.name, category: c, items: visible.filter(i => i.category_id === c.id) })),
+    ...(visible.some(i => !i.category_id || !categories.some(c => c.id === i.category_id))
+      ? [{ id: '', name: 'Sin categoría', category: null, items: visible.filter(i => !i.category_id || !categories.some(c => c.id === i.category_id)) }]
       : []),
   ]
 
@@ -163,8 +171,26 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
         <Button onClick={() => openCreate()}><Plus className="h-4 w-4 mr-2" /> Agregar {thing}</Button>
       </div>
 
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-8" placeholder={`Buscar ${catalog ? 'producto' : 'platillo'} por nombre…`} value={query} onChange={e => setQuery(e.target.value)} />
+          </div>
+          <select className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}>
+            <option value="all">Todos</option>
+            <option value="noprice">Sin precio</option>
+            <option value="soldout">Agotados</option>
+            <option value="available">Disponibles</option>
+          </select>
+          <span className="text-xs text-muted-foreground">{visible.length} de {items.length}</span>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Aún no hay {catalog ? 'productos' : 'platillos'}. Agrega el primero.</CardContent></Card>
+      ) : visible.length === 0 ? (
+        <Card><CardContent className="py-10 text-center text-muted-foreground text-sm">Nada coincide con tu búsqueda.</CardContent></Card>
       ) : groups.filter(g => g.items.length).map(g => (
         <div key={g.id || 'none'} className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{g.name}</p>
