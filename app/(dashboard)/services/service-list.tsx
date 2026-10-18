@@ -28,7 +28,7 @@ interface ServiceListProps {
   currency?: string | null
 }
 
-const empty = { name: '', description: '', duration_minutes: '30', price: '', image_url: '' }
+const empty = { name: '', description: '', duration_minutes: '30', price: '', image_url: '', is_active: true }
 
 export function ServiceList({ services, organizationId, photosEnabled = false, currency = 'mxn' }: ServiceListProps) {
   const router = useRouter()
@@ -78,6 +78,7 @@ export function ServiceList({ services, organizationId, photosEnabled = false, c
       duration_minutes: String(s.duration_minutes),
       price: s.price != null ? String(s.price) : '',
       image_url: s.image_url ?? '',
+      is_active: s.is_active,
     })
     setOpen(true)
   }
@@ -93,6 +94,7 @@ export function ServiceList({ services, organizationId, photosEnabled = false, c
       description: form.description || null,
       duration_minutes: duration,
       price: form.price ? parseFloat(form.price) : null,
+      is_active: form.is_active,
       // Solo se toca image_url en giros con fotos: en el resto no se manda
       // para no pisar nada
       ...(photosEnabled ? { image_url: form.image_url || null } : {}),
@@ -110,6 +112,13 @@ export function ServiceList({ services, organizationId, photosEnabled = false, c
 
     setOpen(false)
     setLoading(false)
+    router.refresh()
+  }
+
+  async function activate(id: string) {
+    const { error } = await supabase.from('services').update({ is_active: true }).eq('id', id)
+    if (error) { toast.error(error.message); return }
+    toast.success('Servicio activado')
     router.refresh()
   }
 
@@ -151,6 +160,7 @@ export function ServiceList({ services, organizationId, photosEnabled = false, c
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium">{s.name}</p>
                       {!s.is_active && <Badge variant="secondary" className="text-xs">Inactivo</Badge>}
+                      {!s.is_active && <button type="button" onClick={() => activate(s.id)} className="text-xs font-medium text-violet-500 hover:underline">Activar</button>}
                     </div>
                     {s.description && (
                       <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">{s.description}</p>
@@ -267,6 +277,13 @@ export function ServiceList({ services, organizationId, photosEnabled = false, c
                 />
               </div>
             </div>
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <input type="checkbox" className="mt-1" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} />
+              <span>
+                <span className="font-medium">Activo</span>
+                <span className="block text-xs text-muted-foreground">Solo los servicios activos aparecen en tu página de reservas y los ofrece el asistente de WhatsApp.</span>
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
