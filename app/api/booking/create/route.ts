@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { staffCanDo } from '@/lib/staff-services'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { sendMessage } from '@/lib/ultramsg'
@@ -60,6 +61,7 @@ export async function POST(req: Request) {
     .eq('is_active', true)
     .single()
   if (!staff) return NextResponse.json({ error: 'Profesional no encontrado' }, { status: 404 })
+  if (!(await staffCanDo(db, staff_id, service_id))) return NextResponse.json({ error: 'Ese profesional no ofrece este servicio' }, { status: 400 })
 
   const startsAt = fromZonedTime(`${date}T${slot}:00`, org.timezone)
   const endsAt = addMinutes(startsAt, service.duration_minutes)

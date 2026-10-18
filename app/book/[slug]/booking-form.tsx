@@ -19,12 +19,14 @@ interface Props {
   staffTitle: string
   pricesFrom: boolean
   depositAmount: number | null
+  /** staff_id → servicios que sí hace (si no aparece, hace todos) */
+  staffServices?: Record<string, string[]>
   currency?: string
 }
 
 const DAYS_AHEAD = 14
 
-export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount, currency = 'mxn' }: Props) {
+export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount, currency = 'mxn', staffServices = {} }: Props) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
@@ -41,6 +43,9 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
 
   const selectedService = services.find(s => s.id === serviceId)
   const selectedStaff   = staff.find(s => s.id === staffId)
+  // Solo los profesionales que hacen el servicio elegido (sin límites configurados = todos)
+  const canDo = (staffId: string, svcId: string) => !staffServices[staffId] || staffServices[staffId].includes(svcId)
+  const eligible = serviceId ? staff.filter(s => canDo(s.id, serviceId)) : staff
 
   // Teléfono completo en dígitos (lada + número) — '' mientras no sea válido
   const fullPhone = buildPhone(countryCode, phone)
@@ -161,7 +166,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               {services.map(s => (
                 <button
                   key={s.id}
-                  onClick={() => setServiceId(s.id)}
+                  onClick={() => { setServiceId(s.id); if (staffId && !canDo(staffId, s.id)) setStaffId('') }}
                   className={`w-full text-left rounded-xl border transition-colors overflow-hidden flex items-stretch ${
                     serviceId === s.id
                       ? 'border-opacity-100 text-white'
@@ -191,11 +196,15 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
             </div>
           </div>
 
-          {staff.length > 1 && (
+          {serviceId && eligible.length === 0 && (
+            <p className="text-sm text-amber-400">Por ahora ningún profesional ofrece este servicio. Elige otro.</p>
+          )}
+
+          {eligible.length > 1 && (
             <div className="space-y-2">
               <p className="text-sm font-medium">{staffTitle}</p>
               <div className="flex flex-wrap gap-2">
-                {staff.map(s => (
+                {eligible.map(s => (
                   <button
                     key={s.id}
                     onClick={() => setStaffId(s.id)}
@@ -212,13 +221,13 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
           )}
 
           {/* Auto-select if only one staff */}
-          {staff.length === 1 && !staffId && (
-            <button className="hidden" onClick={() => setStaffId(staff[0].id)} ref={el => { if (el) el.click() }} />
+          {eligible.length === 1 && !staffId && (
+            <button className="hidden" onClick={() => setStaffId(eligible[0].id)} ref={el => { if (el) el.click() }} />
           )}
 
           <button
             disabled={!canGoNext1}
-            onClick={() => { if (staff.length === 1) setStaffId(staff[0].id); setStep(2) }}
+            onClick={() => { if (eligible.length === 1) setStaffId(eligible[0].id); setStep(2) }}
             className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-40 text-white"
             style={{ background: accent }}
           >

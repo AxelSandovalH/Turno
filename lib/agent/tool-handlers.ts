@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { staffCanDo, filterStaffForService } from '@/lib/staff-services'
 import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
@@ -133,7 +134,14 @@ export async function handleTool(toolName: string, input: Record<string, string>
         db.from('services').select('id, name, duration_minutes, price').eq('organization_id', ctx.organizationId).eq('is_active', true),
         db.from('staff').select('id, name').eq('organization_id', ctx.organizationId).eq('is_active', true),
       ])
-      return JSON.stringify({ currency: (ctx.currency ?? 'mxn').toUpperCase(), services, staff })
+      // Profesionales con servicios limitados: se informa cuáles hace cada uno (sin lista = hace todos)
+      const { data: links } = await db.from('staff_services').select('staff_id, service_id').in('staff_id', (staff ?? []).map(s => s.id))
+      const nameOf = new Map((services ?? []).map(s => [s.id, s.name]))
+      const staffOut = (staff ?? []).map(s => {
+        const mine = (links ?? []).filter(l => l.staff_id === s.id).map(l => nameOf.get(l.service_id)).filter(Boolean)
+        return mine.length ? { ...s, only_services: mine } : { ...s, only_services: 'todos' }
+      })
+      return JSON.stringify({ currency: (ctx.currency ?? 'mxn').toUpperCase(), services, staff: staffOut })
     }
 
     case 'get_available_slots': {
@@ -153,6 +161,8 @@ export async function handleTool(toolName: string, input: Record<string, string>
         const { data } = await db.from('staff').select('id, name').eq('organization_id', ctx.organizationId).eq('is_active', true)
         staffList = data ?? []
       }
+      staffList = await filterStaffForService(db, staffList, service_id)
+      if (!staffList.length) return JSON.stringify({ slots: [], note: 'Ningún profesional disponible ofrece este servicio' })
 
       // Build day start/end in UTC from local date
       const localStart = fromZonedTime(`${date}T00:00:00`, ctx.timezone)
@@ -256,6 +266,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const { data: service } = await db.from('services').select('duration_minutes').eq('id', service_id).single()
       if (!service) return JSON.stringify({ error: 'Servicio no encontrado' })
 
+      if (!(await staffCanDo(db, staff_id, service_id))) return JSON.stringify({ error: 'Ese profesional no ofrece este servicio. Elige otro profesional.' })
       const endsAt = formatISO(addMinutes(parseISO(starts_at), service.duration_minutes))
 
       // Upsert customer

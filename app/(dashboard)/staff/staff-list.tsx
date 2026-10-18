@@ -28,15 +28,19 @@ interface StaffListProps {
   roleTags: StaffRoleTag[]
   organizationId: string
   staffLabel: string
-  currency?: string | null
+  services?: { id: string; name: string; is_active: boolean }[]
+  /** staff_id → servicios que hace (si no aparece, hace todos) */
+  staffServices?: Record<string, string[]>
 }
 
 function emptyForm(role: string) {
   return { name: '', phone: '', role, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session' | 'fixed_weekly', commission_value: '' }
 }
 
-export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, currency }: StaffListProps) {
-  const cur = currency === 'usd' ? 'USD' : 'MXN'
+export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, services = [], staffServices = {} }: StaffListProps) {
+  // Los pagos al equipo son siempre en pesos
+  const cur = 'MXN'
+  const [serviceIds, setServiceIds] = useState<string[]>([])
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -67,6 +71,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
   function openCreate() {
     setEditing(null)
     setForm(emptyForm(roleTags[0] ?? ''))
+    setServiceIds([])
     setOpen(true)
   }
 
@@ -80,6 +85,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       commission_type: s.commission_type ?? 'percentage',
       commission_value: s.commission_value?.toString() ?? '',
     })
+    setServiceIds(staffServices[s.id] ?? [])
     setOpen(true)
   }
 
@@ -171,6 +177,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       commission_type: form.commission_type,
       commission_value: form.commission_value ? parseFloat(form.commission_value) : 0,
     }
+    let staffId = editing?.id ?? ''
     if (editing) {
       const { error } = await supabase
         .from('staff')
@@ -179,11 +186,25 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       if (error) { toast.error(error.message); setLoading(false); return }
       toast.success(`${staffLabel} actualizado`)
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('staff')
         .insert({ organization_id: organizationId, name: form.name, phone: form.phone || null, role: form.role, license_number: form.license_number || null, ...commissionPayload })
-      if (error) { toast.error(error.message); setLoading(false); return }
+        .select('id')
+        .single()
+      if (error || !data) { toast.error(error?.message ?? 'No se pudo guardar'); setLoading(false); return }
+      staffId = data.id
       toast.success(`${staffLabel} agregado`)
+    }
+
+    // Servicios que puede hacer: ninguno o todos marcados = sin límite (hace todos, también los que se agreguen después)
+    if (services.length > 0) {
+      const limited = serviceIds.length > 0 && serviceIds.length < services.length
+      const { error: delError } = await supabase.from('staff_services').delete().eq('staff_id', staffId)
+      if (delError) toast.error(`No se guardaron los servicios: ${delError.message}`)
+      else if (limited) {
+        const { error: insError } = await supabase.from('staff_services').insert(serviceIds.map(service_id => ({ staff_id: staffId, service_id })))
+        if (insError) toast.error(`No se guardaron los servicios: ${insError.message}`)
+      }
     }
 
     setOpen(false)
@@ -304,6 +325,25 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
               <p className="text-xs text-muted-foreground">Aparece en documentos oficiales (ej. reporte de resultados)</p>
             </div>
           </div>
+
+          {services.length > 0 && (
+            <div className="pt-3 border-t border-border space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actividades que puede hacer</p>
+              <p className="text-xs text-muted-foreground">Marca los servicios que atiende. Si no marcas ninguno, hace todos.</p>
+              <div className="space-y-1.5">
+                {services.map(sv => (
+                  <label key={sv.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceIds.includes(sv.id)}
+                      onChange={e => setServiceIds(p => e.target.checked ? [...p, sv.id] : p.filter(x => x !== sv.id))}
+                    />
+                    <span>{sv.name}{!sv.is_active && <span className="text-xs text-muted-foreground"> · inactivo</span>}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Comisión */}
           <div className="pt-3 border-t border-border space-y-3">

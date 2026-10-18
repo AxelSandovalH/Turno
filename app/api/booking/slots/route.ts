@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { staffCanDo } from '@/lib/staff-services'
 import { createServiceClient } from '@/lib/supabase/service'
 import { addMinutes, parseISO } from 'date-fns'
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz'
@@ -37,6 +38,7 @@ export async function GET(req: Request) {
     .eq('organization_id', org.id)
     .single()
   if (!service) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
+  if (!(await staffCanDo(db, staffId, serviceId))) return NextResponse.json({ slots: [] })
 
   const tz = org.timezone
   const localStart = fromZonedTime(`${date}T00:00:00`, tz)

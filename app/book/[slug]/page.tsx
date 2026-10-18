@@ -41,6 +41,11 @@ export default async function BookingPage({ params }: Props) {
       .order('name'),
   ])
 
+  // Profesionales con servicios limitados (sin filas = hace todos)
+  const { data: links } = await db.from('staff_services').select('staff_id, service_id').in('staff_id', (staff ?? []).map(s => s.id))
+  const staffServices: Record<string, string[]> = {}
+  for (const l of links ?? []) (staffServices[l.staff_id] ??= []).push(l.service_id)
+
   // Evaluación inicial siempre primero
   const services = (servicesRaw ?? []).sort((a, b) => {
     const aEval = a.name.toLowerCase().includes('evaluación') || a.name.toLowerCase().includes('evaluacion')
@@ -101,6 +106,7 @@ export default async function BookingPage({ params }: Props) {
           staffTitle={staffTitle}
           pricesFrom={pricesFrom}
           depositAmount={depositAmount}
+          staffServices={staffServices}
           currency={org.currency ?? 'mxn'}
         />
       </div>
