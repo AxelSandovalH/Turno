@@ -16,17 +16,20 @@ export default async function MenuPage() {
     db.from('menu_items').select('*').eq('organization_id', organization.id).order('sort_order').order('created_at'),
   ])
 
+  // Negocios con citas y pedidos (farmacia) lo llaman catálogo de productos
+  const catalog = hasCapability(organization.business_type, 'appointments')
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Menú</h1>
-        <p className="text-muted-foreground text-sm">Tus platillos, extras y las reglas de entrega</p>
+        <h1 className="text-2xl font-bold tracking-tight">{catalog ? 'Catálogo' : 'Menú'}</h1>
+        <p className="text-muted-foreground text-sm">{catalog ? 'Tus productos, extras y las reglas de entrega' : 'Tus platillos, extras y las reglas de entrega'}</p>
       </div>
       <MenuManager
         organizationId={organization.id}
         currency={organization.currency ?? 'mxn'}
+        catalog={catalog}
         orderUrl={`${baseUrl}/pedir/${organization.slug}`}
         settings={{
           accepting: organization.order_accepting,

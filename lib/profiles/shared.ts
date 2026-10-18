@@ -14,7 +14,7 @@ export const ORDER_MODULES: readonly ProfileModule[] = [
 export const PHARMACY_MODULES: readonly ProfileModule[] = [
   { id: 'setup',         href: '/setup',         title: 'Asistente IA' },
   { id: 'orders',        href: '/orders',        title: 'Pedidos' },
-  { id: 'menu',          href: '/menu',          title: 'Productos' },
+  { id: 'menu',          href: '/menu',          title: 'Catálogo' },
   { id: 'appointments',  href: '/appointments',  title: 'Citas' },
   { id: 'patients',      href: '/patients',      title: null },
   { id: 'staff',         href: '/staff',         title: null },

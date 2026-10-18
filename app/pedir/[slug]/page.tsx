@@ -47,6 +47,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
         minAmount: Number(org.order_min_amount) || 0,
         accepting: org.order_accepting,
         currency: org.currency ?? 'mxn',
+        catalog: hasCapability(org.business_type, 'appointments'),
       }}
       returned={pago === 'ok' && /^\d+$/.test(pedido ?? '') ? { paid: true as const, number: Number(pedido) } : pago === 'cancelado' ? { paid: false as const } : null}
       categories={categories ?? []}

@@ -11,7 +11,7 @@ interface Category { id: string; name: string }
 interface Org {
   slug: string; name: string; address: string | null; logo_url: string | null; accent: string
   deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: number; minAmount: number
-  accepting: boolean; currency?: string
+  accepting: boolean; currency?: string; catalog?: boolean
 }
 type Returned = { paid: true; number: number } | { paid: false } | null
 interface CartLine { key: string; item: Item; quantity: number; extras: string[]; notes: string }
@@ -57,9 +57,9 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
     const known = new Set(categories.map(c => c.id))
     const groups = categories.map(c => ({ id: c.id, name: c.name, items: items.filter(i => i.category_id === c.id) }))
     const loose = items.filter(i => !i.category_id || !known.has(i.category_id))
-    if (loose.length) groups.push({ id: 'otros', name: categories.length ? 'Otros' : 'Menú', items: loose })
+    if (loose.length) groups.push({ id: 'otros', name: categories.length ? 'Otros' : org.catalog ? 'Catálogo' : 'Menú', items: loose })
     return groups.filter(g => g.items.length)
-  }, [categories, items])
+  }, [categories, items, org.catalog])
 
   function openItem(it: Item) {
     if (!it.is_available || !org.accepting) return
@@ -232,10 +232,10 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
         )}
         {!org.accepting && (
           <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
-            Por ahora no estamos recibiendo pedidos. Puedes ver el menú y volver más tarde.
+            Por ahora no estamos recibiendo pedidos. Puedes ver el {org.catalog ? 'catálogo' : 'menú'} y volver más tarde.
           </div>
         )}
-        {sections.length === 0 && <p className="text-sm text-zinc-500">El menú aún no está disponible.</p>}
+        {sections.length === 0 && <p className="text-sm text-zinc-500">{org.catalog ? 'El catálogo' : 'El menú'} aún no está disponible.</p>}
         {sections.map(sec => (
           <section key={sec.id} className="mb-8">
             <h2 className="text-lg font-semibold mb-3">{sec.name}</h2>

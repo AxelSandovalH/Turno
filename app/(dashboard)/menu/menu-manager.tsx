@@ -23,10 +23,12 @@ interface Settings { accepting: boolean; deliveryEnabled: boolean; pickupEnabled
 const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true }
 const nativeSelect = 'flex h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring'
 
-export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items, currency = 'mxn' }: {
-  currency?: string; organizationId: string; orderUrl: string; settings: Settings; categories: Category[]; items: Item[]
+export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items, currency = 'mxn', catalog = false }: {
+  catalog?: boolean; currency?: string; organizationId: string; orderUrl: string; settings: Settings; categories: Category[]; items: Item[]
 }) {
   const money = (n: number) => fmtMoney(n, currency)
+  const thing = catalog ? 'producto' : 'platillo'
+  const Thing = catalog ? 'Producto' : 'Platillo'
   const cur = currencyName(currency)
   const router = useRouter()
   const supabase = createClient()
@@ -64,7 +66,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
 
   async function deleteCategory(c: Category) {
     const count = items.filter(i => i.category_id === c.id).length
-    if (!window.confirm(count ? `"${c.name}" tiene ${count} platillo(s). Se quedarán sin categoría. ¿Eliminar?` : `¿Eliminar la categoría "${c.name}"?`)) return
+    if (!window.confirm(count ? `"${c.name}" tiene ${count} ${thing}(s). Se quedarán sin categoría. ¿Eliminar?` : `¿Eliminar la categoría "${c.name}"?`)) return
     const { error } = await supabase.from('menu_categories').delete().eq('id', c.id)
     if (error) return toast.error(error.message)
     router.refresh()
@@ -128,7 +130,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
       : await supabase.from('menu_items').insert({ ...payload, organization_id: organizationId })
     setSaving(false)
     if (error) return toast.error(error.message)
-    toast.success(editing ? 'Platillo actualizado' : 'Platillo creado')
+    toast.success(editing ? `${Thing} actualizado` : `${Thing} creado`)
     setOpen(false)
     router.refresh()
   }
@@ -157,12 +159,12 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
     <>
       {/* Platillos */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Platillos</h2>
-        <Button onClick={() => openCreate()}><Plus className="h-4 w-4 mr-2" /> Agregar platillo</Button>
+        <h2 className="text-lg font-semibold">{catalog ? 'Productos' : 'Platillos'}</h2>
+        <Button onClick={() => openCreate()}><Plus className="h-4 w-4 mr-2" /> Agregar {thing}</Button>
       </div>
 
       {items.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Aún no hay platillos. Agrega el primero.</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Aún no hay {catalog ? 'productos' : 'platillos'}. Agrega el primero.</CardContent></Card>
       ) : groups.filter(g => g.items.length).map(g => (
         <div key={g.id || 'none'} className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground">{g.name}</p>
@@ -262,14 +264,14 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? 'Editar platillo' : 'Agregar platillo'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? `Editar ${thing}` : `Agregar ${thing}`}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Foto (opcional)</Label>
               <div className="flex items-center gap-3">
                 {form.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={form.image_url} alt="Foto del platillo" className="h-20 w-20 rounded-lg object-cover border border-border" />
+                  <img src={form.image_url} alt={`Foto del ${thing}`} className="h-20 w-20 rounded-lg object-cover border border-border" />
                 ) : (
                   <div className="h-20 w-20 rounded-lg border border-dashed border-border flex items-center justify-center text-muted-foreground"><ImageUp className="h-5 w-5" /></div>
                 )}

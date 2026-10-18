@@ -45,10 +45,10 @@ export async function getSetupSteps(org: Organization): Promise<SetupInfo> {
     const { count } = await db.from('menu_items').select('id', { count: 'exact', head: true }).eq('organization_id', org.id)
     steps.push({
       id: 'menu',
-      title: 'Agrega tus platillos',
-      desc: 'Con foto, precio y extras. Es lo que verán tus clientes.',
+      title: isAppointments ? 'Arma tu catálogo de productos' : 'Agrega tus platillos',
+      desc: isAppointments ? 'Con foto y precio. Es lo que verán tus clientes al pedir a domicilio.' : 'Con foto, precio y extras. Es lo que verán tus clientes.',
       href: '/menu',
-      cta: 'Armar menú',
+      cta: isAppointments ? 'Armar catálogo' : 'Armar menú',
       done: (count ?? 0) > 0,
     })
   }
