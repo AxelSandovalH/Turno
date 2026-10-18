@@ -74,7 +74,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
   function openCreate() {
     setEditing(null)
     setForm(emptyForm(roleTags[0] ?? ''))
-    setServiceIds([])
+    setServiceIds(services.map(sv => sv.id))
     setWindows({})
     setOpen(true)
   }
@@ -89,7 +89,8 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       commission_type: s.commission_type ?? 'percentage',
       commission_value: s.commission_value?.toString() ?? '',
     })
-    setServiceIds(staffServices[s.id] ?? [])
+    // Sin límites configurados hace todos: se muestran todos marcados
+    setServiceIds(staffServices[s.id]?.length ? staffServices[s.id] : services.map(sv => sv.id))
     setWindows(staffWindows[s.id] ?? {})
     setOpen(true)
   }
@@ -176,6 +177,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
 
   async function handleSave() {
     if (!form.name.trim()) return toast.error('El nombre es requerido')
+    if (services.length > 0 && serviceIds.length === 0) return toast.error('Marca al menos un servicio')
     setLoading(true)
 
     const commissionPayload = {
@@ -204,7 +206,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
     // Servicios que puede hacer: ninguno o todos marcados = sin límite (hace todos, también los que se agreguen después)
     if (services.length > 0) {
       const hasWindow = serviceIds.some(id => windows[id]?.start || windows[id]?.end)
-      const limited = (serviceIds.length > 0 && serviceIds.length < services.length) || hasWindow
+      const limited = serviceIds.length < services.length || hasWindow
       const { error: delError } = await supabase.from('staff_services').delete().eq('staff_id', staffId)
       if (delError) toast.error(`No se guardaron los servicios: ${delError.message}`)
       else if (limited) {
@@ -335,7 +337,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
           {services.length > 0 && (
             <div className="pt-3 border-t border-border space-y-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actividades que puede hacer</p>
-              <p className="text-xs text-muted-foreground">Marca los servicios que atiende. Si no marcas ninguno, hace todos.</p>
+              <p className="text-xs text-muted-foreground">Deja marcados los servicios que atiende y desmarca los que no hace. Con todos marcados, hace todos (incluso los que agregues después).</p>
               <div className="space-y-1.5">
                 {services.map(sv => (
                   <div key={sv.id}>
