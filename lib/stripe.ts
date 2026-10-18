@@ -31,6 +31,7 @@ interface DepositCheckoutParams {
   organizationId: string
   appointmentId: string
   amountPesos: number
+  currency?: string | null
   businessName: string
   serviceName: string
 }
@@ -40,7 +41,7 @@ interface DepositCheckoutParams {
  * Distinguished from subscription checkouts via mode:'payment' + metadata.type.
  */
 export async function createDepositCheckoutSession({
-  organizationId, appointmentId, amountPesos, businessName, serviceName,
+  organizationId, appointmentId, amountPesos, currency, businessName, serviceName,
 }: DepositCheckoutParams) {
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -48,7 +49,7 @@ export async function createDepositCheckoutSession({
     line_items: [{
       quantity: 1,
       price_data: {
-        currency: 'mxn',
+        currency: currency === 'usd' ? 'usd' : 'mxn',
         unit_amount: Math.round(amountPesos * 100),
         product_data: {
           name: `Anticipo — ${serviceName}`,

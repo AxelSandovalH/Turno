@@ -26,6 +26,7 @@ export default async function MenuPage() {
       </div>
       <MenuManager
         organizationId={organization.id}
+        currency={organization.currency ?? 'mxn'}
         orderUrl={`${baseUrl}/pedir/${organization.slug}`}
         settings={{
           accepting: organization.order_accepting,

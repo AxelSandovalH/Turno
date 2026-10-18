@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { fmtMoney, currencyName } from '@/lib/currency'
 import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, ImageUp, X, Copy, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
@@ -20,12 +21,13 @@ interface Item { id: string; category_id: string | null; name: string; descripti
 interface Settings { accepting: boolean; deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: string; minAmount: string }
 
 const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true }
-const money = (n: number) => `$${n.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`
 const nativeSelect = 'flex h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring'
 
-export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items }: {
-  organizationId: string; orderUrl: string; settings: Settings; categories: Category[]; items: Item[]
+export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items, currency = 'mxn' }: {
+  currency?: string; organizationId: string; orderUrl: string; settings: Settings; categories: Category[]; items: Item[]
 }) {
+  const money = (n: number) => fmtMoney(n, currency)
+  const cur = currencyName(currency)
   const router = useRouter()
   const supabase = createClient()
 
@@ -225,11 +227,11 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Costo de envío (MXN)</Label>
+              <Label>Costo de envío ({cur})</Label>
               <Input type="number" min="0" step="1" value={settings.deliveryFee} onChange={e => setSettings(p => ({ ...p, deliveryFee: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>Pedido mínimo (MXN)</Label>
+              <Label>Pedido mínimo ({cur})</Label>
               <Input type="number" min="0" step="1" value={settings.minAmount} onChange={e => setSettings(p => ({ ...p, minAmount: e.target.value }))} />
             </div>
           </div>
@@ -294,7 +296,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Precio MXN</Label>
+                <Label>Precio {cur}</Label>
                 <Input type="number" min="0" step="0.5" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} />
               </div>
               <div className="space-y-2">

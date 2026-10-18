@@ -41,7 +41,7 @@ function nextAction(o: BoardOrder): { label: string; status: OrderStatus } | nul
   }
 }
 
-function OrderCard({ o }: { o: BoardOrder }) {
+function OrderCard({ o, currency }: { o: BoardOrder; currency?: string | null }) {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const action = nextAction(o)
@@ -94,7 +94,7 @@ function OrderCard({ o }: { o: BoardOrder }) {
             {o.payment_method === 'cash' ? <Banknote className="h-3.5 w-3.5" /> : o.payment_method === 'card' ? <CreditCard className="h-3.5 w-3.5" /> : <Landmark className="h-3.5 w-3.5" />}
             {o.payment_method === 'cash' ? 'Efectivo' : o.payment_method === 'card' ? (o.payment_status === 'refunded' ? 'Tarjeta · Reembolsado' : 'Tarjeta · Pagado') : 'Transferencia'}
           </span>
-          <span className="font-semibold">{money(o.total)}</span>
+          <span className="font-semibold">{money(o.total, currency)}</span>
         </div>
         {o.status === 'cancelled' && <p className="text-xs text-destructive">Cancelado</p>}
         {o.status === 'delivered' && <p className="text-xs text-emerald-500">Entregado</p>}
@@ -111,7 +111,7 @@ function OrderCard({ o }: { o: BoardOrder }) {
   )
 }
 
-export function OrderBoard({ orders }: { orders: BoardOrder[] }) {
+export function OrderBoard({ orders, currency }: { orders: BoardOrder[]; currency?: string | null }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 items-start">
       {COLUMNS.map(col => {
@@ -124,7 +124,7 @@ export function OrderBoard({ orders }: { orders: BoardOrder[] }) {
             </div>
             {list.length === 0
               ? <p className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-4 text-center">Sin pedidos</p>
-              : list.map(o => <OrderCard key={o.id} o={o} />)}
+              : list.map(o => <OrderCard key={o.id} o={o} currency={currency} />)}
           </div>
         )
       })}

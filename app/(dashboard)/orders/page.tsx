@@ -37,7 +37,7 @@ export default async function OrdersPage() {
         <h1 className="text-2xl font-bold tracking-tight">Pedidos</h1>
         <p className="text-muted-foreground text-sm">Cada cambio de estado le avisa al cliente por WhatsApp</p>
       </div>
-      <OrderBoard orders={(data ?? []) as unknown as BoardOrder[]} />
+      <OrderBoard orders={(data ?? []) as unknown as BoardOrder[]} currency={organization.currency} />
     </div>
   )
 }

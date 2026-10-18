@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { fmtMoney } from '@/lib/currency'
 import { Minus, Plus, ShoppingBag, X, Check } from 'lucide-react'
 import { buildPhone } from '@/lib/booking-format'
 
@@ -10,7 +11,7 @@ interface Category { id: string; name: string }
 interface Org {
   slug: string; name: string; address: string | null; logo_url: string | null; accent: string
   deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: number; minAmount: number
-  accepting: boolean
+  accepting: boolean; currency?: string
 }
 type Returned = { paid: true; number: number } | { paid: false } | null
 interface CartLine { key: string; item: Item; quantity: number; extras: string[]; notes: string }
@@ -25,10 +26,10 @@ function parsePhone(raw: string): string {
   return buildPhone('52', digits)
 }
 
-const money = (n: number) => `$${n.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`
 const lineUnit = (l: CartLine) => l.item.price + l.extras.reduce((s, nm) => s + (l.item.extras.find(e => e.name === nm)?.price ?? 0), 0)
 
 export function OrderForm({ org, categories, items, returned = null }: { org: Org; categories: Category[]; items: Item[]; returned?: Returned }) {
+  const money = (n: number) => fmtMoney(n, org.currency)
   const [cart, setCart] = useState<CartLine[]>([])
   const [picking, setPicking] = useState<Item | null>(null)
   const [pickExtras, setPickExtras] = useState<string[]>([])

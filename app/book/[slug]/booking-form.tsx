@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fmtMoney } from '@/lib/currency'
 import { format, addDays, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -18,11 +19,12 @@ interface Props {
   staffTitle: string
   pricesFrom: boolean
   depositAmount: number | null
+  currency?: string
 }
 
 const DAYS_AHEAD = 14
 
-export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount }: Props) {
+export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount, currency = 'mxn' }: Props) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
@@ -150,7 +152,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               style={{ borderColor: `${accent}55`, background: `${accent}14` }}
             >
               Para apartar tu espacio se cobra un anticipo de{' '}
-              <span className="font-semibold text-white">${depositAmount}</span> al confirmar la cita.
+              <span className="font-semibold text-white">{fmtMoney(depositAmount, currency)}</span> al confirmar la cita.
             </div>
           )}
           <div className="space-y-2">
@@ -177,7 +179,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
                       <span className="text-xs text-zinc-500 shrink-0">
                         {/* services.price es numeric — Supabase lo manda como string ("0.00"),
                             así que un chequeo truthy no detecta servicios gratis */}
-                        {s.duration_minutes} min{Number(s.price) > 0 ? ` · ${pricesFrom ? 'desde ' : ''}$${Number(s.price)}` : ''}
+                        {s.duration_minutes} min{Number(s.price) > 0 ? ` · ${pricesFrom ? 'desde ' : ''}${fmtMoney(Number(s.price), currency)}` : ''}
                       </span>
                     </div>
                     {serviceId === s.id && s.description && (

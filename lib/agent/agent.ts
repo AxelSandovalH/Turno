@@ -21,7 +21,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount')
+    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount')
     .eq('id', organizationId)
     .single()
 
@@ -93,6 +93,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     ownerWhatsapp: org.whatsapp_number,
     ultramsg: { instance: org.ultramsg_instance, token: org.ultramsg_token },
     deposit: { enabled: org.deposit_enabled, amount: Number(org.deposit_amount ?? 0) },
+    currency: org.currency ?? 'mxn',
     customerPhone,
   }
   const sellsProducts = hasCapability(org.business_type, 'orders')

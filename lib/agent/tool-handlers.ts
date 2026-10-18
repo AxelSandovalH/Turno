@@ -18,6 +18,7 @@ interface Context {
   ultramsg?: UltramsgCreds
   deposit?: { enabled: boolean; amount: number }
   customerPhone?: string
+  currency?: string
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -26,11 +27,12 @@ export async function handleTool(toolName: string, input: Record<string, string>
   switch (toolName) {
     case 'get_menu': {
       const [{ data: org }, { data: categories }, { data: items }] = await Promise.all([
-        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount').eq('id', ctx.organizationId).single(),
+        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, currency').eq('id', ctx.organizationId).single(),
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
         db.from('menu_items').select('id, category_id, name, description, price, extras, is_available').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
       ])
       return JSON.stringify({
+        currency: (org?.currency ?? 'mxn').toUpperCase(),
         accepting_orders: org?.order_accepting ?? true,
         delivery: { enabled: org?.order_delivery_enabled ?? true, fee: Number(org?.order_delivery_fee) || 0 },
         pickup_enabled: org?.order_pickup_enabled ?? true,
@@ -71,7 +73,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       // Se envían en orden y se esperan: Vercel no debe cortar la función a medias
       let sent = 0
       for (const it of withPhoto) {
-        const caption = `${it.name} - ${money(Number(it.price))}${it.description ? `\n${it.description}` : ''}`
+        const caption = `${it.name} - ${money(Number(it.price), ctx.currency)}${it.description ? `\n${it.description}` : ''}`
         try {
           const res = await sendImage(ctx.customerPhone, it.image_url!, caption, ctx.ultramsg)
           if (res && !res.error) sent++
@@ -131,7 +133,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         db.from('services').select('id, name, duration_minutes, price').eq('organization_id', ctx.organizationId).eq('is_active', true),
         db.from('staff').select('id, name').eq('organization_id', ctx.organizationId).eq('is_active', true),
       ])
-      return JSON.stringify({ services, staff })
+      return JSON.stringify({ currency: (ctx.currency ?? 'mxn').toUpperCase(), services, staff })
     }
 
     case 'get_available_slots': {
@@ -318,6 +320,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
             organizationId: ctx.organizationId,
             appointmentId: appointment.id,
             amountPesos: ctx.deposit.amount,
+            currency: ctx.currency,
             businessName: ctx.organizationName,
             serviceName: svc?.name ?? 'tu cita',
           })

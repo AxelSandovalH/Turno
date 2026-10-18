@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale'
 import { hasCapability } from '@/lib/profiles/registry'
 
 export function buildSystemPrompt(
-  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; whatsapp_number?: string | null; deposit_enabled?: boolean; deposit_amount?: number; order_accepting?: boolean },
+  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; currency?: string | null; whatsapp_number?: string | null; deposit_enabled?: boolean; deposit_amount?: number; order_accepting?: boolean },
   customer?: { name: string | null; occupation: string | null; notes: string | null },
   customerPhone?: string,
   isFirstMessage?: boolean
@@ -23,7 +23,7 @@ export function buildSystemPrompt(
     : ''
 
   const depositCtx = org.deposit_enabled
-    ? `\nANTICIPO REQUERIDO: Este negocio pide un anticipo de $${org.deposit_amount} MXN para confirmar cualquier cita. Cuando create_appointment devuelva "deposit_checkout_url", debes:
+    ? `\nANTICIPO REQUERIDO: Este negocio pide un anticipo de $${org.deposit_amount} ${org.currency === 'usd' ? 'USD (dólares)' : 'MXN'} para confirmar cualquier cita. Cuando create_appointment devuelva "deposit_checkout_url", debes:
 1. Informar al cliente el monto del anticipo
 2. Enviarle el link de pago tal cual (no lo modifiques)
 3. Aclarar que tiene 20 minutos para pagar o el horario se libera automáticamente
@@ -44,10 +44,12 @@ El cliente tiene dos caminos y debe quedarle claro desde el primer mensaje, sin 
 - Nunca inventes ni acortes otros links; este es el único.`
     : ''
 
+  const currencyCtx = org.currency === 'usd' ? '\nMONEDA: los precios de servicios y productos están en DÓLARES ESTADOUNIDENSES (USD). Al decir un precio o total menciona siempre la moneda (por ejemplo "60 USD"); nunca los presentes como pesos.' : ''
+
   // Negocio con citas y pedidos (farmacia): se agrega la parte de productos al mismo asistente
   const productsCtx = sellsProducts ? buildProductsAddendum(org, customerPhone, org.whatsapp_number) : ''
 
-  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}${productsCtx}
+  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}${currencyCtx}${productsCtx}
 
 Tu trabajo es ayudar a los clientes con lo siguiente (y con pedidos de productos, si más abajo se indica que este negocio los vende):
 1. Agendar citas
@@ -161,7 +163,7 @@ ${isFirstMessage ? `\nCONVERSACIÓN NUEVA O REABIERTA: antes de responder, PRES�
 }
 
 /** Sección extra del prompt para negocios que, además de citas, venden productos por pedido (farmacia). */
-function buildProductsAddendum(org: { name: string; slug?: string | null; order_accepting?: boolean }, customerPhone?: string, ownerPhone?: string | null) {
+function buildProductsAddendum(org: { name: string; slug?: string | null; order_accepting?: boolean; currency?: string | null }, customerPhone?: string, ownerPhone?: string | null) {
   const contact = ownerPhone ? ownerPhone.replace(/\D/g, '').replace(/^52(1)?(?=\d{10}$)/, '') : null
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
   const orderUrl = org.slug ? `${baseUrl}/pedir/${org.slug}` : null

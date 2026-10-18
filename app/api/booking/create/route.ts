@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, timezone, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount')
+    .select('id, name, timezone, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
@@ -126,6 +126,7 @@ export async function POST(req: Request) {
         organizationId: org.id,
         appointmentId: appointment.id,
         amountPesos: Number(org.deposit_amount),
+        currency: org.currency,
         businessName: org.name,
         serviceName: service.name,
       })

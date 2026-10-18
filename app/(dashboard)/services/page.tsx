@@ -18,7 +18,7 @@ export default async function ServicesPage() {
       .select('*')
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: true }),
-    service.from('organizations').select('business_type').eq('id', organizationId).single(),
+    service.from('organizations').select('business_type, currency').eq('id', organizationId).single(),
   ])
   const photosEnabled = hasCapability(org?.business_type, 'service-photos')
 
@@ -28,7 +28,7 @@ export default async function ServicesPage() {
         <h1 className="text-2xl font-bold tracking-tight">Servicios</h1>
         <p className="text-muted-foreground text-sm">Define los servicios que ofrece tu negocio</p>
       </div>
-      <ServiceList services={services ?? []} organizationId={organizationId} photosEnabled={photosEnabled} />
+      <ServiceList services={services ?? []} organizationId={organizationId} photosEnabled={photosEnabled} currency={org?.currency} />
     </div>
   )
 }

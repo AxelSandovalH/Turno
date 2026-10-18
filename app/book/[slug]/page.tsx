@@ -20,7 +20,7 @@ export default async function BookingPage({ params }: Props) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, whatsapp_number, address, logo_url, primary_color, business_type, is_active, deposit_enabled, deposit_amount')
+    .select('id, name, slug, whatsapp_number, address, logo_url, primary_color, business_type, is_active, deposit_enabled, deposit_amount, currency')
     .eq('slug', slug)
     .single()
 
@@ -101,6 +101,7 @@ export default async function BookingPage({ params }: Props) {
           staffTitle={staffTitle}
           pricesFrom={pricesFrom}
           depositAmount={depositAmount}
+          currency={org.currency ?? 'mxn'}
         />
       </div>
     </div>

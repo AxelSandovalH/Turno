@@ -25,11 +25,12 @@ interface ServiceListProps {
   organizationId: string
   /** El giro del negocio permite foto por servicio (capacidad 'service-photos') */
   photosEnabled?: boolean
+  currency?: string | null
 }
 
 const empty = { name: '', description: '', duration_minutes: '30', price: '', image_url: '' }
 
-export function ServiceList({ services, organizationId, photosEnabled = false }: ServiceListProps) {
+export function ServiceList({ services, organizationId, photosEnabled = false, currency = 'mxn' }: ServiceListProps) {
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -162,7 +163,7 @@ export function ServiceList({ services, organizationId, photosEnabled = false }:
                       {s.price != null && (
                         <span className="flex items-center gap-1 text-sm font-medium">
                           <DollarSign className="h-3.5 w-3.5" />
-                          {Number(s.price).toLocaleString('es-MX')}
+                          {Number(s.price).toLocaleString('es-MX')}{currency === 'usd' ? ' USD' : ''}
                         </span>
                       )}
                     </div>
@@ -255,7 +256,7 @@ export function ServiceList({ services, organizationId, photosEnabled = false }:
                 />
               </div>
               <div className="space-y-2">
-                <Label>Precio MXN (opcional)</Label>
+                <Label>Precio {currency === 'usd' ? 'USD' : 'MXN'} (opcional)</Label>
                 <Input
                   type="number"
                   min="0"

@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { fmtMoney, normCurrency } from '@/lib/currency'
 import { sendMessage } from '@/lib/ultramsg'
 import { stripe } from '@/lib/stripe'
 
@@ -32,7 +33,7 @@ export type CreateOrderResult =
   | { ok: true; order: { id: string; order_number: number; total: number; subtotal: number; delivery_fee: number }; checkoutUrl: string }
   | { ok: false; error: string; status: number }
 
-export const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+export const money = (n: number, currency: unknown = 'mxn') => fmtMoney(n, currency)
 
 export const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -77,7 +78,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting')
+    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting, currency')
     .eq('id', input.organizationId)
     .eq('is_active', true)
     .single()
@@ -127,7 +128,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   }
 
   const minAmount = Number(org.order_min_amount) || 0
-  if (subtotal < minAmount) return fail(`El pedido mínimo es de ${money(minAmount)}`)
+  if (subtotal < minAmount) return fail(`El pedido mínimo es de ${money(minAmount, org.currency)}`)
 
   const deliveryFee = input.fulfillment === 'delivery' ? Number(org.order_delivery_fee) || 0 : 0
   const total = subtotal + deliveryFee
@@ -178,7 +179,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
         ...lines.map(l => ({
           quantity: l.quantity,
           price_data: {
-            currency: 'mxn',
+            currency: normCurrency(org.currency),
             unit_amount: Math.round(l.unit_price * 100),
             product_data: {
               name: l.extras.length ? `${l.name} (${l.extras.map(e => e.name).join(', ')})` : l.name,
@@ -187,7 +188,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
         })),
         ...(deliveryFee > 0 ? [{
           quantity: 1,
-          price_data: { currency: 'mxn', unit_amount: Math.round(deliveryFee * 100), product_data: { name: 'Envío a domicilio' } },
+          price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(deliveryFee * 100), product_data: { name: 'Envío a domicilio' } },
         }] : []),
       ],
       success_url: `${baseUrl}/pedir/${org.slug}?pago=ok&pedido=${order.order_number}`,
@@ -223,7 +224,7 @@ export async function notifyNewOrder(orderId: string, opts: { skipCustomer?: boo
   if (!order) return
   const { data: org } = await db
     .from('organizations')
-    .select('name, whatsapp_number, ultramsg_instance, ultramsg_token, order_payment_info')
+    .select('name, whatsapp_number, ultramsg_instance, ultramsg_token, order_payment_info, currency')
     .eq('id', order.organization_id)
     .single()
   if (!org) return
@@ -242,7 +243,7 @@ export async function notifyNewOrder(orderId: string, opts: { skipCustomer?: boo
   if (org.whatsapp_number) {
     await sendMessage(
       `${org.whatsapp_number}@c.us`,
-      `🛎️ *Nuevo pedido #${order.order_number}*\n👤 ${order.customer_name} (${order.customer_phone})\n\n${summary}\n\n${where}\n${pay}\nTotal: ${money(order.total)}${order.notes ? `\nNotas: ${order.notes}` : ''}`,
+      `🛎️ *Nuevo pedido #${order.order_number}*\n👤 ${order.customer_name} (${order.customer_phone})\n\n${summary}\n\n${where}\n${pay}\nTotal: ${money(order.total, org.currency)}${order.notes ? `\nNotas: ${order.notes}` : ''}`,
       creds
     ).catch(e => console.error('[orders] owner whatsapp failed', e))
   }
@@ -251,7 +252,7 @@ export async function notifyNewOrder(orderId: string, opts: { skipCustomer?: boo
       ? `\n\nDatos para tu transferencia:\n${org.order_payment_info}` : ''
     await sendMessage(
       order.customer_phone,
-      `✅ Recibimos tu pedido #${order.order_number} en *${org.name}*.\n\n${summary}\n\n${where}\nTotal: ${money(order.total)} (${pay.toLowerCase()})${transferNote}\n\nTe avisamos por aquí cuando avance.`,
+      `✅ Recibimos tu pedido #${order.order_number} en *${org.name}*.\n\n${summary}\n\n${where}\nTotal: ${money(order.total, org.currency)} (${pay.toLowerCase()})${transferNote}\n\nTe avisamos por aquí cuando avance.`,
       creds
     ).catch(e => console.error('[orders] customer whatsapp failed', e))
   }
