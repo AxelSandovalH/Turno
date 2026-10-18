@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale'
 import { hasCapability } from '@/lib/profiles/registry'
 
 export function buildSystemPrompt(
-  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; deposit_enabled?: boolean; deposit_amount?: number; order_accepting?: boolean },
+  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; whatsapp_number?: string | null; deposit_enabled?: boolean; deposit_amount?: number; order_accepting?: boolean },
   customer?: { name: string | null; occupation: string | null; notes: string | null },
   customerPhone?: string,
   isFirstMessage?: boolean
@@ -45,7 +45,7 @@ El cliente tiene dos caminos y debe quedarle claro desde el primer mensaje, sin 
     : ''
 
   // Negocio con citas y pedidos (farmacia): se agrega la parte de productos al mismo asistente
-  const productsCtx = sellsProducts ? buildProductsAddendum(org, customerPhone) : ''
+  const productsCtx = sellsProducts ? buildProductsAddendum(org, customerPhone, org.whatsapp_number) : ''
 
   return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}${productsCtx}
 
@@ -161,7 +161,8 @@ ${isFirstMessage ? `\nCONVERSACIÓN NUEVA O REABIERTA: antes de responder, PRES�
 }
 
 /** Sección extra del prompt para negocios que, además de citas, venden productos por pedido (farmacia). */
-function buildProductsAddendum(org: { name: string; slug?: string | null; order_accepting?: boolean }, customerPhone?: string) {
+function buildProductsAddendum(org: { name: string; slug?: string | null; order_accepting?: boolean }, customerPhone?: string, ownerPhone?: string | null) {
+  const contact = ownerPhone ? ownerPhone.replace(/\D/g, '').replace(/^52(1)?(?=\d{10}$)/, '') : null
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
   const orderUrl = org.slug ? `${baseUrl}/pedir/${org.slug}` : null
   return `
@@ -173,5 +174,5 @@ ${orderUrl ? `LINK PÚBLICO DE PEDIDOS: ${orderUrl}. Ofrécelo solo cuando el cl
 - FLUJO DE PEDIDO: arma la lista con cantidades; pregunta si es a domicilio o para recoger (solo lo que permita get_menu); si es a domicilio pide dirección completa con referencias; el teléfono es el del WhatsApp desde el que escribe${customerPhone ? ` (${customerPhone})` : ''} y nunca se pide. Antes de registrar muestra un resumen corto con productos, envío si aplica y total; cuando responda que sí, llama create_order con el nombre exacto de cada producto según get_menu.
 - El pago de un pedido es SIEMPRE con tarjeta en línea mediante el payment_link que devuelve create_order (compártelo completo, sin modificarlo; el pedido llega al negocio hasta que se pague). No hay efectivo ni transferencia. Esto aplica solo a pedidos: las citas siguen sus propias reglas de anticipo.
 - Para saber cómo va un pedido usa get_order_status (pending: recibido; preparing: en preparación; on_the_way: en camino o listo para recoger; delivered: entregado; cancelled: cancelado). No prometas tiempos.
-- Puedes enviar fotos del catálogo con send_menu_photos al mostrar productos concretos.`
+${contact ? `- CONTACTO DEL DUEÑO: cuando el cliente tenga un tema que no puedas resolver (quejas, dudas médicas, productos que no encuentras, recetas, facturas, urgencias, o simplemente pida hablar con una persona), dale este número del dueño de la farmacia para que lo contacte directamente: ${contact}. Dáselo completo, sin modificarlo, y no lo ofrezcas si lo puedes resolver tú. Esto reemplaza la frase de "hablar directamente con el negocio".\n` : ''}- Puedes enviar fotos del catálogo con send_menu_photos al mostrar productos concretos.`
 }
