@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { staffCanDo, filterStaffForService } from '@/lib/staff-services'
+import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
 import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
@@ -203,9 +203,12 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
         // Generate slots every 30 minutes within working hours, per bloque
         // Postgres time comes as "09:00:00" — normalize to HH:mm or fromZonedTime gets "T09:00:00:00" (Invalid Date)
+        const win = await serviceWindow(db, staff.id, service_id)
         for (const schedule of daySchedules) {
-          const workStart = fromZonedTime(`${date}T${schedule.start_time.slice(0, 5)}:00`, ctx.timezone)
-          const workEnd = fromZonedTime(`${date}T${schedule.end_time.slice(0, 5)}:00`, ctx.timezone)
+          const clamped = clampToWindow(schedule.start_time.slice(0, 5), schedule.end_time.slice(0, 5), win)
+          if (!clamped) continue
+          const workStart = fromZonedTime(`${date}T${clamped.start}:00`, ctx.timezone)
+          const workEnd = fromZonedTime(`${date}T${clamped.end}:00`, ctx.timezone)
 
           let cursor = workStart
           while (cursor < workEnd) {

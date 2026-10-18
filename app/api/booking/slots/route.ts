@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { staffCanDo } from '@/lib/staff-services'
+import { staffCanDo, serviceWindow, clampToWindow } from '@/lib/staff-services'
 import { createServiceClient } from '@/lib/supabase/service'
 import { addMinutes, parseISO } from 'date-fns'
 import { fromZonedTime, toZonedTime, format } from 'date-fns-tz'
@@ -69,13 +69,16 @@ export async function GET(req: Request) {
 
   const slots: string[] = []
   const now = new Date()
+  const win = await serviceWindow(db, staffId, serviceId)
 
   // Un staff puede tener varios bloques el mismo día (ej. horario partido:
   // mañana y tarde) — cada fila de staff_schedules es un bloque independiente.
   for (const schedule of schedules) {
     // Postgres time comes as "09:00:00" — normalize to HH:mm
-    const startTime = schedule.start_time.slice(0, 5)
-    const endTime = schedule.end_time.slice(0, 5)
+    const clamped = clampToWindow(schedule.start_time.slice(0, 5), schedule.end_time.slice(0, 5), win)
+    if (!clamped) continue
+    const startTime = clamped.start
+    const endTime = clamped.end
     const workStart = fromZonedTime(`${date}T${startTime}:00`, tz)
     const workEnd = fromZonedTime(`${date}T${endTime}:00`, tz)
 

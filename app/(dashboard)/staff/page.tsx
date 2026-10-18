@@ -19,11 +19,15 @@ export default async function StaffPage() {
       .eq('organization_id', organization.id)
       .order('label', { ascending: true }),
     service.from('services').select('id, name, is_active').eq('organization_id', organization.id).order('name'),
-    service.from('staff_services').select('staff_id, service_id'),
+    service.from('staff_services').select('staff_id, service_id, window_start, window_end'),
   ])
   const staffIdSet = new Set((staff ?? []).map(s => s.id))
   const staffServices: Record<string, string[]> = {}
-  for (const l of svcLinks ?? []) if (staffIdSet.has(l.staff_id)) (staffServices[l.staff_id] ??= []).push(l.service_id)
+  const staffWindows: Record<string, Record<string, { start: string; end: string }>> = {}
+  for (const l of svcLinks ?? []) if (staffIdSet.has(l.staff_id)) {
+    (staffServices[l.staff_id] ??= []).push(l.service_id)
+    if (l.window_start || l.window_end) (staffWindows[l.staff_id] ??= {})[l.service_id] = { start: (l.window_start ?? '').slice(0, 5), end: (l.window_end ?? '').slice(0, 5) }
+  }
 
   // Auto-sincroniza staff_roles con lo que el staff ya trae en role — cubre
   // datos de antes de este feature (roles escritos como texto libre, seeds,
@@ -72,6 +76,7 @@ export default async function StaffPage() {
         staffLabel={label}
         services={(svcList ?? []).map(s => ({ id: s.id, name: s.name, is_active: s.is_active }))}
         staffServices={staffServices}
+        staffWindows={staffWindows}
       />
     </div>
   )

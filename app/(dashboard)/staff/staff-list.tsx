@@ -31,16 +31,19 @@ interface StaffListProps {
   services?: { id: string; name: string; is_active: boolean }[]
   /** staff_id → servicios que hace (si no aparece, hace todos) */
   staffServices?: Record<string, string[]>
+  /** staff_id → servicio → horario propio (si lo tiene) */
+  staffWindows?: Record<string, Record<string, { start: string; end: string }>>
 }
 
 function emptyForm(role: string) {
   return { name: '', phone: '', role, license_number: '', commission_type: 'percentage' as 'percentage' | 'fixed_per_session' | 'fixed_weekly', commission_value: '' }
 }
 
-export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, services = [], staffServices = {} }: StaffListProps) {
+export function StaffList({ staff, roleTags: initialRoleTags, organizationId, staffLabel, services = [], staffServices = {}, staffWindows = {} }: StaffListProps) {
   // Los pagos al equipo son siempre en pesos
   const cur = 'MXN'
   const [serviceIds, setServiceIds] = useState<string[]>([])
+  const [windows, setWindows] = useState<Record<string, { start: string; end: string }>>({})
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -72,6 +75,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
     setEditing(null)
     setForm(emptyForm(roleTags[0] ?? ''))
     setServiceIds([])
+    setWindows({})
     setOpen(true)
   }
 
@@ -86,6 +90,7 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
       commission_value: s.commission_value?.toString() ?? '',
     })
     setServiceIds(staffServices[s.id] ?? [])
+    setWindows(staffWindows[s.id] ?? {})
     setOpen(true)
   }
 
@@ -198,11 +203,12 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
 
     // Servicios que puede hacer: ninguno o todos marcados = sin límite (hace todos, también los que se agreguen después)
     if (services.length > 0) {
-      const limited = serviceIds.length > 0 && serviceIds.length < services.length
+      const hasWindow = serviceIds.some(id => windows[id]?.start || windows[id]?.end)
+      const limited = (serviceIds.length > 0 && serviceIds.length < services.length) || hasWindow
       const { error: delError } = await supabase.from('staff_services').delete().eq('staff_id', staffId)
       if (delError) toast.error(`No se guardaron los servicios: ${delError.message}`)
       else if (limited) {
-        const { error: insError } = await supabase.from('staff_services').insert(serviceIds.map(service_id => ({ staff_id: staffId, service_id })))
+        const { error: insError } = await supabase.from('staff_services').insert(serviceIds.map(service_id => ({ staff_id: staffId, service_id, window_start: windows[service_id]?.start || null, window_end: windows[service_id]?.end || null })))
         if (insError) toast.error(`No se guardaron los servicios: ${insError.message}`)
       }
     }
@@ -332,7 +338,8 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
               <p className="text-xs text-muted-foreground">Marca los servicios que atiende. Si no marcas ninguno, hace todos.</p>
               <div className="space-y-1.5">
                 {services.map(sv => (
-                  <label key={sv.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <div key={sv.id}>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={serviceIds.includes(sv.id)}
@@ -340,6 +347,16 @@ export function StaffList({ staff, roleTags: initialRoleTags, organizationId, st
                     />
                     <span>{sv.name}{!sv.is_active && <span className="text-xs text-muted-foreground"> · inactivo</span>}</span>
                   </label>
+                  {serviceIds.includes(sv.id) && (
+                    <div className="ml-6 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Solo de</span>
+                      <input type="time" className="h-7 rounded-md border border-border bg-background px-1.5" value={windows[sv.id]?.start ?? ''} onChange={e => setWindows(p => ({ ...p, [sv.id]: { start: e.target.value, end: p[sv.id]?.end ?? '' } }))} />
+                      <span>a</span>
+                      <input type="time" className="h-7 rounded-md border border-border bg-background px-1.5" value={windows[sv.id]?.end ?? ''} onChange={e => setWindows(p => ({ ...p, [sv.id]: { start: p[sv.id]?.start ?? '', end: e.target.value } }))} />
+                      <span>(vacío = todo su horario)</span>
+                    </div>
+                  )}
+                  </div>
                 ))}
               </div>
             </div>
