@@ -93,7 +93,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   const { data: menu } = await db
     .from('menu_items')
-    .select('id, name, price, extras, is_available, requires_prescription')
+    .select('id, name, price, extras, is_available, requires_prescription, controlled')
     .eq('organization_id', org.id)
   const all = menu ?? []
   const byId = new Map(all.map(m => [m.id, m]))
@@ -105,6 +105,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     const item = (it.menu_item_id ? byId.get(it.menu_item_id) : undefined)
       ?? findByName(all, it.name ?? it.menu_item_id ?? '')
     if (!item) return fail(`No encontré "${it.name ?? it.menu_item_id ?? 'ese platillo'}" en el menú`)
+    if (item.controlled) return fail(`"${item.name}" no se vende por este medio`, 409)
     if (item.requires_prescription) return fail(`"${item.name}" requiere receta médica y no se puede pedir directo. Debe verificarlo el farmacéutico.`, 409)
     if (!item.is_available) return fail(`"${item.name}" está agotado por hoy`, 409)
     const quantity = Math.floor(Number(it.quantity))

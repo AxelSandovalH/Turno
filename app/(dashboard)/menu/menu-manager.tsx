@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 
 interface Extra { name: string; price: number }
 interface Category { id: string; name: string }
-interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean; requires_prescription?: boolean }
+interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean; requires_prescription?: boolean; controlled?: boolean }
 interface Settings { accepting: boolean; deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: string; minAmount: string }
 
 const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true, requires_prescription: false }
@@ -208,7 +208,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
                     <p className="text-sm">{money(i.price)}{i.extras.length > 0 && <span className="text-xs text-muted-foreground"> · {i.extras.length} extra(s)</span>}</p>
                     <label className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
                       <Switch size="sm" checked={i.is_available} onCheckedChange={() => toggleAvailable(i)} />
-                      {i.is_available ? 'Disponible' : 'Agotado'}{i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
+                      {i.is_available ? 'Disponible' : 'Agotado'}{i.controlled ? <Badge variant="destructive" className="ml-2 text-[10px]">Controlado · solo en farmacia</Badge> : i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
                     </label>
                   </div>
                   <div className="flex gap-1 shrink-0">

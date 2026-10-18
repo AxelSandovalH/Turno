@@ -32,7 +32,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const [{ data: org }, { data: categories }, { data: items }] = await Promise.all([
         db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, currency').eq('id', ctx.organizationId).single(),
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
-        db.from('menu_items').select('id, category_id, name, description, price, extras, is_available, requires_prescription').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
+        db.from('menu_items').select('id, category_id, name, description, price, extras, is_available, requires_prescription').eq('organization_id', ctx.organizationId).eq('controlled', false).order('sort_order').order('created_at'),
       ])
       return JSON.stringify({
         currency: (org?.currency ?? 'mxn').toUpperCase(),
@@ -52,7 +52,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const raw = input as unknown as { category?: string; names?: string[] }
       const [{ data: categories }, { data: items }] = await Promise.all([
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId),
-        db.from('menu_items').select('id, category_id, name, description, price, image_url, is_available').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
+        db.from('menu_items').select('id, category_id, name, description, price, image_url, is_available').eq('organization_id', ctx.organizationId).eq('controlled', false).order('sort_order').order('created_at'),
       ])
       const menu = items ?? []
 
