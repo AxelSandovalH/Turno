@@ -3,7 +3,7 @@ import { es } from 'date-fns/locale'
 import { hasCapability } from '@/lib/profiles/registry'
 
 export function buildSystemPrompt(
-  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; currency?: string | null; whatsapp_number?: string | null; deposit_enabled?: boolean; deposit_amount?: number; order_accepting?: boolean },
+  org: { name: string; slug?: string | null; business_type?: string | null; timezone: string; welcome_message: string | null; away_message: string | null; currency?: string | null; whatsapp_number?: string | null; payment_links?: boolean; deposit_enabled?: boolean; deposit_amount?: number; order_accepting?: boolean },
   customer?: { name: string | null; occupation: string | null; notes: string | null },
   customerPhone?: string,
   isFirstMessage?: boolean
@@ -44,12 +44,16 @@ El cliente tiene dos caminos y debe quedarle claro desde el primer mensaje, sin 
 - Nunca inventes ni acortes otros links; este es el único.`
     : ''
 
+  // Links de pago por aprobación: el bot solo los solicita, nunca los envía
+  const paymentLinkCtx = org.payment_links
+    ? '\nLINKS DE PAGO: si acuerdas con el cliente un cobro que NO está en el catálogo ni en los servicios, usa request_payment_link. Esa herramienta solo manda la solicitud al responsable del negocio; el link lo envía el sistema únicamente si él lo aprueba. Mientras tanto dile al cliente que estás confirmando el cobro y que le llega el link por este chat en cuanto lo autoricen. NUNCA escribas, inventes ni prometas un link de pago por tu cuenta, y no pidas datos de tarjeta por el chat. Los pedidos del catálogo y las citas con anticipo ya generan su propio link y no necesitan esta herramienta.'
+    : ''
   const currencyCtx = org.currency === 'usd' ? '\nMONEDA: los precios de servicios y productos están en DÓLARES ESTADOUNIDENSES (USD). Al decir un precio o total menciona siempre la moneda (por ejemplo "60 USD"); nunca los presentes como pesos.' : ''
 
   // Negocio con citas y pedidos (farmacia): se agrega la parte de productos al mismo asistente
   const productsCtx = sellsProducts ? buildProductsAddendum(org, customerPhone, org.whatsapp_number) : ''
 
-  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}${currencyCtx}${productsCtx}
+  return `Eres la recepcionista virtual de "${org.name}". Tu nombre es Turno.${customerCtx}${depositCtx}${bookingLinkCtx}${currencyCtx}${paymentLinkCtx}${productsCtx}
 
 Tu trabajo es ayudar a los clientes con lo siguiente (y con pedidos de productos, si más abajo se indica que este negocio los vende):
 1. Agendar citas

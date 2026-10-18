@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getOrgStripe } from '@/lib/org-stripe'
 import { markOrderPaid } from '@/lib/orders'
 import { handleDepositPaid } from '@/lib/deposits'
+import { markPaymentLinkPaid } from '@/lib/payment-links'
 
 /**
  * Webhook de la cuenta de Stripe PROPIA de un negocio. Se verifica con el secreto de ese negocio (no con el
@@ -38,6 +39,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ orgId: 
         const intent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
         await markOrderPaid(order.id, intent)
       }
+    } else if (session.metadata?.type === 'custom_payment' && session.metadata.request_id && session.payment_status === 'paid') {
+      await markPaymentLinkPaid(session.metadata.request_id, orgId)
     } else if (session.metadata?.type === 'deposit' && session.metadata.appointment_id) {
       const { data: appt } = await db.from('appointments').select('id').eq('id', session.metadata.appointment_id).eq('organization_id', orgId).maybeSingle()
       if (appt) await handleDepositPaid(db, appt.id)

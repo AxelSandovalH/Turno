@@ -21,3 +21,9 @@ export async function getOrgStripe(orgId: string): Promise<OrgStripe | null> {
 export async function stripeFor(orgId: string): Promise<Stripe> {
   return (await getOrgStripe(orgId))?.client ?? platformStripe
 }
+
+/** ¿Este negocio tiene su propia cuenta de Stripe? (sin descifrar nada) */
+export async function hasOrgStripe(orgId: string): Promise<boolean> {
+  const { data } = await createServiceClient().from('org_stripe_accounts').select('organization_id').eq('organization_id', orgId).maybeSingle()
+  return !!data
+}

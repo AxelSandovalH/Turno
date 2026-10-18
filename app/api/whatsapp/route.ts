@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isOwnerPhone, handleOwnerDecision } from '@/lib/payment-links'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const ORG_FIELDS = 'id, slug, name, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token, whatsapp_bot_enabled'
+    const ORG_FIELDS = 'id, slug, name, currency, subscription_status, whatsapp_number, timezone, ultramsg_instance, ultramsg_token, whatsapp_bot_enabled'
 
     // Find org — primary route: by UltraMsg instance ID (multi-tenant)
     const instanceId: string = body?.instanceId ?? body?.instance_id ?? ''
@@ -119,6 +120,13 @@ export async function POST(req: Request) {
     if (['suspended', 'canceled'].includes(organization.subscription_status)) {
       console.log('[whatsapp] org suspended:', organization.id)
       return NextResponse.json({ ok: true })
+    }
+
+    // Respuesta del responsable a una solicitud de link de pago ("SI 1234" / "NO 1234"): solo si escribe desde su número
+    // y solo cuando hay solicitudes pendientes; cualquier otro mensaje suyo sigue el flujo normal
+    if (isOwnerPhone(organization.whatsapp_number, phone) && creds.instance && creds.token) {
+      const handled = await handleOwnerDecision({ id: organization.id, name: organization.name, slug: organization.slug, whatsapp_number: organization.whatsapp_number, currency: organization.currency, creds }, text).catch(err => { console.error('[whatsapp] decisión de link de pago falló', err); return false })
+      if (handled) return NextResponse.json({ ok: true })
     }
 
     // ── Intercept confirmation responses (SI / NO) ────────────────────────────

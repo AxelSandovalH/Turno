@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { requestPaymentLink } from '@/lib/payment-links'
 import { stripeFor } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
 import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
@@ -493,6 +494,18 @@ export async function handleTool(toolName: string, input: Record<string, string>
       }
 
       return JSON.stringify({ success: true, new_starts_at, new_ends_at: newEndsAt })
+    }
+
+    case 'request_payment_link': {
+      if (!ctx.customerPhone) return JSON.stringify({ error: 'No se pudo identificar al cliente' })
+      const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
+      if (!o) return JSON.stringify({ error: 'Negocio no encontrado' })
+      const r = await requestPaymentLink(
+        { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
+        { customerPhone: ctx.customerPhone, customerName: input.customer_name, amount: Number(input.amount), description: input.description }
+      )
+      if (!r.ok) return JSON.stringify({ error: r.error })
+      return JSON.stringify({ status: 'pendiente_de_aprobacion', note: 'Ya se le consultó al responsable. El link NO se ha enviado. Dile al cliente que estás confirmando el cobro con el responsable y que en cuanto lo autorice le llega el link por este chat. No prometas tiempos ni inventes el link.' })
     }
 
     default:

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { buildSystemPrompt } from './prompts'
-import { tools, orderTools } from './tools'
+import { tools, orderTools, paymentLinkTools } from './tools'
+import { hasOrgStripe } from '@/lib/org-stripe'
 import { hasCapability } from '@/lib/profiles/registry'
 import { handleTool } from './tool-handlers'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -99,7 +100,10 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   const sellsProducts = hasCapability(org.business_type, 'orders')
   const booksAppointments = hasCapability(org.business_type, 'appointments')
   // Farmacia: citas y pedidos de productos en la misma conversación
-  const agentTools = sellsProducts && booksAppointments ? [...tools, ...orderTools] : sellsProducts ? orderTools : tools
+  const baseTools = sellsProducts && booksAppointments ? [...tools, ...orderTools] : sellsProducts ? orderTools : tools
+  // Con Stripe propio el bot puede pedir links de pago, siempre con aprobación previa del responsable
+  const paymentLinks = await hasOrgStripe(organizationId)
+  const agentTools = paymentLinks ? [...baseTools, ...paymentLinkTools] : baseTools
 
   // Agentic loop. Si algo falla (API caída, error inesperado) el cliente recibe una
   // respuesta en lugar de silencio, y el error queda en los logs.
@@ -108,7 +112,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     let response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
+      system: buildSystemPrompt({ ...org, payment_links: paymentLinks }, customer ?? undefined, customerPhone, isFirstMessage),
       tools: agentTools,
       messages,
     })
@@ -137,7 +141,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
       response = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: buildSystemPrompt(org, customer ?? undefined, customerPhone, isFirstMessage),
+        system: buildSystemPrompt({ ...org, payment_links: paymentLinks }, customer ?? undefined, customerPhone, isFirstMessage),
         tools: agentTools,
         messages,
       })

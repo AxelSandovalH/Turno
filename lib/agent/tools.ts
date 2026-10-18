@@ -139,3 +139,20 @@ export const orderTools: Tool[] = [
     input_schema: { type: 'object' as const, properties: {}, required: [] },
   },
 ]
+
+// Solo para negocios con Stripe propio: el bot PIDE el link, pero lo envía el sistema cuando el responsable lo aprueba
+export const paymentLinkTools: Tool[] = [
+  {
+    name: 'request_payment_link',
+    description: 'Pide al responsable del negocio autorización para enviarle al cliente un link de pago de Stripe por un cobro que NO está en el catálogo ni en los servicios (por ejemplo un paquete o servicio acordado). NUNCA envías el link tú: esta herramienta solo manda la solicitud al responsable; si la aprueba, el sistema le manda el link al cliente. No la uses para pedidos del catálogo (esos ya traen su propio link) ni para citas con anticipo.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        amount: { type: 'number', description: 'Monto a cobrar en la moneda del negocio, acordado con el cliente.' },
+        description: { type: 'string', description: 'Concepto del cobro, corto y claro (por ejemplo "IV Recovery a domicilio + traslado").' },
+        customer_name: { type: 'string', description: 'Nombre del cliente si lo tienes.' },
+      },
+      required: ['amount', 'description'],
+    },
+  },
+]
