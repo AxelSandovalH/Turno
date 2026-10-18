@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { fmtMoney, normCurrency } from '@/lib/currency'
 import { sendMessage } from '@/lib/ultramsg'
 import { stripe } from '@/lib/stripe'
+import { stripeFor } from '@/lib/org-stripe'
 
 export type OrderStatus = 'pending' | 'preparing' | 'on_the_way' | 'delivered' | 'cancelled'
 
@@ -173,7 +174,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   // el negocio, y no se avisa a nadie hasta que Stripe confirme — ver markOrderPaid.
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
-    const session = await stripe.checkout.sessions.create({
+    // El negocio puede cobrar por su propia cuenta de Stripe: el dinero va directo a ella
+    const orgStripe = await stripeFor(org.id)
+    const session = await orgStripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [
         ...lines.map(l => ({

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { stripeFor } from '@/lib/org-stripe'
 import { staffCanDo } from '@/lib/staff-services'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createDepositCheckoutSession } from '@/lib/stripe'
@@ -129,6 +130,7 @@ export async function POST(req: Request) {
         appointmentId: appointment.id,
         amountPesos: Number(org.deposit_amount),
         currency: org.currency,
+        client: await stripeFor(org.id),
         businessName: org.name,
         serviceName: service.name,
       })

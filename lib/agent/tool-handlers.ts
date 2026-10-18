@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { stripeFor } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
 import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
 import { createDepositCheckoutSession } from '@/lib/stripe'
@@ -335,6 +336,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
             appointmentId: appointment.id,
             amountPesos: ctx.deposit.amount,
             currency: ctx.currency,
+            client: await stripeFor(ctx.organizationId),
             businessName: ctx.organizationName,
             serviceName: svc?.name ?? 'tu cita',
           })

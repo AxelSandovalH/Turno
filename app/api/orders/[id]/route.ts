@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
-import { stripe } from '@/lib/stripe'
+import { stripeFor } from '@/lib/org-stripe'
 import { statusMessage, type OrderStatus } from '@/lib/orders'
 
 const STATUSES: OrderStatus[] = ['pending', 'preparing', 'on_the_way', 'delivered', 'cancelled']
@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const db = createServiceClient()
   const { data: order } = await db
     .from('orders')
-    .select('id, order_number, status, fulfillment, customer_phone, payment_method, payment_status, stripe_payment_intent_id')
+    .select('id, order_number, status, fulfillment, customer_phone, payment_method, payment_status, stripe_payment_intent_id, organization_id')
     .eq('id', id)
     .eq('organization_id', organizationId)
     .maybeSingle()
@@ -37,7 +37,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'No se encontró el cobro para reembolsar. Hazlo desde Stripe.' }, { status: 409 })
     }
     try {
-      await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+      await (await stripeFor(order.organization_id)).refunds.create({ payment_intent: order.stripe_payment_intent_id })
       refunded = true
     } catch (err) {
       console.error('[orders] refund failed', err)

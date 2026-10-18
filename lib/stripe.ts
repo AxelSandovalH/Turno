@@ -32,6 +32,8 @@ interface DepositCheckoutParams {
   appointmentId: string
   amountPesos: number
   currency?: string | null
+  /** Cliente de Stripe del negocio (si cobra por su cuenta); por defecto el de la plataforma */
+  client?: Stripe
   businessName: string
   serviceName: string
 }
@@ -41,9 +43,9 @@ interface DepositCheckoutParams {
  * Distinguished from subscription checkouts via mode:'payment' + metadata.type.
  */
 export async function createDepositCheckoutSession({
-  organizationId, appointmentId, amountPesos, currency, businessName, serviceName,
+  organizationId, appointmentId, amountPesos, currency, client, businessName, serviceName,
 }: DepositCheckoutParams) {
-  const session = await stripe.checkout.sessions.create({
+  const session = await (client ?? stripe).checkout.sessions.create({
     mode: 'payment',
     payment_method_types: ['card'],
     line_items: [{

@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AccessButton } from './access-button'
 import { ReleaseLineButton } from './release-line-button'
+import { OrgStripeButton } from './org-stripe-button'
 
 const STATUS_LABEL: Record<string, string> = {
   trialing: 'Trial',
@@ -23,17 +24,20 @@ const STATUS_COLOR: Record<string, string> = {
 async function getStats() {
   const db = createServiceClient()
 
-  const [{ data: orgs }, { count: totalAppointments }, { count: totalCustomers }] = await Promise.all([
+  const [{ data: orgs }, { count: totalAppointments }, { count: totalCustomers }, { data: stripeRows }] = await Promise.all([
     db.from('organizations').select('id, name, slug, whatsapp_number, email, subscription_status, trial_ends_at, created_at, stripe_subscription_id, paid_until, ultramsg_instance').order('created_at', { ascending: false }),
     db.from('appointments').select('id', { count: 'exact', head: true }),
     db.from('customers').select('id', { count: 'exact', head: true }),
+    // Solo se lee si hay cuenta propia y si es real; las llaves nunca salen del servidor
+    db.from('org_stripe_accounts').select('organization_id, livemode'),
   ])
+  const stripeAccts = new Map<string, boolean>((stripeRows ?? []).map(r => [r.organization_id as string, !!r.livemode]))
 
-  return { orgs: orgs ?? [], totalAppointments: totalAppointments ?? 0, totalCustomers: totalCustomers ?? 0 }
+  return { orgs: orgs ?? [], totalAppointments: totalAppointments ?? 0, totalCustomers: totalCustomers ?? 0, stripeAccts }
 }
 
 export default async function AdminPage() {
-  const { orgs, totalAppointments, totalCustomers } = await getStats()
+  const { orgs, totalAppointments, totalCustomers, stripeAccts } = await getStats()
 
   const byStatus = orgs.reduce<Record<string, number>>((acc, o) => {
     acc[o.subscription_status] = (acc[o.subscription_status] ?? 0) + 1
@@ -80,6 +84,7 @@ export default async function AdminPage() {
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Registrado</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Acceso</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Línea WhatsApp</th>
+                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Stripe propio</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -108,11 +113,14 @@ export default async function AdminPage() {
                   <td className="px-4 py-3">
                     <ReleaseLineButton id={org.id} name={org.name} instance={org.ultramsg_instance} />
                   </td>
+                  <td className="px-4 py-3">
+                    <OrgStripeButton id={org.id} name={org.name} connected={stripeAccts.has(org.id)} live={stripeAccts.get(org.id) ?? false} />
+                  </td>
                 </tr>
               ))}
               {orgs.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground text-sm">
                     No hay organizaciones registradas.
                   </td>
                 </tr>
