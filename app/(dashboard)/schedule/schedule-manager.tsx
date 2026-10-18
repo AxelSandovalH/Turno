@@ -87,7 +87,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
     const existing = getBlocksForDay(staffId, day)
     if (checked) {
       if (existing.length === 0) {
-        await supabase.from('staff_schedules').insert({
+        const { error } = await supabase.from('staff_schedules').insert({
           staff_id: staffId,
           day_of_week: day,
           start_time: '09:00',
@@ -95,9 +95,11 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
           is_working: true,
           organization_id: organizationId,
         })
+        if (error) toast.error(`No se pudo guardar el horario: ${error.message}`)
       }
     } else {
-      await supabase.from('staff_schedules').delete().in('id', existing.map(b => b.id))
+      const { error } = await supabase.from('staff_schedules').delete().in('id', existing.map(b => b.id))
+      if (error) toast.error(`No se pudo quitar el horario: ${error.message}`)
     }
     router.refresh()
   }
@@ -116,7 +118,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
     const nextStart = h >= 22 ? '09:00' : lastEnd
     const nextEndHour = Math.min(Number(nextStart.split(':')[0]) + 2, 23)
     const nextEnd = `${String(nextEndHour).padStart(2, '0')}:00`
-    await supabase.from('staff_schedules').insert({
+    const { error } = await supabase.from('staff_schedules').insert({
       staff_id: staffId,
       day_of_week: day,
       start_time: nextStart,
@@ -124,6 +126,7 @@ export function ScheduleManager({ staff, schedules, blocks, organizationId, staf
       is_working: true,
       organization_id: organizationId,
     })
+    if (error) toast.error(`No se pudo agregar el bloque: ${error.message}`)
     router.refresh()
   }
 
