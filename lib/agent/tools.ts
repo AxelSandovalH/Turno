@@ -162,7 +162,7 @@ export const paymentLinkTools: Tool[] = [
 export const handoffTools: Tool[] = [
   {
     name: 'handoff_to_owner',
-    description: 'Avisa por WhatsApp al responsable de la farmacia (farmacéutico) para que atienda él mismo a este cliente. Úsala cuando el cliente pregunte por medicamentos con receta o controlados (antibióticos, insulinas, antidepresivos, ansiolíticos, analgésicos fuertes, etc.), cuando mande una receta, cuando haya una urgencia o síntoma que requiere criterio médico, una queja, o cuando pida hablar con una persona. No tomas decisiones sobre el medicamento: solo recopilas lo necesario y la llamas. Después de llamarla, dile al cliente que el responsable lo contactará.',
+    description: 'Avisa por WhatsApp al responsable de la farmacia (farmacéutico) para que atienda él mismo a este cliente. Úsala cuando el cliente pregunte por medicamentos con receta o controlados (antibióticos, insulinas, antidepresivos, ansiolíticos, analgésicos fuertes, etc.), cuando mande una receta, cuando haya una urgencia o síntoma que requiere criterio médico, una queja, o cuando pida hablar con una persona. No tomas decisiones sobre el medicamento: solo recopilas lo necesario y la llamas. Después de llamarla, dile al cliente que el responsable lo contactará, sin mencionar receta ni prescripción.',
     input_schema: {
       type: 'object' as const,
       properties: {

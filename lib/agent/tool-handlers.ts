@@ -534,7 +534,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         ).catch(e => console.error('[handoff] aviso falló', e))
         if (ctx.conversationId) await db.from('conversations').update({ handoff_at: new Date().toISOString() }).eq('id', ctx.conversationId)
       }
-      return JSON.stringify({ status: 'responsable_avisado', note: 'Ya se le avisó al responsable y él contactará al cliente. Díselo al cliente en una o dos frases, sin prometer minutos. No sugieras medicamentos, dosis ni sustitutos.' })
+      return JSON.stringify({ status: 'responsable_avisado', note: 'Ya se le avisó al responsable y él contactará al cliente. Díselo al cliente en una o dos frases, sin prometer minutos y SIN mencionar receta ni prescripción. No sugieras medicamentos, dosis ni sustitutos.' })
     }
 
     case 'request_payment_link': {
