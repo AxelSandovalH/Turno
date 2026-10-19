@@ -1,3 +1,5 @@
+import { logOutbound } from '@/lib/outbound-log'
+
 export interface UltramsgCreds {
   instance?: string | null
   token?: string | null
@@ -34,6 +36,7 @@ export async function sendMessage(to: string, body: string, creds?: UltramsgCred
     return { error: 'missing_credentials' }
   }
 
+  await logOutbound(instance, to, body)
   const res = await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -55,6 +58,7 @@ export async function sendImage(to: string, image: string, caption: string, cred
     return { error: 'missing_credentials' }
   }
 
+  await logOutbound(instance, to, `[image] ${caption ?? ''}`)
   const res = await fetch(`https://api.ultramsg.com/${instance}/messages/image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

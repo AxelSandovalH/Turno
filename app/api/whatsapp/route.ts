@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { handleManualMessage } from '@/lib/manual-takeover'
 import { fetchImage } from '@/lib/media'
 import { isOwnerPhone, handleOwnerDecision } from '@/lib/payment-links'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -25,6 +26,12 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => null)
     const msg = body?.data
     console.log('[whatsapp] raw body:', JSON.stringify(body).slice(0, 500))
+
+    // Lo que salió de la línea: si lo escribió una persona a mano, el bot se calla en ese chat
+    if (msg?.fromMe) {
+      await handleManualMessage(body, msg).catch(err => console.error('[whatsapp] manual takeover falló', err))
+      return NextResponse.json({ ok: true })
+    }
 
     const HANDLED = ['chat', 'image', 'location', 'audio', 'ptt', 'voice', 'video', 'document']
     if (!msg || !HANDLED.includes(msg.type) || msg.fromMe) {
@@ -147,6 +154,15 @@ export async function POST(req: Request) {
     if (isOwnerPhone(organization.whatsapp_number, phone) && creds.instance && creds.token) {
       const handled = await handleOwnerDecision({ id: organization.id, name: organization.name, slug: organization.slug, whatsapp_number: organization.whatsapp_number, currency: organization.currency, creds }, text).catch(err => { console.error('[whatsapp] decisión de link de pago falló', err); return false })
       if (handled) return NextResponse.json({ ok: true })
+    }
+
+    // Una persona del negocio está atendiendo este chat: el bot no contesta (se guarda el mensaje del cliente)
+    const { data: convo } = await db.from('conversations').select('id, bot_paused_until').eq('organization_id', organization.id).eq('whatsapp_phone', phone).maybeSingle()
+    if (convo?.bot_paused_until && new Date(convo.bot_paused_until).getTime() > Date.now()) {
+      await db.from('messages').insert({ conversation_id: convo.id, organization_id: organization.id, role: 'user', content: text, ultramsg_id: msgId || null })
+      await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', convo.id)
+      console.log('[whatsapp] bot en pausa para', phone, '— atiende una persona')
+      return NextResponse.json({ ok: true })
     }
 
     // ── Intercept confirmation responses (SI / NO) ────────────────────────────
