@@ -157,3 +157,20 @@ export const paymentLinkTools: Tool[] = [
     },
   },
 ]
+
+// Farmacia: el bot le pasa el caso al responsable (receta, controlados, urgencias, quejas, o si piden hablar con una persona)
+export const handoffTools: Tool[] = [
+  {
+    name: 'handoff_to_owner',
+    description: 'Avisa por WhatsApp al responsable de la farmacia (farmacéutico) para que atienda él mismo a este cliente. Úsala cuando el cliente pregunte por medicamentos con receta o controlados (antibióticos, insulinas, antidepresivos, ansiolíticos, analgésicos fuertes, etc.), cuando mande una receta, cuando haya una urgencia o síntoma que requiere criterio médico, una queja, o cuando pida hablar con una persona. No tomas decisiones sobre el medicamento: solo recopilas lo necesario y la llamas. Después de llamarla, dile al cliente que el responsable lo contactará.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        reason: { type: 'string', enum: ['receta', 'controlado', 'urgencia', 'queja', 'hablar_con_persona', 'otro'], description: 'Por qué se le pasa al responsable.' },
+        summary: { type: 'string', description: 'Resumen breve de lo que necesita (producto o medicamento, hotel o lugar, nombre) en una o dos frases.' },
+        customer_name: { type: 'string', description: 'Nombre del cliente si lo tienes.' },
+      },
+      required: ['reason', 'summary'],
+    },
+  },
+]

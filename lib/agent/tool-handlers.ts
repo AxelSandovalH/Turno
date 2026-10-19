@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requestPaymentLink } from '@/lib/payment-links'
+import { requestPaymentLink, waId } from '@/lib/payment-links'
 import { stripeFor, hasOrgStripe } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
 import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
@@ -22,6 +22,7 @@ interface Context {
   deposit?: { enabled: boolean; amount: number }
   customerPhone?: string
   currency?: string
+  conversationId?: string
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -517,6 +518,23 @@ export async function handleTool(toolName: string, input: Record<string, string>
       }
 
       return JSON.stringify({ success: true, new_starts_at, new_ends_at: newEndsAt })
+    }
+
+    case 'handoff_to_owner': {
+      if (!ctx.customerPhone || !ctx.ownerWhatsapp) return JSON.stringify({ error: 'No se pudo avisar al responsable' })
+      const { data: convo } = ctx.conversationId ? await db.from('conversations').select('handoff_at').eq('id', ctx.conversationId).maybeSingle() : { data: null }
+      const recent = convo?.handoff_at && Date.now() - new Date(convo.handoff_at).getTime() < 6 * 3600_000
+      if (!recent) {
+        const why: Record<string, string> = { receta: 'Medicamento con receta', controlado: 'Medicamento controlado', urgencia: 'Urgencia', queja: 'Queja', hablar_con_persona: 'Pide hablar con una persona', otro: 'Requiere atención' }
+        const phone = ctx.customerPhone.replace(/\D/g, '')
+        await sendMessage(
+          `${waId(ctx.ownerWhatsapp)}@c.us`,
+          `🔔 *Cliente para atender: ${why[input.reason] ?? 'Atención'}*\n${input.customer_name ? `Nombre: ${input.customer_name}\n` : ''}Teléfono: +${phone}\n${String(input.summary ?? '').slice(0, 400)}\n\nEscríbele directo: https://wa.me/${phone}`,
+          ctx.ultramsg
+        ).catch(e => console.error('[handoff] aviso falló', e))
+        if (ctx.conversationId) await db.from('conversations').update({ handoff_at: new Date().toISOString() }).eq('id', ctx.conversationId)
+      }
+      return JSON.stringify({ status: 'responsable_avisado', note: 'Ya se le avisó al responsable y él contactará al cliente. Díselo al cliente en una o dos frases, sin prometer minutos. No sugieras medicamentos, dosis ni sustitutos.' })
     }
 
     case 'request_payment_link': {
