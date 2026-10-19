@@ -14,9 +14,11 @@ interface RunAgentParams {
   customerPhone: string
   incomingMessage: string
   ultramsgId?: string
+  /** Foto que acaba de mandar el cliente: solo se usa en este turno (no se guarda la imagen) */
+  image?: { url: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'; data: string }
 }
 
-export async function runAgent({ organizationId, customerPhone, incomingMessage, ultramsgId }: RunAgentParams): Promise<string> {
+export async function runAgent({ organizationId, customerPhone, incomingMessage, ultramsgId, image }: RunAgentParams): Promise<string> {
   const db = createServiceClient()
 
   // Load org context
@@ -75,7 +77,10 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // La API exige que la conversación empiece con un mensaje del cliente: si la ventana
   // cortó justo después de su mensaje, se descartan las respuestas del bot del inicio.
   while (past.length && past[0].role !== 'user') past.shift()
-  const messages: MessageParam[] = [...past, { role: 'user', content: incomingMessage }]
+  const userContent: MessageParam['content'] = image
+    ? [{ type: 'image', source: { type: 'base64', media_type: image.mediaType, data: image.data } }, { type: 'text', text: incomingMessage }]
+    : incomingMessage
+  const messages: MessageParam[] = [...past, { role: 'user', content: userContent }]
 
   // Save incoming message
   await db.from('messages').insert({
@@ -97,6 +102,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     currency: org.currency ?? 'mxn',
     customerPhone,
     conversationId: conversation.id,
+    imageUrl: image?.url,
   }
   const sellsProducts = hasCapability(org.business_type, 'orders')
   const booksAppointments = hasCapability(org.business_type, 'appointments')

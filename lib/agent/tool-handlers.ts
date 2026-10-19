@@ -23,6 +23,8 @@ interface Context {
   customerPhone?: string
   currency?: string
   conversationId?: string
+  /** Foto que el cliente mandó en este mensaje (se le reenvía al responsable si se le pasa el caso) */
+  imageUrl?: string
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -533,6 +535,10 @@ export async function handleTool(toolName: string, input: Record<string, string>
           ctx.ultramsg
         ).catch(e => console.error('[handoff] aviso falló', e))
         if (ctx.conversationId) await db.from('conversations').update({ handoff_at: new Date().toISOString() }).eq('id', ctx.conversationId)
+      }
+      // La foto que mandó el cliente (p. ej. de una indicación médica) se le reenvía al responsable, aunque ya lo hayan avisado antes
+      if (ctx.imageUrl) {
+        await sendImage(`${waId(ctx.ownerWhatsapp)}@c.us`, ctx.imageUrl, `Foto de +${ctx.customerPhone.replace(/\D/g, '')}${input.customer_name ? ` (${input.customer_name})` : ''}`, ctx.ultramsg).catch(e => console.error('[handoff] foto no reenviada', e))
       }
       return JSON.stringify({ status: 'responsable_avisado', note: 'Ya se le avisó al responsable y él contactará al cliente. Díselo al cliente en una o dos frases, sin prometer minutos y SIN mencionar receta ni prescripción. No sugieras medicamentos, dosis ni sustitutos.' })
     }

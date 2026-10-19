@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { fetchImage } from '@/lib/media'
 import { isOwnerPhone, handleOwnerDecision } from '@/lib/payment-links'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
@@ -25,14 +26,33 @@ export async function POST(req: Request) {
     const msg = body?.data
     console.log('[whatsapp] raw body:', JSON.stringify(body).slice(0, 500))
 
-    if (!msg || msg.type !== 'chat' || msg.fromMe) {
+    const HANDLED = ['chat', 'image', 'location', 'audio', 'ptt', 'voice', 'video', 'document']
+    if (!msg || !HANDLED.includes(msg.type) || msg.fromMe) {
       console.log('[whatsapp] skipped — type:', msg?.type, 'fromMe:', msg?.fromMe)
       return NextResponse.json({ ok: true })
     }
 
     const from: string = msg.from ?? ''
-    const text: string = msg.body?.trim() ?? ''
     const msgId: string = msg.id ?? ''
+    const rawBody: string = typeof msg.body === 'string' ? msg.body.trim() : ''
+    const isUrl = (s: unknown) => typeof s === 'string' && /^https?:\/\//i.test(s)
+
+    // Fotos: el asistente puede verlas. Audio, video y documentos no: se le indica al asistente para que pida el dato por escrito
+    let text = rawBody
+    let imageUrl = ''
+    if (msg.type === 'image') {
+      imageUrl = isUrl(msg.media) ? msg.media : isUrl(rawBody) ? rawBody : ''
+      const caption = String(msg.caption ?? (isUrl(rawBody) ? '' : rawBody)).trim()
+      text = caption ? `[Foto del cliente] ${caption}` : '[Foto del cliente]'
+    } else if (msg.type === 'location') {
+      text = `[Ubicación compartida por el cliente] ${rawBody}`.trim()
+    } else if (['audio', 'ptt', 'voice'].includes(msg.type)) {
+      text = '[El cliente mandó un mensaje de voz que NO puedes escuchar]'
+    } else if (msg.type === 'video') {
+      text = '[El cliente mandó un video que NO puedes ver]'
+    } else if (msg.type === 'document') {
+      text = '[El cliente mandó un documento que NO puedes abrir]'
+    }
 
     console.log('[whatsapp] from:', from, 'text:', text, 'id:', msgId)
 
@@ -231,11 +251,18 @@ export async function POST(req: Request) {
     }
 
     console.log('[whatsapp] running agent for org:', organization.id)
+    let image: { url: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'; data: string } | undefined
+    if (imageUrl) {
+      const img = await fetchImage(imageUrl)
+      if (img) image = { url: imageUrl, ...img }
+      else text = `${text} (la foto no se pudo abrir: pídele que la mande de nuevo o que escriba lo que necesita)`
+    }
     const reply = await runAgent({
       organizationId: organization.id,
       customerPhone: phone,
       incomingMessage: text,
       ultramsgId: msgId || undefined,
+      image,
     })
 
     console.log('[whatsapp] agent reply:', reply.slice(0, 200))
