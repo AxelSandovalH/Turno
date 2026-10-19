@@ -74,6 +74,10 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
 
   // ── Platillos ───────────────────────────────────────────────────────────────
   const [query, setQuery] = useState('')
+  const [section, setSection] = useState('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [bulkPrice, setBulkPrice] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [statusFilter, setStatusFilter] = useState<'all' | 'noprice' | 'soldout' | 'available'>('all')
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Item | null>(null)
@@ -144,6 +148,28 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
     router.refresh()
   }
 
+  async function savePrice(i: Item, raw: string) {
+    const v = parseFloat(raw)
+    if (Number.isNaN(v) || v < 0 || v === Number(i.price)) return
+    const { error } = await supabase.from('menu_items').update({ price: v }).eq('id', i.id)
+    if (error) return toast.error(error.message)
+    router.refresh()
+  }
+
+  // Acciones en lote sobre lo que se ve (búsqueda, sección y filtro): en bloques de 100 para no exceder el tamaño de la petición
+  async function bulk(patch: { price?: number; is_available?: boolean }, ids: string[], label: string) {
+    if (!ids.length) return toast.error('No hay productos para esta acción')
+    if (!window.confirm(`${label}: ${ids.length} producto(s). ¿Continuar?`)) return
+    setBulkBusy(true)
+    for (let k = 0; k < ids.length; k += 100) {
+      const { error } = await supabase.from('menu_items').update(patch).in('id', ids.slice(k, k + 100))
+      if (error) { setBulkBusy(false); return toast.error(error.message) }
+    }
+    setBulkBusy(false)
+    toast.success('Listo')
+    router.refresh()
+  }
+
   async function deleteItem(i: Item) {
     if (!window.confirm(`¿Eliminar "${i.name}"?`)) return
     const { error } = await supabase.from('menu_items').delete().eq('id', i.id)
@@ -154,8 +180,9 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
   // Buscador: sin importar mayúsculas ni acentos, por nombre o descripción; más un filtro por estado
   const fold = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   const q = fold(query.trim())
+  const inSection = (i: Item) => !section || (section === '__none' ? (!i.category_id || !categories.some(c => c.id === i.category_id)) : i.category_id === section)
   const visible = items.filter(i =>
-    (!q || fold(`${i.name} ${i.description ?? ''}`).includes(q)) &&
+    inSection(i) && (!q || fold(`${i.name} ${i.description ?? ''}`).includes(q)) &&
     (statusFilter === 'all' || (statusFilter === 'noprice' ? !(Number(i.price) > 0) : statusFilter === 'soldout' ? !i.is_available : i.is_available)))
   const groups = [
     ...categories.map(c => ({ id: c.id, name: c.name, category: c, items: visible.filter(i => i.category_id === c.id) })),
@@ -173,18 +200,39 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
       </div>
 
       {items.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder={`Buscar ${catalog ? 'producto' : 'platillo'} por nombre…`} value={query} onChange={e => setQuery(e.target.value)} />
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-8" placeholder={`Buscar ${catalog ? 'producto' : 'platillo'} por nombre…`} value={query} onChange={e => setQuery(e.target.value)} />
+            </div>
+            <select className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}>
+              <option value="all">Todos</option>
+              <option value="noprice">Sin precio</option>
+              <option value="soldout">Agotados</option>
+              <option value="available">Disponibles</option>
+            </select>
+            <span className="text-xs text-muted-foreground">{visible.length} de {items.length}</span>
           </div>
-          <select className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}>
-            <option value="all">Todos</option>
-            <option value="noprice">Sin precio</option>
-            <option value="soldout">Agotados</option>
-            <option value="available">Disponibles</option>
-          </select>
-          <span className="text-xs text-muted-foreground">{visible.length} de {items.length}</span>
+
+          {/* Secciones del catálogo con su conteo */}
+          <div className="flex flex-wrap gap-1.5">
+            {[{ id: '', name: 'Todas', n: items.length }, ...categories.map(c => ({ id: c.id, name: c.name, n: items.filter(i => i.category_id === c.id).length })), ...(items.some(i => !i.category_id || !categories.some(c => c.id === i.category_id)) ? [{ id: '__none', name: 'Sin categoría', n: items.filter(i => !i.category_id || !categories.some(c => c.id === i.category_id)).length }] : [])].map(c => (
+              <button key={c.id || 'all'} type="button" onClick={() => setSection(c.id)}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${section === c.id ? 'border-violet-500 bg-violet-500/10 text-violet-400' : 'border-border text-muted-foreground hover:text-foreground'}`}>
+                {c.name} <span className="opacity-60">{c.n}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Acciones en lote sobre lo que se ve ahora */}
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs">
+            <span className="text-muted-foreground">Sobre los {visible.length} que ves:</span>
+            <Input type="number" min="0" step="0.01" placeholder="Precio" className="h-8 w-24" value={bulkPrice} onChange={e => setBulkPrice(e.target.value)} />
+            <Button size="sm" variant="outline" disabled={bulkBusy || !(parseFloat(bulkPrice) >= 0) || bulkPrice === ''} onClick={() => bulk({ price: parseFloat(bulkPrice) }, visible.map(i => i.id), `Poner precio ${money(parseFloat(bulkPrice))}`)}>Aplicar precio</Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulk({ is_available: true }, visible.filter(i => !i.controlled && !i.requires_prescription).map(i => i.id), 'Activar (los de receta y controlados no se activan)')}>Activar</Button>
+            <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => bulk({ is_available: false }, visible.map(i => i.id), 'Marcar agotados')}>Agotar</Button>
+          </div>
         </div>
       )}
 
@@ -192,35 +240,48 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
         <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">Aún no hay {catalog ? 'productos' : 'platillos'}. Agrega el primero.</CardContent></Card>
       ) : visible.length === 0 ? (
         <Card><CardContent className="py-10 text-center text-muted-foreground text-sm">Nada coincide con tu búsqueda.</CardContent></Card>
-      ) : groups.filter(g => g.items.length).map(g => (
-        <div key={g.id || 'none'} className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{g.name}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {g.items.map(i => (
-              <Card key={i.id} className={!i.is_available ? 'opacity-60' : ''}>
-                <CardContent className="pt-3 pb-3 flex items-start gap-3">
-                  {i.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={i.image_url} alt={i.name} className="h-24 w-24 rounded-xl object-cover shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium">{i.name}</p>
-                    <p className="text-sm">{money(i.price)}{i.extras.length > 0 && <span className="text-xs text-muted-foreground"> · {i.extras.length} extra(s)</span>}</p>
-                    <label className="flex items-center gap-2 mt-1.5 text-xs text-muted-foreground">
-                      <Switch size="sm" checked={i.is_available} onCheckedChange={() => toggleAvailable(i)} />
-                      {i.is_available ? 'Disponible' : 'Agotado'}{i.controlled ? <Badge variant="destructive" className="ml-2 text-[10px]">Controlado · solo en farmacia</Badge> : i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
-                    </label>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" aria-label="Eliminar" className="text-destructive hover:text-destructive" onClick={() => deleteItem(i)}><Trash2 className="h-4 w-4" /></Button>
-                  </div>
-                </CardContent>
-              </Card>
+      ) : groups.filter(g => g.items.length).map(g => {
+        const key = g.id || 'none'
+        // Para que 400+ productos no se vuelvan lentos: se muestran 40 por sección y "Ver más"; con búsqueda o filtros, hasta 150
+        const filtering = !!q || statusFilter !== 'all' || !!section
+        const cap = expanded[key] ? Infinity : filtering ? 150 : 40
+        const shown = g.items.slice(0, cap)
+        return (
+        <div key={key} className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">{g.name} <span className="opacity-60">· {g.items.length}</span></p>
+          <div className="rounded-lg border border-border divide-y divide-border">
+            {shown.map(i => (
+              <div key={i.id} className={`flex items-center gap-3 px-3 py-2 ${!i.is_available ? 'opacity-60' : ''}`}>
+                {i.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={i.image_url} alt={i.name} className="h-10 w-10 rounded-md object-cover shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{i.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {i.description}
+                    {i.controlled ? <Badge variant="destructive" className="ml-2 text-[10px]">Controlado · solo en farmacia</Badge> : i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
+                    {i.extras.length > 0 && <span> · {i.extras.length} extra(s)</span>}
+                  </p>
+                </div>
+                <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                  $<input key={`${i.id}-${i.price}`} type="number" min="0" step="0.01" defaultValue={Number(i.price)} onBlur={e => savePrice(i, e.target.value)}
+                    className="h-8 w-20 rounded-md border border-border bg-background px-1.5 text-sm text-foreground" aria-label={`Precio de ${i.name}`} />
+                </label>
+                <Switch size="sm" checked={i.is_available} onCheckedChange={() => toggleAvailable(i)} aria-label={i.is_available ? 'Disponible' : 'Agotado'} />
+                <div className="flex shrink-0">
+                  <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" aria-label="Eliminar" className="text-destructive hover:text-destructive" onClick={() => deleteItem(i)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
+              </div>
             ))}
           </div>
+          {g.items.length > shown.length && (
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(e => ({ ...e, [key]: true }))}>Ver los {g.items.length - shown.length} restantes</Button>
+          )}
         </div>
-      ))}
+        )
+      })}
 
       {/* Link público */}
       <Card>
