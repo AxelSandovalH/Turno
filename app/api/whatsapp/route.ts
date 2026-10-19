@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { handleManualMessage } from '@/lib/manual-takeover'
 import { fetchImage } from '@/lib/media'
 import { isOwnerPhone, handleOwnerDecision } from '@/lib/payment-links'
+import { handleOwnerAnswer } from '@/lib/owner-consults'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
@@ -154,6 +155,21 @@ export async function POST(req: Request) {
     if (isOwnerPhone(organization.whatsapp_number, phone) && creds.instance && creds.token) {
       const handled = await handleOwnerDecision({ id: organization.id, name: organization.name, slug: organization.slug, whatsapp_number: organization.whatsapp_number, currency: organization.currency, creds }, text).catch(err => { console.error('[whatsapp] decisión de link de pago falló', err); return false })
       if (handled) return NextResponse.json({ ok: true })
+
+      // Si el bot le consultó algo, su mensaje es la respuesta: el bot se la comunica al cliente
+      const answered = await handleOwnerAnswer({ id: organization.id, name: organization.name, whatsapp_number: organization.whatsapp_number, creds }, text, async (customerPhone, answer) => {
+        const { data: cv } = await db.from('conversations').select('bot_paused_until').eq('organization_id', organization.id).eq('whatsapp_phone', customerPhone).maybeSingle()
+        if (cv?.bot_paused_until && new Date(cv.bot_paused_until).getTime() > Date.now()) return 'paused'
+        const reply = await runAgent({
+          organizationId: organization.id,
+          customerPhone,
+          incomingMessage: `[Mensaje interno del sistema, NO es del cliente] El farmacéutico respondió a tu consulta: "${answer}". Comunícaselo al cliente con tus palabras, breve y amable, en el idioma del cliente.`,
+          internal: true,
+        })
+        await sendMessage(`${customerPhone}@c.us`, reply, creds)
+        return 'sent'
+      }).catch(err => { console.error('[whatsapp] respuesta del responsable falló', err); return false })
+      if (answered) return NextResponse.json({ ok: true })
     }
 
     // Una persona del negocio está atendiendo este chat: el bot no contesta (se guarda el mensaje del cliente)

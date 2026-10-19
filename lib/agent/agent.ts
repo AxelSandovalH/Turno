@@ -15,10 +15,12 @@ interface RunAgentParams {
   incomingMessage: string
   ultramsgId?: string
   /** Foto que acaba de mandar el cliente: solo se usa en este turno (no se guarda la imagen) */
+  /** Mensaje interno (p. ej. la respuesta del farmacéutico): se guarda con una marca para distinguirlo de lo que escribe el cliente */
+  internal?: boolean
   image?: { url: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'; data: string }
 }
 
-export async function runAgent({ organizationId, customerPhone, incomingMessage, ultramsgId, image }: RunAgentParams): Promise<string> {
+export async function runAgent({ organizationId, customerPhone, incomingMessage, ultramsgId, image, internal }: RunAgentParams): Promise<string> {
   const db = createServiceClient()
 
   // Load org context
@@ -87,7 +89,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     conversation_id: conversation.id,
     organization_id: organizationId,
     role: 'user',
-    content: incomingMessage,
+    content: internal ? `[Interno] ${incomingMessage}` : incomingMessage,
     ultramsg_id: ultramsgId ?? null,
   })
 
