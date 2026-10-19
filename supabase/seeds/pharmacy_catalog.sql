@@ -446,11 +446,11 @@ begin
   insert into menu_categories (organization_id, name, sort_order)
   select v_org, c.name, c.ord from (values ('Controlado', 0), ('Genérico', 1), ('Patente', 2), ('Perfumería', 3)) as c(name, ord)
   where not exists (select 1 from menu_categories x where x.organization_id = v_org and x.name = c.name);
-  -- Ya existentes: el precio solo cambia si el CSV trae precio; un producto con receta nunca queda disponible para pedir directo
+  -- Ya existentes: el precio solo cambia si el CSV trae precio; la disponibilidad que tú hayas puesto no se pisa (los de receta y controlados igual no se pueden pedir: eso lo bloquea el sistema)
   update menu_items m set requires_prescription = t.rx, controlled = t.ctl,
     category_id = (select id from menu_categories c where c.organization_id = v_org and c.name = t.cat limit 1),
     price = case when t.price > 0 then t.price else m.price end,
-    is_available = case when t.rx or t.ctl then false when t.price > 0 then true else m.is_available end
+    is_available = case when t.price > 0 and not t.rx and not t.ctl then true else m.is_available end
   from _cat t where m.organization_id = v_org and m.name = t.name;
   insert into menu_items (organization_id, category_id, name, description, price, is_available, requires_prescription, controlled, sort_order)
   select v_org, (select id from menu_categories c where c.organization_id = v_org and c.name = t.cat limit 1), t.name, t.descr, t.price, t.price > 0 and not t.rx, t.rx, t.ctl, 0
