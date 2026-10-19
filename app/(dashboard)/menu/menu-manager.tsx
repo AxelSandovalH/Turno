@@ -260,7 +260,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
                   <p className="text-sm font-medium truncate">{i.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {i.description}
-                    {i.controlled ? <Badge variant="destructive" className="ml-2 text-[10px]">Controlado · solo en farmacia</Badge> : i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
+                    {i.controlled ? <Badge variant="destructive" className="ml-2 text-[10px]">Controlado · lo atiende el farmacéutico</Badge> : i.requires_prescription && <Badge variant="secondary" className="ml-2 text-[10px]">Receta</Badge>}
                     {i.extras.length > 0 && <span> · {i.extras.length} extra(s)</span>}
                   </p>
                 </div>

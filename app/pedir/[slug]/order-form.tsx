@@ -6,7 +6,7 @@ import { Minus, Plus, ShoppingBag, X, Check } from 'lucide-react'
 import { buildPhone } from '@/lib/booking-format'
 
 interface Extra { name: string; price: number }
-interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean; requires_prescription?: boolean }
+interface Item { id: string; category_id: string | null; name: string; description: string | null; price: number; image_url: string | null; extras: Extra[]; is_available: boolean; requires_prescription?: boolean; controlled?: boolean }
 interface Category { id: string; name: string }
 interface Org {
   slug: string; name: string; address: string | null; logo_url: string | null; accent: string
@@ -270,12 +270,12 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             <h2 className="text-lg font-semibold mb-3">{sec.name}</h2>
             <div className="space-y-3">
               {sec.items.map(it => (
-                <button key={it.id} onClick={() => openItem(it)} disabled={!it.is_available || !org.accepting || !!it.requires_prescription}
+                <button key={it.id} onClick={() => openItem(it)} disabled={!it.is_available || !org.accepting || !!it.requires_prescription || !!it.controlled}
                   className="w-full flex items-stretch gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-3 text-left disabled:opacity-50">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium">{it.name}</p>
                     {it.description && <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{it.description}</p>}
-                    <p className="text-sm mt-2" style={{ color: accent }}>{it.requires_prescription ? 'Requiere receta · consúltalo por WhatsApp' : it.is_available ? money(it.price) : 'Agotado'}</p>
+                    <p className="text-sm mt-2" style={{ color: accent }}>{it.controlled || it.requires_prescription ? 'Consúltalo por WhatsApp' : it.is_available ? money(it.price) : 'Agotado'}</p>
                   </div>
                   {it.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element

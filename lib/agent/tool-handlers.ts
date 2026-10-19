@@ -33,7 +33,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const [{ data: org }, { data: categories }, { data: items }] = await Promise.all([
         db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, currency').eq('id', ctx.organizationId).single(),
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
-        db.from('menu_items').select('id, category_id, name, description, price, extras, is_available, requires_prescription').eq('organization_id', ctx.organizationId).eq('controlled', false).order('sort_order').order('created_at'),
+        db.from('menu_items').select('id, category_id, name, description, price, extras, is_available, requires_prescription, controlled').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
       ])
       return JSON.stringify({
         currency: (org?.currency ?? 'mxn').toUpperCase(),
@@ -43,9 +43,9 @@ export async function handleTool(toolName: string, input: Record<string, string>
         min_order: Number(org?.order_min_amount) || 0,
         categories: (categories ?? []).map(c => ({
           name: c.name,
-          items: (items ?? []).filter(i => i.category_id === c.id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available, requires_prescription: !!i.requires_prescription })),
+          items: (items ?? []).filter(i => i.category_id === c.id).map(i => ({ id: i.id, name: i.name, description: i.description, price: (i.controlled || i.requires_prescription) ? null : Number(i.price), extras: i.extras, available: i.is_available, requires_prescription: !!i.requires_prescription, controlled: !!i.controlled })),
         })),
-        uncategorized: (items ?? []).filter(i => !i.category_id).map(i => ({ id: i.id, name: i.name, description: i.description, price: Number(i.price), extras: i.extras, available: i.is_available, requires_prescription: !!i.requires_prescription })),
+        uncategorized: (items ?? []).filter(i => !i.category_id).map(i => ({ id: i.id, name: i.name, description: i.description, price: (i.controlled || i.requires_prescription) ? null : Number(i.price), extras: i.extras, available: i.is_available, requires_prescription: !!i.requires_prescription, controlled: !!i.controlled })),
       })
     }
 
@@ -53,7 +53,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const raw = input as unknown as { category?: string; names?: string[] }
       const [{ data: categories }, { data: items }] = await Promise.all([
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId),
-        db.from('menu_items').select('id, category_id, name, description, price, image_url, is_available').eq('organization_id', ctx.organizationId).eq('controlled', false).order('sort_order').order('created_at'),
+        db.from('menu_items').select('id, category_id, name, description, price, image_url, is_available').eq('organization_id', ctx.organizationId).eq('controlled', false).eq('requires_prescription', false).order('sort_order').order('created_at'),
       ])
       const menu = items ?? []
 
