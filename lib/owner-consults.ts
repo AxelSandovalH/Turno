@@ -60,7 +60,7 @@ export async function handleOwnerAnswer(org: OrgCtx, text: string, relay: (custo
   const t = text.trim()
   const withCode = t.match(/^(\d{4})\s*[:\-–]?\s+([\s\S]+)$/)
   let consult = withCode ? list.find(c => c.code === withCode[1]) : undefined
-  let answer = withCode && consult ? withCode[2].trim() : t
+  const answer = withCode && consult ? withCode[2].trim() : t
   if (!consult) {
     if (list.length === 1) consult = list[0]
     else {
