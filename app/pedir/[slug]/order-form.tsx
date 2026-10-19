@@ -55,13 +55,21 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
   const belowMin = subtotal < org.minAmount
   const fullPhone = parsePhone(phone)
 
+  // Buscador del catálogo: sin importar mayúsculas ni acentos, por nombre o descripción
+  const [search, setSearch] = useState('')
+  const [onlyCat, setOnlyCat] = useState('')
   const sections = useMemo(() => {
+    const fold = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    const term = fold(search.trim())
     const known = new Set(categories.map(c => c.id))
     const groups = categories.map(c => ({ id: c.id, name: c.name, items: items.filter(i => i.category_id === c.id) }))
     const loose = items.filter(i => !i.category_id || !known.has(i.category_id))
     if (loose.length) groups.push({ id: 'otros', name: categories.length ? 'Otros' : org.catalog ? 'Catálogo' : 'Menú', items: loose })
-    return groups.filter(g => g.items.length)
-  }, [categories, items, org.catalog])
+    return groups
+      .filter(g => !onlyCat || g.id === onlyCat)
+      .map(g => ({ ...g, items: term ? g.items.filter(i => fold(`${i.name} ${i.description ?? ''}`).includes(term)) : g.items }))
+      .filter(g => g.items.length)
+  }, [categories, items, org.catalog, search, onlyCat])
 
   function openItem(it: Item) {
     if (!it.is_available || !org.accepting) return
@@ -241,7 +249,22 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             Por ahora no estamos recibiendo pedidos. Puedes ver el {org.catalog ? 'catálogo' : 'menú'} y volver más tarde.
           </div>
         )}
-        {sections.length === 0 && <p className="text-sm text-zinc-500">{org.catalog ? 'El catálogo' : 'El menú'} aún no está disponible.</p>}
+        {items.length > 0 && (
+          <div className="mb-5 space-y-3">
+            <input className={input} type="search" placeholder={org.catalog ? 'Buscar producto…' : 'Buscar platillo…'} value={search} onChange={e => setSearch(e.target.value)} aria-label="Buscar" />
+            {categories.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {[{ id: '', name: 'Todo' }, ...categories].map(c => (
+                  <button key={c.id || 'all'} type="button" onClick={() => setOnlyCat(c.id)}
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-sm ${onlyCat === c.id ? 'text-white' : 'border-zinc-800 text-zinc-400'}`}
+                    style={onlyCat === c.id ? { borderColor: accent, background: `${accent}22` } : undefined}>{c.name}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {items.length === 0 && <p className="text-sm text-zinc-500">{org.catalog ? 'El catálogo' : 'El menú'} aún no está disponible.</p>}
+        {items.length > 0 && sections.length === 0 && <p className="text-sm text-zinc-500">Nada coincide con tu búsqueda.</p>}
         {sections.map(sec => (
           <section key={sec.id} className="mb-8">
             <h2 className="text-lg font-semibold mb-3">{sec.name}</h2>
