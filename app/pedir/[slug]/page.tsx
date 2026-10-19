@@ -22,7 +22,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, address, logo_url, primary_color, business_type, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_accepting, currency')
+    .select('id, name, slug, address, logo_url, primary_color, business_type, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_accepting, currency, order_card_fee_pct')
     .eq('slug', slug)
     .single()
 
@@ -48,6 +48,7 @@ export default async function OrderPage({ params, searchParams }: Props) {
         accepting: org.order_accepting,
         currency: org.currency ?? 'mxn',
         catalog: hasCapability(org.business_type, 'appointments'),
+        cardFeePct: Number(org.order_card_fee_pct) || 0,
       }}
       returned={pago === 'ok' && /^\d+$/.test(pedido ?? '') ? { paid: true as const, number: Number(pedido) } : pago === 'cancelado' ? { paid: false as const } : null}
       categories={categories ?? []}

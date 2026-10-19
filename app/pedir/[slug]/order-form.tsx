@@ -11,7 +11,7 @@ interface Category { id: string; name: string }
 interface Org {
   slug: string; name: string; address: string | null; logo_url: string | null; accent: string
   deliveryEnabled: boolean; pickupEnabled: boolean; deliveryFee: number; minAmount: number
-  accepting: boolean; currency?: string; catalog?: boolean
+  accepting: boolean; currency?: string; catalog?: boolean; cardFeePct?: number
 }
 type Returned = { paid: true; number: number } | { paid: false } | null
 interface CartLine { key: string; item: Item; quantity: number; extras: string[]; notes: string }
@@ -48,7 +48,9 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
   const accent = org.accent
   const subtotal = cart.reduce((s, l) => s + lineUnit(l) * l.quantity, 0)
   const fee = fulfillment === 'delivery' ? org.deliveryFee : 0
-  const total = subtotal + fee
+  // Cargo por pagar con tarjeta (comisión del procesador): la página cobra solo con tarjeta
+  const cardFee = Math.round((subtotal + fee) * (org.cardFeePct ?? 0)) / 100
+  const total = subtotal + fee + cardFee
   const count = cart.reduce((s, l) => s + l.quantity, 0)
   const belowMin = subtotal < org.minAmount
   const fullPhone = parsePhone(phone)
@@ -205,6 +207,7 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
           <div className="rounded-xl border border-zinc-800 p-4 space-y-1.5 text-sm">
             <div className="flex justify-between text-zinc-400"><span>Subtotal</span><span>{money(subtotal)}</span></div>
             {fulfillment === 'delivery' && <div className="flex justify-between text-zinc-400"><span>Envío</span><span>{fee > 0 ? money(fee) : 'Gratis'}</span></div>}
+            {cardFee > 0 && <div className="flex justify-between text-zinc-400"><span>Cargo por tarjeta ({org.cardFeePct}%)</span><span>{money(cardFee)}</span></div>}
             <div className="flex justify-between font-semibold text-base pt-1"><span>Total</span><span>{money(total)}</span></div>
           </div>
           {belowMin && cart.length > 0 && <p className="text-sm text-amber-400">El pedido mínimo es de {money(org.minAmount)}. Te faltan {money(org.minAmount - subtotal)}.</p>}

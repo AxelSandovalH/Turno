@@ -22,7 +22,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount')
+    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_cash_enabled, order_card_fee_pct, order_eta_minutes')
     .eq('id', organizationId)
     .single()
 

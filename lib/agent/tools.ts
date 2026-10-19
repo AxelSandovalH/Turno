@@ -114,6 +114,7 @@ export const orderTools: Tool[] = [
         fulfillment: { type: 'string', enum: ['delivery', 'pickup'], description: 'delivery = a domicilio, pickup = pasa a recoger' },
         address: { type: 'string', description: 'Dirección completa de entrega (obligatoria si es delivery)' },
         notes: { type: 'string', description: 'Notas generales del pedido (opcional)' },
+        payment_method: { type: 'string', enum: ['card', 'cash'], description: 'card = tarjeta con link de pago (puede llevar cargo y pasa por aprobación del responsable); cash = efectivo al recibir (solo si el negocio lo permite). Por defecto card.' },
         items: {
           type: 'array',
           description: 'Productos del pedido',

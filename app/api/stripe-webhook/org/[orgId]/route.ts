@@ -40,7 +40,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ orgId: 
         await markOrderPaid(order.id, intent)
       }
     } else if (session.metadata?.type === 'custom_payment' && session.metadata.request_id && session.payment_status === 'paid') {
-      await markPaymentLinkPaid(session.metadata.request_id, orgId)
+      const intent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+      await markPaymentLinkPaid(session.metadata.request_id, orgId, intent)
     } else if (session.metadata?.type === 'deposit' && session.metadata.appointment_id) {
       const { data: appt } = await db.from('appointments').select('id').eq('id', session.metadata.appointment_id).eq('organization_id', orgId).maybeSingle()
       if (appt) await handleDepositPaid(db, appt.id)

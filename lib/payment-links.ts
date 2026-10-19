@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
+import { markOrderPaid } from '@/lib/orders'
 import { sendMessage, type UltramsgCreds } from '@/lib/ultramsg'
 import { getOrgStripe } from '@/lib/org-stripe'
 import { fmtMoney, normCurrency } from '@/lib/currency'
@@ -22,10 +23,10 @@ export const isOwnerPhone = (ownerNumber: string | null | undefined, phone: stri
 interface OrgCtx { id: string; name: string; whatsapp_number: string | null; currency: string | null; creds: UltramsgCreds }
 
 /** El bot pide un link: se guarda como pendiente y se le consulta al dueño. El cliente NO recibe nada todavía. */
-export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: string; customerName?: string; amount: number; description: string }): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: string; customerName?: string; amount: number; description: string; orderId?: string }): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
   if (!org.whatsapp_number) return { ok: false, error: 'El negocio no tiene número del responsable configurado' }
   const amount = Math.round(Number(input.amount) * 100) / 100
-  const description = String(input.description ?? '').trim().slice(0, 120)
+  const description = String(input.description ?? '').trim().slice(0, input.orderId ? 400 : 120)
   if (!(amount > 0) || amount > MAX_AMOUNT) return { ok: false, error: `El monto debe estar entre 1 y ${MAX_AMOUNT}` }
   if (description.length < 3) return { ok: false, error: 'Falta la descripción del cobro' }
 
@@ -47,7 +48,7 @@ export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: st
   if (used.has(code)) return { ok: false, error: 'No se pudo generar la solicitud, intenta de nuevo' }
 
   const { error } = await db.from('payment_link_requests').insert({
-    organization_id: org.id, code, customer_phone: input.customerPhone, customer_name: input.customerName?.slice(0, 80) || null, amount, description,
+    organization_id: org.id, code, order_id: input.orderId ?? null, customer_phone: input.customerPhone, customer_name: input.customerName?.slice(0, 80) || null, amount, description,
   })
   if (error) { console.error('[payment-links] insert', error.message); return { ok: false, error: 'No se pudo registrar la solicitud' } }
 
@@ -87,6 +88,7 @@ export async function handleOwnerDecision(org: OrgCtx & { slug: string }, text: 
 
   const ownerTo = `${waId(org.whatsapp_number ?? '')}@c.us`
   if (!approve) {
+    if (req.order_id) await db.from('orders').update({ status: 'cancelled' }).eq('id', req.order_id).eq('organization_id', org.id)
     await sendMessage(ownerTo, `Listo, rechazada la solicitud ${req.code}. No se envió nada al cliente.`, org.creds).catch(() => {})
     await sendMessage(req.customer_phone, 'Por ahora no podemos generar ese cobro. Si necesitas ayuda, escríbenos y con gusto te apoyamos.', org.creds).catch(() => {})
     return true
@@ -98,14 +100,14 @@ export async function handleOwnerDecision(org: OrgCtx & { slug: string }, text: 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
     const session = await acct.client.checkout.sessions.create({
       mode: 'payment',
-      line_items: [{ quantity: 1, price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(Number(req.amount) * 100), product_data: { name: req.description } } }],
+      line_items: [{ quantity: 1, price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(Number(req.amount) * 100), product_data: { name: String(req.description).slice(0, 120) } } }],
       success_url: `${baseUrl}/deposit/success`,
       cancel_url: `${baseUrl}/deposit/cancelled`,
-      metadata: { type: 'custom_payment', request_id: req.id, organization_id: org.id },
+      metadata: { type: 'custom_payment', request_id: req.id, organization_id: org.id, ...(req.order_id ? { order_id: req.order_id } : {}) },
       payment_intent_data: { description: `${req.description} — ${org.name}`, metadata: { request_id: req.id } },
     })
     await db.from('payment_link_requests').update({ checkout_url: session.url, checkout_session_id: session.id }).eq('id', req.id)
-    await sendMessage(req.customer_phone, `Listo. Aquí tienes tu link de pago por *${req.description}* (${fmtMoney(Number(req.amount), org.currency)}):\n${session.url}\n\nEs seguro y se paga con tarjeta. Al pagar te avisamos por aquí.`, org.creds)
+    await sendMessage(req.customer_phone, `Listo. Aquí tienes tu link de pago por *${String(req.description).split('\n')[0]}* (${fmtMoney(Number(req.amount), org.currency)}):\n${session.url}\n\nEs seguro y se paga con tarjeta. Al pagar te avisamos por aquí.`, org.creds)
     await sendMessage(ownerTo, `✅ Link enviado a ${req.customer_name || req.customer_phone} (solicitud ${req.code}). Te aviso cuando lo pague.`, org.creds).catch(() => {})
   } catch (err) {
     console.error('[payment-links] no se pudo crear el link', err)
@@ -116,13 +118,15 @@ export async function handleOwnerDecision(org: OrgCtx & { slug: string }, text: 
 }
 
 /** Stripe confirmó el pago de un link aprobado: avisa al cliente y al dueño. Idempotente. */
-export async function markPaymentLinkPaid(requestId: string, orgId: string) {
+export async function markPaymentLinkPaid(requestId: string, orgId: string, paymentIntent: string | null = null) {
   const db = createServiceClient()
   const { data: updated } = await db.from('payment_link_requests')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', requestId).eq('organization_id', orgId).eq('status', 'approved').select('*')
   const req = updated?.[0]
   if (!req) return
+  // Link de un pedido: se marca pagado y ahí mismo se avisa al negocio y al cliente (mismo aviso que un pedido normal)
+  if (req.order_id) { await markOrderPaid(req.order_id, paymentIntent); return }
   const { data: org } = await db.from('organizations').select('name, whatsapp_number, ultramsg_instance, ultramsg_token, currency').eq('id', orgId).single()
   if (!org) return
   const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }

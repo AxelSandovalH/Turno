@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requestPaymentLink } from '@/lib/payment-links'
-import { stripeFor } from '@/lib/org-stripe'
+import { stripeFor, hasOrgStripe } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
 import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
 import { createDepositCheckoutSession } from '@/lib/stripe'
@@ -95,8 +95,11 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
     case 'create_order': {
       const raw = input as unknown as {
-        customer_name?: string; fulfillment?: string; address?: string; notes?: string; items?: OrderLineInput[]
+        customer_name?: string; fulfillment?: string; address?: string; notes?: string; items?: OrderLineInput[]; payment_method?: string
       }
+      const cash = raw.payment_method === 'cash'
+      // Con Stripe propio, el link de tarjeta se genera solo cuando el responsable lo aprueba
+      const needsApproval = !cash && await hasOrgStripe(ctx.organizationId)
       const result = await createOrder({
         organizationId: ctx.organizationId,
         customerName: String(raw.customer_name ?? ''),
@@ -106,13 +109,33 @@ export async function handleTool(toolName: string, input: Record<string, string>
         notes: raw.notes,
         source: 'whatsapp',
         items: Array.isArray(raw.items) ? raw.items : [],
+        payment: cash ? 'cash' : 'card',
+        deferCheckout: needsApproval,
       })
       if (!result.ok) return JSON.stringify({ error: result.error })
+      const cardFee = Math.round((result.order.total - result.order.subtotal - result.order.delivery_fee) * 100) / 100
+      if (cash) {
+        return JSON.stringify({ success: true, order_number: result.order.order_number, subtotal: result.order.subtotal, delivery_fee: result.order.delivery_fee, total: result.order.total, payment: 'cash', note: 'Pedido registrado y avisado al equipo. Se paga en efectivo al recibir.' })
+      }
+      if (needsApproval) {
+        const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
+        const lines = (Array.isArray(raw.items) ? raw.items : []).map(i => `${i.quantity} x ${i.name ?? i.menu_item_id}`).join(', ')
+        const asked = o ? await requestPaymentLink(
+          { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
+          { customerPhone: ctx.customerPhone ?? '', customerName: String(raw.customer_name ?? ''), amount: result.order.total, description: `Pedido #${result.order.order_number}: ${lines}${raw.fulfillment === 'pickup' ? ' (recoger)' : ` (a domicilio: ${String(raw.address ?? '').slice(0, 80)})`}${cardFee > 0 ? ` | incluye cargo por tarjeta ${cardFee}` : ''}`, orderId: result.order.id }
+        ) : { ok: false as const, error: 'Negocio no encontrado' }
+        if (!asked.ok) {
+          await db.from('orders').update({ status: 'cancelled' }).eq('id', result.order.id)
+          return JSON.stringify({ error: asked.error })
+        }
+        return JSON.stringify({ success: true, order_number: result.order.order_number, subtotal: result.order.subtotal, delivery_fee: result.order.delivery_fee, card_fee: cardFee, total: result.order.total, payment: 'card_pendiente_de_aprobacion', note: 'El link de pago NO se ha enviado: ya se le consultó al responsable. Dile al cliente el total (con el cargo de tarjeta si aplica) y que en cuanto lo autoricen le llega el link por este chat. Si prefiere efectivo, dile que puede cambiarlo y se registra un pedido nuevo.' })
+      }
       return JSON.stringify({
         success: true,
         order_number: result.order.order_number,
         subtotal: result.order.subtotal,
         delivery_fee: result.order.delivery_fee,
+        card_fee: cardFee,
         total: result.order.total,
         payment_link: result.checkoutUrl,
       })

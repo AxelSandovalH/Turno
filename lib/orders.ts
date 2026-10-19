@@ -28,6 +28,10 @@ export interface CreateOrderInput {
   notes?: string
   source: 'web' | 'whatsapp'
   items: OrderLineInput[]
+  /** card (por defecto) o cash (efectivo al recibir; solo si el negocio lo permite) */
+  payment?: 'card' | 'cash'
+  /** Con tarjeta: crea el pedido pero NO el link de pago (el bot lo pide con aprobación del responsable) */
+  deferCheckout?: boolean
 }
 
 export type CreateOrderResult =
@@ -79,7 +83,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting, currency')
+    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting, currency, order_cash_enabled, order_card_fee_pct, order_eta_minutes')
     .eq('id', input.organizationId)
     .eq('is_active', true)
     .single()
@@ -134,7 +138,11 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   if (subtotal < minAmount) return fail(`El pedido mínimo es de ${money(minAmount, org.currency)}`)
 
   const deliveryFee = input.fulfillment === 'delivery' ? Number(org.order_delivery_fee) || 0 : 0
-  const total = subtotal + deliveryFee
+  const payment = input.payment === 'cash' ? 'cash' : 'card'
+  if (payment === 'cash' && !org.order_cash_enabled) return fail('Este negocio solo recibe pagos con tarjeta')
+  // Cargo de la tarjeta (comisión del procesador): se suma al total solo si paga con tarjeta
+  const cardFee = payment === 'card' ? Math.round((subtotal + deliveryFee) * (Number(org.order_card_fee_pct) || 0)) / 100 : 0
+  const total = subtotal + deliveryFee + cardFee
 
   const { data: customer } = await db
     .from('customers')
@@ -154,8 +162,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       notes: input.notes?.trim().slice(0, 300) || null,
       subtotal,
       delivery_fee: deliveryFee,
+      card_fee: cardFee,
       total,
-      payment_method: 'card',
+      payment_method: payment,
       source: input.source,
     })
     .select('id, order_number')
@@ -172,7 +181,17 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     return fail('No se pudo registrar el pedido. Intenta de nuevo.', 500)
   }
 
-  // El pago es siempre con tarjeta (Stripe). El pedido queda sin pagar y oculto para
+  // Efectivo: el pedido llega al negocio de inmediato y se paga al recibir
+  if (payment === 'cash') {
+    await notifyNewOrder(order.id, { skipCustomer: input.source === 'whatsapp' })
+    return { ok: true, order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee }, checkoutUrl: '' }
+  }
+  // Con aprobación previa (bot): el pedido queda sin pagar y oculto; el link lo crea el sistema cuando el responsable aprueba
+  if (input.deferCheckout) {
+    return { ok: true, order: { id: order.id, order_number: Number(order.order_number), total, subtotal, delivery_fee: deliveryFee }, checkoutUrl: '' }
+  }
+
+  // El pago con tarjeta es con Stripe. El pedido queda sin pagar y oculto para
   // el negocio, y no se avisa a nadie hasta que Stripe confirme — ver markOrderPaid.
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
@@ -191,6 +210,10 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
             },
           },
         })),
+        ...(cardFee > 0 ? [{
+          quantity: 1,
+          price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(cardFee * 100), product_data: { name: `Cargo por pago con tarjeta (${Number(org.order_card_fee_pct)}%)` } },
+        }] : []),
         ...(deliveryFee > 0 ? [{
           quantity: 1,
           price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(deliveryFee * 100), product_data: { name: 'Envío a domicilio' } },
