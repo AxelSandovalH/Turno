@@ -208,7 +208,7 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             {fulfillment === 'delivery' && (
               <>
               <input className={input} placeholder="Dirección de entrega" value={address} onChange={e => setAddress(e.target.value)} />
-              {org.catalog && <p className="text-xs text-zinc-400">Las entregas se hacen solo en el lobby o entrada principal. Escribe el nombre del hotel o edificio (y tu habitación como referencia).</p>}
+              {org.catalog && <p className="text-xs text-zinc-400">Las entregas se hacen solo en el lobby o entrada principal. Escribe el nombre del hotel o edificio donde te hospedas; bajas al lobby por tu pedido.</p>}
               </>
             )}
           </div>
