@@ -199,6 +199,7 @@ export function OrderForm({ org, categories, items, returned = null }: { org: Or
             <input className={input} inputMode="tel" placeholder="Tu WhatsApp (10 dígitos)" value={phone} onChange={e => setPhone(e.target.value)} />
             {fulfillment === 'delivery' && (
               <input className={input} placeholder="Dirección de entrega" value={address} onChange={e => setAddress(e.target.value)} />
+              {org.catalog && <p className="text-xs text-zinc-400">Las entregas se hacen solo en el lobby o entrada principal. Escribe el nombre del hotel o edificio (y tu habitación como referencia).</p>}
             )}
           </div>
 
