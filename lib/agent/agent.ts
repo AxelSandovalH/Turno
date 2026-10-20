@@ -26,7 +26,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Load org context
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_cash_enabled, order_card_fee_pct, order_eta_minutes')
+    .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_cash_enabled, order_card_fee_pct, order_eta_minutes, appointment_prepay')
     .eq('id', organizationId)
     .single()
 
@@ -93,6 +93,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     ultramsg_id: ultramsgId ?? null,
   })
 
+  const paymentLinks = await hasOrgStripe(organizationId)
   const ctx = {
     organizationId,
     organizationName: org.name,
@@ -105,13 +106,14 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     customerPhone,
     conversationId: conversation.id,
     imageUrl: image?.url,
+    prepay: !!org.appointment_prepay && paymentLinks,
+    cardFeePct: Number(org.order_card_fee_pct) || 0,
   }
   const sellsProducts = hasCapability(org.business_type, 'orders')
   const booksAppointments = hasCapability(org.business_type, 'appointments')
   // Farmacia: citas y pedidos de productos en la misma conversación
   const baseTools = sellsProducts && booksAppointments ? [...tools, ...orderTools] : sellsProducts ? orderTools : tools
   // Con Stripe propio el bot puede pedir links de pago, siempre con aprobación previa del responsable
-  const paymentLinks = await hasOrgStripe(organizationId)
   // Farmacia (citas + pedidos): puede pasarle el caso al responsable cuando hay receta, controlados o urgencias
   const withLinks = paymentLinks ? [...baseTools, ...paymentLinkTools] : baseTools
   const agentTools = sellsProducts && booksAppointments ? [...withLinks, ...handoffTools] : withLinks

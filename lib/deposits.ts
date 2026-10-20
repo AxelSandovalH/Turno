@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
 
 /** Anticipo pagado: confirma la cita y avisa al cliente y al negocio. */
-export async function handleDepositPaid(db: ReturnType<typeof createServiceClient>, appointmentId: string) {
+export async function handleDepositPaid(db: ReturnType<typeof createServiceClient>, appointmentId: string, opts: { fullPayment?: boolean } = {}) {
   const { data: appt } = await db
     .from('appointments')
     .select(`
@@ -56,13 +56,13 @@ export async function handleDepositPaid(db: ReturnType<typeof createServiceClien
   if (customer?.phone) {
     await sendMessage(
       customer.phone,
-      `✅ ¡Anticipo recibido! Tu cita de *${svc?.name ?? 'tu servicio'}* el ${localTime} quedó confirmada. Te esperamos en *${org.name}*.`,
+      opts.fullPayment ? `✅ ¡Pago recibido! Tu cita de *${svc?.name ?? 'tu servicio'}* el ${localTime} quedó confirmada. Gracias por elegir *${org.name}*.` : `✅ ¡Anticipo recibido! Tu cita de *${svc?.name ?? 'tu servicio'}* el ${localTime} quedó confirmada. Te esperamos en *${org.name}*.`,
       creds
     ).catch(e => console.error('[deposit] whatsapp failed', e))
   }
   await sendMessage(
     `${org.whatsapp_number}@c.us`,
-    `💰 *Anticipo pagado*\n👤 ${customer?.name ?? customer?.phone ?? 'Cliente'}\n🕐 ${localTime}\nLa cita quedó confirmada.`,
+    `💰 *${opts.fullPayment ? 'Pago recibido' : 'Anticipo pagado'}*\n👤 ${customer?.name ?? customer?.phone ?? 'Cliente'}\n🕐 ${localTime}\nLa cita quedó confirmada.`,
     creds
   ).catch(e => console.error('[deposit] whatsapp failed', e))
 }

@@ -26,6 +26,9 @@ interface Context {
   conversationId?: string
   /** Foto que el cliente mandó en este mensaje (se le reenvía al responsable si se le pasa el caso) */
   imageUrl?: string
+  /** Citas con pago por adelantado aprobado por el responsable (farmacia) */
+  prepay?: boolean
+  cardFeePct?: number
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -281,6 +284,20 @@ export async function handleTool(toolName: string, input: Record<string, string>
       // con el primer staff alfabético y nunca se ofrecía al resto)
       slots.sort((a, b) => a.starts_at.localeCompare(b.starts_at))
 
+      // Solo horarios que SÍ se pueden hacer: se quitan los que chocan con una cita que este mismo cliente ya tiene
+      // (no puede estar en dos consultas a la vez, y evita ofrecerle un horario que luego "ya no está disponible")
+      if (ctx.customerPhone) {
+        const { data: cust } = await db.from('customers').select('id').eq('organization_id', ctx.organizationId).eq('phone', ctx.customerPhone).maybeSingle()
+        if (cust) {
+          const { data: mine } = await db.from('appointments').select('starts_at, ends_at').eq('customer_id', cust.id).eq('status', 'confirmed').gte('ends_at', localStart.toISOString())
+          const busy = (mine ?? []).map(a => [new Date(a.starts_at).getTime(), new Date(a.ends_at).getTime()])
+          for (let i = slots.length - 1; i >= 0; i--) {
+            const s0 = new Date(slots[i].starts_at).getTime(), e0 = s0 + duration * 60_000
+            if (busy.some(([bs, be]) => s0 < be && e0 > bs)) slots.splice(i, 1)
+          }
+        }
+      }
+
       // Sin preferencia de staff: un solo slot por horario (evita listar la
       // misma hora tres veces con distinta persona)
       const deduped = staff_id
@@ -298,7 +315,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
     case 'create_appointment': {
       const { customer_name, customer_phone, service_id, staff_id, starts_at } = input
 
-      const { data: service } = await db.from('services').select('duration_minutes').eq('id', service_id).single()
+      const { data: service } = await db.from('services').select('duration_minutes, price').eq('id', service_id).single()
       if (!service) return JSON.stringify({ error: 'Servicio no encontrado' })
 
       if (!(await staffCanDo(db, staff_id, service_id))) return JSON.stringify({ error: 'Ese profesional no ofrece este servicio. Elige otro profesional.' })
@@ -321,9 +338,18 @@ export async function handleTool(toolName: string, input: Record<string, string>
         .eq('status', 'confirmed')
         .lt('starts_at', endsAt)
         .gt('ends_at', starts_at)
+        .limit(1)
         .maybeSingle()
 
-      if (conflict) return JSON.stringify({ error: 'El horario ya no está disponible. Por favor elige otro.' })
+      if (conflict) {
+        // Si el choque es con la cita que ESTE MISMO cliente ya tiene a esa hora (p. ej. confirmó dos veces), no es un error:
+        // esa cita ya quedó agendada. Evita decirle "ya no está disponible" justo después de confirmarle.
+        const { data: mine } = await db.from('appointments').select('id, starts_at, ends_at, deposit_status').eq('id', conflict.id).eq('customer_id', customer.id).eq('service_id', service_id).maybeSingle()
+        if (mine && new Date(mine.starts_at).getTime() === parseISO(starts_at).getTime()) {
+          return JSON.stringify({ success: true, already_booked: true, appointment_id: mine.id, starts_at: mine.starts_at, ends_at: mine.ends_at, awaiting_payment: mine.deposit_status === 'pending', note: 'Esta cita YA estaba agendada para este cliente a esta hora. No es un error ni se vuelve a crear: confírmasela como ya registrada.' })
+        }
+        return JSON.stringify({ error: 'El horario ya no está disponible. Por favor elige otro.' })
+      }
 
       const { data: appointment, error } = await db
         .from('appointments')
@@ -359,6 +385,25 @@ export async function handleTool(toolName: string, input: Record<string, string>
       // Deposit flow: appointment already blocks the slot; generate a Stripe
       // checkout link and let the cron release it if unpaid within the timeout.
       let depositResult: { deposit_checkout_url: string; deposit_amount: number; deposit_expires_minutes: number } | null = null
+
+      // Pago por adelantado con aprobación del responsable: el horario queda apartado, el responsable aprueba por WhatsApp
+      // y el sistema le manda el link de Stripe al cliente; la cita queda confirmada cuando se paga
+      const price = Number(service.price) || 0
+      if (ctx.prepay && price > 0 && !(ctx.deposit?.enabled && ctx.deposit.amount > 0)) {
+        const fee = Math.round(price * (ctx.cardFeePct ?? 0)) / 100
+        const total = Math.round((price + fee) * 100) / 100
+        await db.from('appointments').update({ deposit_status: 'pending', deposit_amount: total, deposit_expires_at: new Date(Date.now() + 60 * 60_000).toISOString() }).eq('id', appointment.id)
+        const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
+        const asked = o ? await requestPaymentLink(
+          { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
+          { customerPhone: customer_phone, customerName: customer_name, amount: total, description: `Cita: ${svc?.name ?? 'servicio'} con ${stf?.name ?? 'profesional'}, ${localTime}${fee > 0 ? ` | incluye cargo por tarjeta ${fee}` : ''}`, appointmentId: appointment.id }
+        ) : { ok: false as const, error: 'Negocio no encontrado' }
+        if (!asked.ok) {
+          await db.from('appointments').update({ status: 'cancelled', deposit_status: null }).eq('id', appointment.id)
+          return JSON.stringify({ error: `No se pudo apartar la cita: ${asked.error}. Dile al cliente que lo confirmas con el equipo.` })
+        }
+        return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, awaiting_payment: true, price, card_fee: fee, total, note: 'El horario quedó APARTADO, pero la cita NO está confirmada hasta que se pague. Ya se le consultó al responsable; en cuanto lo autorice, el cliente recibe el link de pago por este chat y tiene 30 minutos para pagar. Díselo así, con el total (incluyendo el cargo por tarjeta si hay) y sin decir que ya está confirmada.' })
+      }
 
       if (ctx.deposit?.enabled && ctx.deposit.amount > 0) {
         try {
