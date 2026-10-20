@@ -24,11 +24,18 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   const db = createServiceClient()
 
   // Load org context
-  const { data: org } = await db
+  let { data: org, error: orgError } = await db
     .from('organizations')
     .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_cash_enabled, order_card_fee_pct, order_eta_minutes, appointment_prepay')
     .eq('id', organizationId)
     .single()
+
+  // Si una migración todavía no se corrió (columna nueva que no existe), no se cae el bot: se lee el negocio sin las columnas nuevas
+  if (!org && orgError) {
+    console.error('[agent] consulta del negocio falló, reintentando con todas las columnas:', orgError.message)
+    const retry = await db.from('organizations').select('*').eq('id', organizationId).single()
+    org = retry.data
+  }
 
   if (!org) return 'Lo sentimos, el negocio no está disponible en este momento.'
 
