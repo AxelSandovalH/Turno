@@ -6,6 +6,7 @@ const jsonLd = {
   '@type': 'SoftwareApplication',
   name: 'QuickTurno',
   url: 'https://www.quickturno.app',
+  image: 'https://www.quickturno.app/opengraph-image',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web, WhatsApp',
   inLanguage: 'es-MX',
