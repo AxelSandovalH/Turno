@@ -24,11 +24,13 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   const db = createServiceClient()
 
   // Load org context
-  let { data: org, error: orgError } = await db
+  const first = await db
     .from('organizations')
     .select('id, name, slug, business_type, timezone, welcome_message, away_message, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_cash_enabled, order_card_fee_pct, order_eta_minutes, appointment_prepay')
     .eq('id', organizationId)
     .single()
+  let org = first.data
+  const orgError = first.error
 
   // Si una migración todavía no se corrió (columna nueva que no existe), no se cae el bot: se lee el negocio sin las columnas nuevas
   if (!org && orgError) {
