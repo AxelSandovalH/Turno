@@ -26,6 +26,7 @@ export const metadata: Metadata = {
     locale: 'es_MX',
     type: 'website',
   },
+  twitter: { card: 'summary_large_image', title: 'QuickTurno — Recepcionista por WhatsApp para tu negocio', description: 'Agenda citas, confirma, recuerda y cobra anticipos por WhatsApp, sin que tú contestes. 7 días gratis.' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
