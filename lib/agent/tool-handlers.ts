@@ -34,10 +34,11 @@ export async function handleTool(toolName: string, input: Record<string, string>
   switch (toolName) {
     case 'get_menu': {
       const [{ data: org }, { data: categories }, { data: items }] = await Promise.all([
-        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, currency').eq('id', ctx.organizationId).single(),
+        db.from('organizations').select('order_accepting, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, currency, catalog_enabled').eq('id', ctx.organizationId).single(),
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
         db.from('menu_items').select('id, category_id, name, description, price, extras, is_available, requires_prescription, controlled').eq('organization_id', ctx.organizationId).order('sort_order').order('created_at'),
       ])
+      if (org?.catalog_enabled === false) return JSON.stringify({ catalog_enabled: false, note: 'El catálogo en línea está apagado por ahora: no ofrezcas ni tomes pedidos de productos y no des precios. Dile al cliente con amabilidad que por el momento no puedes tomar pedidos de productos por aquí y que consultarás con el equipo; si necesita algo, consulta con handoff_to_owner si está disponible.' })
       return JSON.stringify({
         currency: (org?.currency ?? 'mxn').toUpperCase(),
         accepting_orders: org?.order_accepting ?? true,
@@ -54,6 +55,8 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
     case 'send_menu_photos': {
       const raw = input as unknown as { category?: string; names?: string[] }
+      const { data: cat } = await db.from('organizations').select('catalog_enabled').eq('id', ctx.organizationId).single()
+      if (cat?.catalog_enabled === false) return JSON.stringify({ error: 'El catálogo en línea está apagado por ahora: no envíes fotos de productos.' })
       const [{ data: categories }, { data: items }] = await Promise.all([
         db.from('menu_categories').select('id, name').eq('organization_id', ctx.organizationId),
         db.from('menu_items').select('id, category_id, name, description, price, image_url, is_available').eq('organization_id', ctx.organizationId).eq('controlled', false).eq('requires_prescription', false).order('sort_order').order('created_at'),

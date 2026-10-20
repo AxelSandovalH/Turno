@@ -83,11 +83,12 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting, currency, order_cash_enabled, order_card_fee_pct, order_eta_minutes')
+    .select('id, name, slug, whatsapp_number, ultramsg_instance, ultramsg_token, is_active, order_card_enabled, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_payment_info, order_accepting, currency, order_cash_enabled, order_card_fee_pct, order_eta_minutes, catalog_enabled')
     .eq('id', input.organizationId)
     .eq('is_active', true)
     .single()
   if (!org) return fail('Negocio no encontrado', 404)
+  if (org.catalog_enabled === false) return fail('El catálogo en línea no está disponible por ahora.', 409)
   if (!org.order_accepting) return fail('Por ahora no estamos recibiendo pedidos. Intenta más tarde.', 409)
 
   if (input.fulfillment === 'delivery' && !org.order_delivery_enabled) return fail('Este negocio no tiene entrega a domicilio')

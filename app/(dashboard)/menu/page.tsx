@@ -30,6 +30,7 @@ export default async function MenuPage() {
         organizationId={organization.id}
         currency={organization.currency ?? 'mxn'}
         catalog={catalog}
+        catalogEnabled={organization.catalog_enabled !== false}
         orderUrl={`${baseUrl}/pedir/${organization.slug}`}
         settings={{
           accepting: organization.order_accepting,

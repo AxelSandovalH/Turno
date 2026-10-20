@@ -18,6 +18,7 @@ export interface Organization {
   slug: string
   business_type: 'barbershop' | 'spa' | 'psychology' | 'dentistry' | 'physiotherapy' | 'laboratory' | 'charter' | 'tattoo' | 'consulting' | 'tours' | 'restaurant' | 'pharmacy' | 'other' | null
   currency?: string | null
+  catalog_enabled?: boolean
   whatsapp_number: string
   phone: string | null
   email: string | null

@@ -22,11 +22,23 @@ export default async function OrderPage({ params, searchParams }: Props) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, slug, address, logo_url, primary_color, business_type, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_accepting, currency, order_card_fee_pct')
+    .select('id, name, slug, address, logo_url, primary_color, business_type, is_active, order_delivery_enabled, order_pickup_enabled, order_delivery_fee, order_min_amount, order_accepting, currency, order_card_fee_pct, catalog_enabled')
     .eq('slug', slug)
     .single()
 
   if (!org || !org.is_active || !hasCapability(org.business_type, 'orders')) notFound()
+
+  // Catálogo apagado por el negocio: aviso amable en lugar de la tienda
+  if (org.catalog_enabled === false) {
+    return (
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#09090b', color: 'white', textAlign: 'center' }}>
+        <div style={{ maxWidth: 420 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>{org.name}</h1>
+          <p style={{ color: '#a1a1aa', fontSize: 15 }}>Nuestro catálogo en línea no está disponible por ahora. Escríbenos por WhatsApp y con gusto te ayudamos.</p>
+        </div>
+      </main>
+    )
+  }
 
   const [{ data: categories }, { data: items }] = await Promise.all([
     db.from('menu_categories').select('id, name').eq('organization_id', org.id).order('sort_order').order('created_at'),

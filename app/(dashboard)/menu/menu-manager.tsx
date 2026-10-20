@@ -23,8 +23,8 @@ interface Settings { accepting: boolean; deliveryEnabled: boolean; pickupEnabled
 const emptyItem = { name: '', description: '', price: '', category_id: '', image_url: '', extras: [] as { name: string; price: string }[], is_available: true, requires_prescription: false }
 const nativeSelect = 'flex h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring'
 
-export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items, currency = 'mxn', catalog = false }: {
-  catalog?: boolean; currency?: string; organizationId: string; orderUrl: string; settings: Settings; categories: Category[]; items: Item[]
+export function MenuManager({ organizationId, orderUrl, settings: initial, categories, items, currency = 'mxn', catalog = false, catalogEnabled = true }: {
+  catalogEnabled?: boolean; catalog?: boolean; currency?: string; organizationId: string; orderUrl: string; settings: Settings; categories: Category[]; items: Item[]
 }) {
   const money = (n: number) => fmtMoney(n, currency)
   const thing = catalog ? 'producto' : 'platillo'
@@ -73,6 +73,7 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
   }
 
   // ── Platillos ───────────────────────────────────────────────────────────────
+  const [catalogOn, setCatalogOn] = useState(catalogEnabled)
   const [query, setQuery] = useState('')
   const [section, setSection] = useState('')
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -142,6 +143,16 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
     router.refresh()
   }
 
+  // Interruptor general: apaga o enciende el catálogo en línea (enlace público y bot) al instante
+  async function toggleCatalog(next: boolean) {
+    const prev = catalogOn
+    setCatalogOn(next)
+    const { error } = await supabase.from('organizations').update({ catalog_enabled: next }).eq('id', organizationId)
+    if (error) { setCatalogOn(prev); return toast.error(`No se pudo cambiar: ${error.message}`) }
+    toast.success(next ? 'Catálogo encendido' : 'Catálogo apagado')
+    router.refresh()
+  }
+
   async function toggleAvailable(i: Item) {
     const { error } = await supabase.from('menu_items').update({ is_available: !i.is_available }).eq('id', i.id)
     if (error) return toast.error(error.message)
@@ -193,6 +204,21 @@ export function MenuManager({ organizationId, orderUrl, settings: initial, categ
 
   return (
     <>
+      {/* Interruptor general del catálogo en línea */}
+      <Card className={catalogOn ? '' : 'border-amber-500/40'}>
+        <CardContent className="pt-4 pb-4 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">{catalog ? 'Catálogo en línea' : 'Menú en línea'}: {catalogOn ? 'encendido' : 'apagado'}</p>
+            <p className="text-xs text-muted-foreground">
+              {catalogOn
+                ? 'Tus clientes lo ven en el enlace de pedidos y el asistente de WhatsApp ofrece y toma pedidos.'
+                : 'El enlace público muestra "no disponible por ahora" y el asistente no ofrece ni toma pedidos de productos. Tus productos y precios se conservan.'}
+            </p>
+          </div>
+          <Switch checked={catalogOn} onCheckedChange={toggleCatalog} aria-label="Catálogo en línea" />
+        </CardContent>
+      </Card>
+
       {/* Platillos */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{catalog ? 'Productos' : 'Platillos'}</h2>
