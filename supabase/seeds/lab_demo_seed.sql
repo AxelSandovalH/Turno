@@ -43,9 +43,11 @@ begin
     raise exception 'No existe la org lab-demo';
   end if;
 
-  -- Limpieza previa del catálogo (cascada borra lab_test_analytes)
-  delete from public.lab_tests where organization_id = v_org;
-  delete from public.lab_analytes where organization_id = v_org;
+  -- Si el catálogo ya existe (y puede tener órdenes que lo usan) no se toca: borrarlo rompe lab_order_tests.
+  if exists (select 1 from public.lab_tests where organization_id = v_org) then
+    raise notice 'La org % ya tiene catálogo; no se hace nada', v_org;
+    return;
+  end if;
 
   -- Estudios
   for i in 1..array_length(tests, 1) loop

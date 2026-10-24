@@ -13,7 +13,9 @@ const last24h = () => new Date(Date.now() - 24 * 3600_000).toISOString()
 
 export default async function OrdersPage() {
   const { organization } = await requireOrganization()
-  if (!hasCapability(organization.business_type, 'orders')) redirect('/appointments')
+  if (!hasCapability(organization.business_type, 'orders')) {
+    redirect(hasCapability(organization.business_type, 'lab-orders') ? '/lab/orders' : '/appointments')
+  }
 
   const db = createServiceClient()
   const since = last24h()
