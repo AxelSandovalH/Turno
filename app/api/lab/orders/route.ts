@@ -22,15 +22,20 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}))
-    const { customerId, newCustomer, testIds, discount = 0, notes } = body as {
+    const { customerId, birthDate, newCustomer, testIds, discount = 0, notes } = body as {
       customerId?: string
-      newCustomer?: { name: string; phone: string }
+      birthDate?: string
+      newCustomer?: { name: string; phone: string; birthDate?: string }
       testIds?: string[]
       discount?: number
       notes?: string
     }
 
     if (!testIds?.length) return NextResponse.json({ error: 'Selecciona al menos un estudio' }, { status: 400 })
+    const validDate = (d?: string) => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d) && new Date(d) <= new Date() && new Date(d).getFullYear() > 1900
+    if (newCustomer && !customerId && !validDate(newCustomer.birthDate)) {
+      return NextResponse.json({ error: 'Registra la fecha de nacimiento del paciente' }, { status: 400 })
+    }
     if (!customerId && !newCustomer?.name?.trim()) {
       return NextResponse.json({ error: 'Selecciona o registra un paciente' }, { status: 400 })
     }
@@ -46,11 +51,17 @@ export async function POST(req: Request) {
           organization_id: organization.id,
           name: newCustomer.name.trim(),
           phone: newCustomer.phone?.trim() || 'sin-telefono',
+          date_of_birth: newCustomer.birthDate,
         })
         .select('id')
         .single()
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       patientId = created.id
+    }
+
+    // Paciente existente sin fecha de nacimiento: se completa para que la edad se calcule siempre
+    if (customerId && validDate(birthDate)) {
+      await db.from('customers').update({ date_of_birth: birthDate }).eq('id', customerId).eq('organization_id', organization.id).is('date_of_birth', null)
     }
 
     // Snapshot de precios desde el catálogo (solo estudios activos de esta org)

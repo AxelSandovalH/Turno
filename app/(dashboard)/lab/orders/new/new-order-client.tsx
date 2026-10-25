@@ -13,7 +13,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 
 interface TestOption { id: string; name: string; description: string | null; price: number }
-interface PatientHit { id: string; name: string | null; phone: string }
+interface PatientHit { id: string; name: string | null; phone: string; date_of_birth: string | null }
+
+function ageFrom(iso: string): number {
+  const b = new Date(iso + 'T00:00:00'), n = new Date()
+  let a = n.getFullYear() - b.getFullYear()
+  if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--
+  return a
+}
+const today = () => new Date().toISOString().slice(0, 10)
 
 interface Props {
   tests: TestOption[]
@@ -31,13 +39,15 @@ export function NewOrderClient({ tests, organizationId }: Props) {
   const [quickCreate, setQuickCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [birth, setBirth] = useState('')
+  const [testSearch, setTestSearch] = useState('')
 
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setHits([]); return }
     const like = `%${q.trim()}%`
     const { data } = await supabase
       .from('customers')
-      .select('id, name, phone')
+      .select('id, name, phone, date_of_birth')
       .eq('organization_id', organizationId)
       .eq('is_active', true)
       .or(`name.ilike.${like},phone.ilike.${like}`)
@@ -65,12 +75,18 @@ export function NewOrderClient({ tests, organizationId }: Props) {
     })
   }
 
+  const norm = (x: string) => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const q = norm(testSearch.trim())
+  const visibleTests = q ? tests.filter(t => selected.has(t.id) || norm(`${t.name} ${t.description ?? ''}`).includes(q)) : tests
+
   const subtotal = tests.filter(t => selected.has(t.id)).reduce((s, t) => s + Number(t.price), 0)
   const disc = Math.min(Math.max(parseFloat(discount) || 0, 0), subtotal)
   const total = subtotal - disc
 
   async function handleCreate() {
     if (!patient && !(quickCreate && newName.trim())) return toast.error('Selecciona o registra un paciente')
+    if (!patient && !birth) return toast.error('Registra la fecha de nacimiento del paciente')
+    if (patient && !patient.date_of_birth && !birth) return toast.error('Este paciente no tiene fecha de nacimiento: regístrala')
     if (selected.size === 0) return toast.error('Selecciona al menos un estudio')
 
     setSaving(true)
@@ -79,7 +95,8 @@ export function NewOrderClient({ tests, organizationId }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customerId: patient?.id,
-        newCustomer: !patient && quickCreate ? { name: newName, phone: newPhone } : undefined,
+        birthDate: patient && !patient.date_of_birth ? birth : undefined,
+        newCustomer: !patient && quickCreate ? { name: newName, phone: newPhone, birthDate: birth } : undefined,
         testIds: Array.from(selected),
         discount: disc,
         notes,
@@ -108,15 +125,21 @@ export function NewOrderClient({ tests, organizationId }: Props) {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-sm">Paciente</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {patient ? (
+          {patient ? (<>
             <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
               <div>
                 <p className="text-sm font-medium text-foreground">{patient.name ?? 'Sin nombre'}</p>
-                <p className="text-xs text-muted-foreground">{patient.phone}</p>
+                <p className="text-xs text-muted-foreground">{patient.phone}{patient.date_of_birth ? ` · ${ageFrom(patient.date_of_birth)} años` : ''}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setPatient(null)}>Cambiar</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setPatient(null); setBirth('') }}>Cambiar</Button>
             </div>
-          ) : quickCreate ? (
+            {!patient.date_of_birth && (
+              <div className="space-y-1.5 max-w-xs">
+                <Label>Fecha de nacimiento (falta en su expediente)</Label>
+                <Input type="date" max={today()} value={birth} onChange={e => setBirth(e.target.value)} />
+              </div>
+            )}
+          </>) : quickCreate ? (
             <div className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -126,6 +149,11 @@ export function NewOrderClient({ tests, organizationId }: Props) {
                 <div className="space-y-1.5">
                   <Label>Teléfono</Label>
                   <Input placeholder="5512345678" value={newPhone} onChange={e => setNewPhone(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Fecha de nacimiento</Label>
+                  <Input type="date" max={today()} value={birth} onChange={e => setBirth(e.target.value)} />
+                  {birth && <p className="text-xs text-muted-foreground">{ageFrom(birth)} años</p>}
                 </div>
               </div>
               <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setQuickCreate(false)}>
@@ -149,10 +177,10 @@ export function NewOrderClient({ tests, organizationId }: Props) {
                     <button
                       key={h.id}
                       className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-muted/30 transition-colors"
-                      onClick={() => { setPatient(h); setSearch(''); setHits([]) }}
+                      onClick={() => { setPatient(h); setSearch(''); setHits([]); setBirth('') }}
                     >
                       <span className="text-sm font-medium">{h.name ?? 'Sin nombre'}</span>
-                      <span className="text-xs text-muted-foreground">{h.phone}</span>
+                      <span className="text-xs text-muted-foreground">{h.phone}{h.date_of_birth ? ` · ${ageFrom(h.date_of_birth)} años` : ''}</span>
                     </button>
                   ))}
                 </div>
@@ -177,8 +205,14 @@ export function NewOrderClient({ tests, organizationId }: Props) {
               No hay estudios activos. <Link href="/lab/tests" className="text-primary hover:underline">Crea tu catálogo primero</Link>.
             </p>
           ) : (
+            <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Buscar estudio..." value={testSearch} onChange={e => setTestSearch(e.target.value)} />
+            </div>
+            {visibleTests.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Ningún estudio coincide con “{testSearch}”.</p>}
             <div className="grid sm:grid-cols-2 gap-2">
-              {tests.map(t => {
+              {visibleTests.map(t => {
                 const isSel = selected.has(t.id)
                 return (
                   <button
@@ -201,6 +235,7 @@ export function NewOrderClient({ tests, organizationId }: Props) {
                   </button>
                 )
               })}
+            </div>
             </div>
           )}
         </CardContent>
