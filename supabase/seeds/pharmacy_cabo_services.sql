@@ -3,8 +3,9 @@
 do $$
 declare v_org uuid;
 begin
-  select id into v_org from organizations where slug = 'cabo-pharmacy' and business_type = 'pharmacy' limit 1;
-  if v_org is null then raise exception 'No existe el negocio cabo-pharmacy'; end if;
+  -- Busca la farmacia por giro (el slug cambia si renombras el negocio); si hay varias, pon aquí el slug exacto
+  select id into v_org from organizations where business_type = 'pharmacy' and (slug = 'cabo-pharmacy' or name ilike '%CMC%' or name ilike '%cabo%') order by created_at limit 1;
+  if v_org is null then raise exception 'No encuentro el negocio de farmacia'; end if;
 
   insert into services (organization_id, name, description, duration_minutes, price, is_active)
   select v_org, s.name, s.descr, s.mins, s.price, true
