@@ -26,7 +26,7 @@ export function SetupNudge({ done, total, next }: { done: number; total: number;
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: 'linear-gradient(135deg,#7c3aed,#ec4899)' }}>
           <Sparkles size={20} style={{ animation: 'qt-spark 2.4s ease-in-out infinite' }} />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <p className="text-sm font-semibold">Termina de armar tu negocio con la IA</p>
           <div className="mt-1.5 flex items-center gap-2">
             <div className="h-1.5 w-32 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#7c3aed,#ec4899)' }} /></div>

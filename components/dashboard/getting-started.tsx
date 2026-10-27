@@ -2,23 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Check, ChevronDown, Copy, X } from 'lucide-react'
-import { toast } from 'sonner'
+import { Check, ChevronDown, X } from 'lucide-react'
 import type { SetupStep } from '@/lib/setup-steps'
 
 interface Props {
   organizationId: string
   steps: SetupStep[]
-  shareUrl: string | null
+  shareUrl?: string | null
 }
 
 // Guía de primeros pasos. Se puede colapsar u ocultar, y desaparece sola al completarse.
-export function GettingStarted({ organizationId, steps, shareUrl }: Props) {
+export function GettingStarted({ organizationId, steps }: Props) {
   const key = (k: string) => `qt-setup-${k}-${organizationId}`
   const [hydrated, setHydrated] = useState(false)
   const [dismissed, setDismissed] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [shared, setShared] = useState(false)
 
   // localStorage solo existe en el navegador: se lee después de montar
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -26,7 +24,6 @@ export function GettingStarted({ organizationId, steps, shareUrl }: Props) {
     try {
       setDismissed(localStorage.getItem(key('dismissed')) === '1')
       setCollapsed(localStorage.getItem(key('collapsed')) === '1')
-      setShared(localStorage.getItem(key('shared')) === '1')
     } catch { /* sin almacenamiento: se muestra normal */ }
     setHydrated(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -35,19 +32,9 @@ export function GettingStarted({ organizationId, steps, shareUrl }: Props) {
 
   const remember = (k: string, v: boolean) => { try { localStorage.setItem(key(k), v ? '1' : '0') } catch { /* ignorar */ } }
 
-  const all: (SetupStep & { manual?: boolean })[] = [
-    ...steps,
-    ...(shareUrl ? [{ id: 'share', title: 'Comparte tu link', desc: 'Ponlo en tu Instagram, WhatsApp y donde te encuentren.', done: shared, manual: true }] : []),
-  ]
+  const all: SetupStep[] = steps
   const doneCount = all.filter(s => s.done).length
   if (!hydrated || dismissed || all.length === 0 || doneCount === all.length) return null
-
-  async function copyLink() {
-    if (!shareUrl) return
-    try { await navigator.clipboard.writeText(shareUrl) } catch { /* el toast sigue siendo útil */ }
-    toast.success('Link copiado')
-    setShared(true); remember('shared', true)
-  }
 
   const pct = Math.round((doneCount / all.length) * 100)
 
@@ -90,12 +77,7 @@ export function GettingStarted({ organizationId, steps, shareUrl }: Props) {
                 <p className={`text-[13px] font-medium ${step.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{step.title}</p>
                 {!step.done && <p className="text-[12px] text-muted-foreground">{step.desc}</p>}
               </div>
-              {!step.done && step.manual && (
-                <button type="button" onClick={copyLink} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium hover:bg-muted">
-                  <Copy className="h-3.5 w-3.5" /> Copiar link
-                </button>
-              )}
-              {!step.done && !step.manual && step.href && (
+              {!step.done && step.href && (
                 <Link href={step.href} className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-medium text-primary-foreground hover:opacity-90">
                   {step.cta ?? 'Ir'}
                 </Link>
