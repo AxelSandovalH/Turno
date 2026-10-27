@@ -3,7 +3,7 @@ import { sendMessage, sendImage, type UltramsgCreds } from '@/lib/ultramsg'
 import { waId } from '@/lib/payment-links'
 
 const EXPIRE_HOURS = 24
-const WHY: Record<string, string> = { receta: 'Medicamento', controlado: 'Medicamento controlado', urgencia: 'URGENCIA', queja: 'Queja', hablar_con_persona: 'Pide hablar con una persona', otro: 'Consulta' }
+const WHY: Record<string, string> = { receta: 'Medicamento', controlado: 'Medicamento controlado', urgencia: 'URGENCIA', queja: 'Queja', hablar_con_persona: 'Pide hablar con una persona', cotizacion: 'Cotización de servicio', otro: 'Consulta' }
 
 interface OrgCtx { id: string; name: string; whatsapp_number: string | null; creds: UltramsgCreds }
 

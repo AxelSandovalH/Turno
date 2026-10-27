@@ -166,7 +166,7 @@ export const handoffTools: Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        reason: { type: 'string', enum: ['receta', 'controlado', 'urgencia', 'queja', 'hablar_con_persona', 'otro'], description: 'Por qué se le pasa al responsable.' },
+        reason: { type: 'string', enum: ['receta', 'controlado', 'urgencia', 'queja', 'hablar_con_persona', 'cotizacion', 'otro'], description: 'Por qué se le pasa al responsable (cotizacion: servicio o evento que se cotiza con el equipo).' },
         summary: { type: 'string', description: 'La consulta para el farmacéutico, clara y completa: qué pide el cliente (medicamento o producto, cantidad), hotel o lugar y nombre, y qué necesitas que te confirme (disponibilidad, precio, tiempo).' },
         customer_name: { type: 'string', description: 'Nombre del cliente si lo tienes.' },
       },
