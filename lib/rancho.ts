@@ -1,7 +1,7 @@
 /**
  * Tarifas de Rancho McCoy (octubre 2026, PESOS MXN) y cotización calculada por el sistema, no por el modelo.
  * Dos listas: "general" (español) y "destination" (inglés, +30 %). Al subtotal se le suma SIEMPRE 16 % de IVA y 4 % de cargo
- * (ambos sobre el subtotal); el anticipo para apartar la fecha es el 30 % del total.
+ * (ambos sobre el subtotal); el anticipo para apartar la fecha es el 40 % del total.
  * Decoración (desde) e iluminación (por cotizar) no se calculan: se cotizan aparte con el equipo.
  */
 export type RanchoList = 'general' | 'destination'
@@ -9,7 +9,7 @@ export type RanchoCurrency = 'MXN' | 'USD'
 
 export const RANCHO_IVA = 0.16
 export const RANCHO_FEE = 0.04
-export const RANCHO_DEPOSIT = 0.30
+export const RANCHO_DEPOSIT = 0.40
 
 const TIERS: { max: number; general: number; destination: number }[] = [
   { max: 30, general: 10900, destination: 14170 },
