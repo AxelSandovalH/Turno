@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import { requestPaymentLink, waId } from '@/lib/payment-links'
+import { requestPaymentLink, autoSendEnabled, waId } from '@/lib/payment-links'
 import { createOwnerConsult } from '@/lib/owner-consults'
 import { stripeFor, hasOrgStripe } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
@@ -130,13 +130,17 @@ export async function handleTool(toolName: string, input: Record<string, string>
       if (needsApproval) {
         const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
         const lines = (Array.isArray(raw.items) ? raw.items : []).map(i => `${i.quantity} x ${i.name ?? i.menu_item_id}`).join(', ')
+        const auto = await autoSendEnabled(ctx.organizationId)
         const asked = o ? await requestPaymentLink(
           { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
-          { customerPhone: ctx.customerPhone ?? '', customerName: String(raw.customer_name ?? ''), amount: result.order.total, description: `Pedido #${result.order.order_number}: ${lines}${raw.fulfillment === 'pickup' ? ' (recoger)' : ` (a domicilio: ${String(raw.address ?? '').slice(0, 80)})`}${cardFee > 0 ? ` | incluye cargo por tarjeta ${cardFee}` : ''}`, orderId: result.order.id }
+          { auto, customerPhone: ctx.customerPhone ?? '', customerName: String(raw.customer_name ?? ''), amount: result.order.total, description: `Pedido #${result.order.order_number}: ${lines}${raw.fulfillment === 'pickup' ? ' (recoger)' : ` (a domicilio: ${String(raw.address ?? '').slice(0, 80)})`}${cardFee > 0 ? ` | incluye cargo por tarjeta ${cardFee}` : ''}`, orderId: result.order.id }
         ) : { ok: false as const, error: 'Negocio no encontrado' }
         if (!asked.ok) {
           await db.from('orders').update({ status: 'cancelled' }).eq('id', result.order.id)
           return JSON.stringify({ error: asked.error })
+        }
+        if (asked.sent) {
+          return JSON.stringify({ success: true, order_number: result.order.order_number, subtotal: result.order.subtotal, delivery_fee: result.order.delivery_fee, card_fee: cardFee, total: result.order.total, payment: 'link_enviado', note: 'El link de pago YA se envió al cliente por este chat (mensaje aparte, no lo repitas ni lo inventes). Dile el total (con el cargo de tarjeta si aplica) y que lo pague con ese link; el pedido se prepara al recibir el pago. Si prefiere efectivo, dile que puede cambiarlo y se registra un pedido nuevo.' })
         }
         return JSON.stringify({ success: true, order_number: result.order.order_number, subtotal: result.order.subtotal, delivery_fee: result.order.delivery_fee, card_fee: cardFee, total: result.order.total, payment: 'card_pendiente_de_aprobacion', note: 'El link de pago NO se ha enviado: ya se le consultó al responsable. Dile al cliente el total (con el cargo de tarjeta si aplica) y que en cuanto lo autoricen le llega el link por este chat. Si prefiere efectivo, dile que puede cambiarlo y se registra un pedido nuevo.' })
       }
@@ -394,13 +398,17 @@ export async function handleTool(toolName: string, input: Record<string, string>
         const total = Math.round((price + fee) * 100) / 100
         await db.from('appointments').update({ deposit_status: 'pending', deposit_amount: total, deposit_expires_at: new Date(Date.now() + 60 * 60_000).toISOString() }).eq('id', appointment.id)
         const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
+        const auto = await autoSendEnabled(ctx.organizationId)
         const asked = o ? await requestPaymentLink(
           { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
-          { customerPhone: customer_phone, customerName: customer_name, amount: total, description: `Cita: ${svc?.name ?? 'servicio'} con ${stf?.name ?? 'profesional'}, ${localTime}${fee > 0 ? ` | incluye cargo por tarjeta ${fee}` : ''}`, appointmentId: appointment.id }
+          { auto, customerPhone: customer_phone, customerName: customer_name, amount: total, description: `Cita: ${svc?.name ?? 'servicio'} con ${stf?.name ?? 'profesional'}, ${localTime}${fee > 0 ? ` | incluye cargo por tarjeta ${fee}` : ''}`, appointmentId: appointment.id }
         ) : { ok: false as const, error: 'Negocio no encontrado' }
         if (!asked.ok) {
           await db.from('appointments').update({ status: 'cancelled', deposit_status: null }).eq('id', appointment.id)
           return JSON.stringify({ error: `No se pudo apartar la cita: ${asked.error}. Dile al cliente que lo confirmas con el equipo.` })
+        }
+        if (asked.sent) {
+          return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, awaiting_payment: true, price, card_fee: fee, total, note: 'El horario quedó APARTADO y el link de pago YA se envió al cliente por este chat (mensaje aparte; no lo repitas ni lo inventes). La cita NO está confirmada hasta que pague: tiene 30 minutos y se confirma sola al recibir el pago. Dile el total (con el cargo por tarjeta si hay) y que revise el link; no digas que ya está confirmada.' })
         }
         return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, awaiting_payment: true, price, card_fee: fee, total, note: 'El horario quedó APARTADO, pero la cita NO está confirmada hasta que se pague. Ya se le consultó al responsable; en cuanto lo autorice, el cliente recibe el link de pago por este chat y tiene 30 minutos para pagar. Díselo así, con el total (incluyendo el cargo por tarjeta si hay) y sin decir que ya está confirmada.' })
       }

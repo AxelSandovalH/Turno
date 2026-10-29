@@ -23,8 +23,33 @@ export const isOwnerPhone = (ownerNumber: string | null | undefined, phone: stri
 
 interface OrgCtx { id: string; name: string; whatsapp_number: string | null; currency: string | null; creds: UltramsgCreds }
 
+/** Crea el link de Stripe de una solicitud ya aprobada y se lo manda al cliente (cita: el horario sigue apartado 30 minutos). */
+async function issuePaymentLink(org: OrgCtx, req: { id: string; amount: number | string; description: string; customer_phone: string; order_id?: string | null; appointment_id?: string | null }): Promise<{ ok: boolean }> {
+  const db = createServiceClient()
+  try {
+    const acct = await getOrgStripe(org.id)
+    if (!acct) throw new Error('sin Stripe propio')
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+    const session = await acct.client.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{ quantity: 1, price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(Number(req.amount) * 100), product_data: { name: String(req.description).slice(0, 120) } } }],
+      success_url: `${baseUrl}/deposit/success`,
+      cancel_url: `${baseUrl}/deposit/cancelled`,
+      metadata: { type: 'custom_payment', request_id: req.id, organization_id: org.id, ...(req.order_id ? { order_id: req.order_id } : {}), ...(req.appointment_id ? { appointment_id: req.appointment_id } : {}) },
+      payment_intent_data: { description: `${req.description} — ${org.name}`, metadata: { request_id: req.id } },
+    })
+    await db.from('payment_link_requests').update({ checkout_url: session.url, checkout_session_id: session.id }).eq('id', req.id)
+    if (req.appointment_id) await db.from('appointments').update({ stripe_checkout_session_id: session.id, deposit_checkout_url: session.url, deposit_expires_at: new Date(Date.now() + 30 * 60_000).toISOString() }).eq('id', req.appointment_id)
+    await sendMessage(req.customer_phone, `Listo. Aquí tienes tu link de pago por *${String(req.description).split('\n')[0]}* (${fmtMoney(Number(req.amount), org.currency)}):\n${session.url}\n\nEs seguro y se paga con tarjeta.${req.appointment_id ? ' Tu cita queda confirmada en cuanto se reciba el pago; tienes 30 minutos para pagar.' : ' Al pagar te avisamos por aquí.'}`, org.creds)
+    return { ok: true }
+  } catch (err) {
+    console.error('[payment-links] no se pudo crear el link', err)
+    return { ok: false }
+  }
+}
+
 /** El bot pide un link: se guarda como pendiente y se le consulta al dueño. El cliente NO recibe nada todavía. */
-export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: string; customerName?: string; amount: number; description: string; orderId?: string; appointmentId?: string }): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: string; customerName?: string; amount: number; description: string; orderId?: string; appointmentId?: string; auto?: boolean }): Promise<{ ok: true; code: string; sent?: boolean } | { ok: false; error: string }> {
   if (!org.whatsapp_number) return { ok: false, error: 'El negocio no tiene número del responsable configurado' }
   const amount = Math.round(Number(input.amount) * 100) / 100
   const description = String(input.description ?? '').trim().slice(0, input.orderId || input.appointmentId ? 400 : 120)
@@ -52,6 +77,21 @@ export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: st
     organization_id: org.id, code, order_id: input.orderId ?? null, appointment_id: input.appointmentId ?? null, customer_phone: input.customerPhone, customer_name: input.customerName?.slice(0, 80) || null, amount, description,
   })
   if (error) { console.error('[payment-links] insert', error.message); return { ok: false, error: 'No se pudo registrar la solicitud' } }
+
+  // Cobro automático (importe calculado por el sistema, no por el modelo): se envía el link de inmediato y al responsable solo se le avisa.
+  // Si Stripe falla, la solicitud vuelve al flujo normal de aprobación.
+  if (input.auto) {
+    const { data: row } = await db.from('payment_link_requests').update({ status: 'approved', decided_at: new Date().toISOString() })
+      .eq('organization_id', org.id).eq('code', code).eq('status', 'pending').select('*').single()
+    if (row) {
+      const sent = await issuePaymentLink(org, row)
+      if (sent.ok) {
+        await sendMessage(`${waId(org.whatsapp_number)}@c.us`, `✅ *Link de pago enviado automáticamente* (solicitud ${code})\nCliente: ${input.customerName || 'sin nombre'} (${input.customerPhone})\nConcepto: ${description}\nMonto: ${fmtMoney(amount, org.currency)}\n\nTe aviso cuando lo pague.`, org.creds).catch(() => {})
+        return { ok: true, code, sent: true }
+      }
+      await db.from('payment_link_requests').update({ status: 'pending', decided_at: null }).eq('id', row.id)
+    }
+  }
 
   await sendMessage(
     `${waId(org.whatsapp_number)}@c.us`,
@@ -106,25 +146,10 @@ export async function handleOwnerDecision(org: OrgCtx & { slug: string }, text: 
     }
   }
 
-  try {
-    const acct = await getOrgStripe(org.id)
-    if (!acct) throw new Error('sin Stripe propio')
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
-    const session = await acct.client.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [{ quantity: 1, price_data: { currency: normCurrency(org.currency), unit_amount: Math.round(Number(req.amount) * 100), product_data: { name: String(req.description).slice(0, 120) } } }],
-      success_url: `${baseUrl}/deposit/success`,
-      cancel_url: `${baseUrl}/deposit/cancelled`,
-      metadata: { type: 'custom_payment', request_id: req.id, organization_id: org.id, ...(req.order_id ? { order_id: req.order_id } : {}), ...(req.appointment_id ? { appointment_id: req.appointment_id } : {}) },
-      payment_intent_data: { description: `${req.description} — ${org.name}`, metadata: { request_id: req.id } },
-    })
-    await db.from('payment_link_requests').update({ checkout_url: session.url, checkout_session_id: session.id }).eq('id', req.id)
-    // Cita: el horario sigue apartado y el cliente tiene 30 minutos para pagar (si no, el cron libera el horario)
-    if (req.appointment_id) await db.from('appointments').update({ stripe_checkout_session_id: session.id, deposit_checkout_url: session.url, deposit_expires_at: new Date(Date.now() + 30 * 60_000).toISOString() }).eq('id', req.appointment_id)
-    await sendMessage(req.customer_phone, `Listo. Aquí tienes tu link de pago por *${String(req.description).split('\n')[0]}* (${fmtMoney(Number(req.amount), org.currency)}):\n${session.url}\n\nEs seguro y se paga con tarjeta.${req.appointment_id ? ' Tu cita queda confirmada en cuanto se reciba el pago; tienes 30 minutos para pagar.' : ' Al pagar te avisamos por aquí.'}`, org.creds)
+  const sent = await issuePaymentLink(org, req)
+  if (sent.ok) {
     await sendMessage(ownerTo, `✅ Link enviado a ${req.customer_name || req.customer_phone} (solicitud ${req.code}). Te aviso cuando lo pague.`, org.creds).catch(() => {})
-  } catch (err) {
-    console.error('[payment-links] no se pudo crear el link', err)
+  } else {
     await db.from('payment_link_requests').update({ status: 'pending', decided_at: null }).eq('id', req.id)
     await sendMessage(ownerTo, `⚠️ No pude crear el link de ${req.code}. Intenta responder SI ${req.code} otra vez; si sigue fallando revisa la conexión de Stripe.`, org.creds).catch(() => {})
   }
@@ -148,4 +173,10 @@ export async function markPaymentLinkPaid(requestId: string, orgId: string, paym
   const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
   await sendMessage(req.customer_phone, `✅ Recibimos tu pago de ${fmtMoney(Number(req.amount), org.currency)} por *${req.description}*. ¡Gracias!`, creds).catch(() => {})
   if (org.whatsapp_number) await sendMessage(`${waId(org.whatsapp_number)}@c.us`, `💰 *Pago recibido*\n${req.customer_name || req.customer_phone}: ${req.description} — ${fmtMoney(Number(req.amount), org.currency)}`, creds).catch(() => {})
+}
+
+/** ¿Este negocio manda solos los links de pago de citas y pedidos? Tolera que la migración 052 aún no esté corrida. */
+export async function autoSendEnabled(orgId: string): Promise<boolean> {
+  const { data, error } = await createServiceClient().from('organizations').select('payment_auto_send').eq('id', orgId).maybeSingle()
+  return !error && !!(data as { payment_auto_send?: boolean } | null)?.payment_auto_send
 }
