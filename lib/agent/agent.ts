@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { buildSystemPrompt } from './prompts'
-import { tools, orderTools, paymentLinkTools, handoffTools } from './tools'
+import { tools, orderTools, paymentLinkTools, ranchoTools, handoffTools } from './tools'
 import { hasOrgStripe } from '@/lib/org-stripe'
 import { hasCapability } from '@/lib/profiles/registry'
 import { handleTool } from './tool-handlers'
@@ -124,7 +124,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   const baseTools = sellsProducts && booksAppointments ? [...tools, ...orderTools] : sellsProducts ? orderTools : tools
   // Con Stripe propio el bot puede pedir links de pago, siempre con aprobación previa del responsable
   // Farmacia (citas + pedidos): puede pasarle el caso al responsable cuando hay receta, controlados o urgencias
-  const withLinks = paymentLinks ? [...baseTools, ...paymentLinkTools] : baseTools
+  const withLinks = paymentLinks ? [...baseTools, ...paymentLinkTools, ...(sellsProducts && booksAppointments ? ranchoTools : [])] : baseTools
   const agentTools = sellsProducts && booksAppointments ? [...withLinks, ...handoffTools] : withLinks
 
   // Agentic loop. Si algo falla (API caída, error inesperado) el cliente recibe una

@@ -158,6 +158,49 @@ export const paymentLinkTools: Tool[] = [
   },
 ]
 
+// Farmacia con Rancho McCoy: cotización calculada por el sistema (IVA 16 % + cargo 4 %) y solicitud del anticipo del 30 %
+export const ranchoTools: Tool[] = [
+  {
+    name: 'rancho_quote',
+    description: 'Calcula la cotización de un evento en Rancho McCoy con las tarifas oficiales: renta por invitados más los extras que pida, 16 % de IVA y 4 % de cargo, y el anticipo del 30 % para apartar la fecha, en MXN o USD. USA SIEMPRE esta herramienta para dar totales del rancho; nunca sumes tú. Es solo un estimado: no aparta fecha ni cobra.',
+    input_schema: { type: 'object' as const, properties: {
+        list: { type: 'string', enum: ['general', 'destination'], description: "'destination' si el cliente escribe en inglés o es turista/extranjero; 'general' si escribe en español." },
+        guests: { type: 'number', description: 'Número de invitados (1 a 199).' },
+        cabins: { type: 'number', description: 'Cabañas: 0, 1 o 2.' },
+        extra_hours: { type: 'number', description: 'Horas extra del rancho: 0, 1 o 2.' },
+        horses: { type: 'boolean', description: 'Experiencia con dos caballos.' },
+        photo: { type: 'string', enum: ['none', 'ranch', 'beach'], description: 'Sesión de fotos en el rancho, en la playa o ninguna.' },
+        dinner: { type: 'boolean', description: 'Cena por platillo para todos los invitados.' },
+        open_bar: { type: 'boolean', description: 'Barra libre para todos los invitados.' },
+        crossback_chairs: { type: 'boolean', description: 'Silla crossback para todos los invitados.' },
+        staff_hours: { type: 'number', description: 'Horas de personal operativo (6 = paquete; 0 si no lo quiere).' },
+        audio: { type: 'boolean', description: 'Equipo de audio (6 h).' },
+        currency: { type: 'string', enum: ['MXN', 'USD'], description: 'Moneda en la que el cliente quiere ver y pagar; pregúntaselo.' },
+      }, required: ['list', 'guests', 'currency'] },
+  },
+  {
+    name: 'rancho_request_deposit',
+    description: 'Pide al responsable autorizar el link de pago del ANTICIPO (30 % del total, con IVA y cargo) para apartar la fecha de un evento en Rancho McCoy. El monto lo calcula el sistema con los mismos datos; tú NO envías el link: si el responsable aprueba (confirmando fecha y disponibilidad), el sistema se lo manda al cliente. Úsala solo cuando el cliente ya aceptó el estimado y diste fecha, invitados y moneda.',
+    input_schema: { type: 'object' as const, properties: {
+        list: { type: 'string', enum: ['general', 'destination'], description: "'destination' si el cliente escribe en inglés o es turista/extranjero; 'general' si escribe en español." },
+        guests: { type: 'number', description: 'Número de invitados (1 a 199).' },
+        cabins: { type: 'number', description: 'Cabañas: 0, 1 o 2.' },
+        extra_hours: { type: 'number', description: 'Horas extra del rancho: 0, 1 o 2.' },
+        horses: { type: 'boolean', description: 'Experiencia con dos caballos.' },
+        photo: { type: 'string', enum: ['none', 'ranch', 'beach'], description: 'Sesión de fotos en el rancho, en la playa o ninguna.' },
+        dinner: { type: 'boolean', description: 'Cena por platillo para todos los invitados.' },
+        open_bar: { type: 'boolean', description: 'Barra libre para todos los invitados.' },
+        crossback_chairs: { type: 'boolean', description: 'Silla crossback para todos los invitados.' },
+        staff_hours: { type: 'number', description: 'Horas de personal operativo (6 = paquete; 0 si no lo quiere).' },
+        audio: { type: 'boolean', description: 'Equipo de audio (6 h).' },
+        currency: { type: 'string', enum: ['MXN', 'USD'], description: 'Moneda en la que el cliente quiere ver y pagar; pregúntaselo.' },
+        event_date: { type: 'string', description: 'Fecha del evento (YYYY-MM-DD) o la que dio el cliente.' },
+        event_type: { type: 'string', description: 'Tipo de evento (boda, quinceañera, cumpleaños...).' },
+        customer_name: { type: 'string', description: 'Nombre del cliente.' },
+      }, required: ['list', 'guests', 'currency', 'event_date', 'event_type'] },
+  },
+]
+
 // Farmacia: el bot le pasa el caso al responsable (receta, controlados, urgencias, quejas, o si piden hablar con una persona)
 export const handoffTools: Tool[] = [
   {

@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requestPaymentLink, autoSendEnabled, waId } from '@/lib/payment-links'
+import { quoteRancho, type RanchoInput } from '@/lib/rancho'
 import { createOwnerConsult } from '@/lib/owner-consults'
 import { stripeFor, hasOrgStripe } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
@@ -588,6 +589,39 @@ export async function handleTool(toolName: string, input: Record<string, string>
       if (!r.ok) return JSON.stringify({ error: r.error })
       if (ctx.conversationId) await db.from('conversations').update({ handoff_at: new Date().toISOString() }).eq('id', ctx.conversationId)
       return JSON.stringify({ status: 'consulta_enviada', note: 'Ya le consultaste al farmacéutico. Tú sigues siendo la voz con el cliente: dile en una o dos frases que estás confirmándolo con el farmacéutico y que le respondes por aquí en cuanto te conteste, sin prometer minutos y SIN mencionar receta ni prescripción. Cuando el farmacéutico responda, recibirás su respuesta en un mensaje interno y se la comunicas al cliente. No sugieras medicamentos, dosis ni sustitutos.' })
+    }
+
+    case 'rancho_quote':
+    case 'rancho_request_deposit': {
+      const q = quoteRancho({
+        list: input.list === 'destination' ? 'destination' : 'general', guests: Number(input.guests), cabins: Number(input.cabins ?? 0), extra_hours: Number(input.extra_hours ?? 0),
+        horses: !!input.horses, photo: (input.photo as RanchoInput['photo']) ?? 'none', dinner: !!input.dinner, open_bar: !!input.open_bar,
+        crossback_chairs: !!input.crossback_chairs, staff_hours: Number(input.staff_hours ?? 0), audio: !!input.audio,
+        currency: input.currency === 'USD' ? 'USD' : 'MXN',
+      })
+      if (!q.ok) return JSON.stringify({ error: q.error })
+      const cur = q.currency
+      const m = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${cur}`
+      const conv = (mxn: number) => cur === 'USD' && q.fx_mxn_per_usd ? Math.round(mxn / q.fx_mxn_per_usd * 100) / 100 : mxn
+      const breakdown = {
+        lines: q.lines.map(l => ({ concept: l.label, amount: m(conv(l.mxn)) })),
+        subtotal: m(q.subtotal), iva_16: m(q.iva), cargo_4: m(q.fee), total: m(q.total), anticipo_30: m(q.deposit), currency: cur,
+        not_included_quote_separately: q.pending_quote,
+      }
+      if (toolName === 'rancho_quote') {
+        return JSON.stringify({ success: true, ...breakdown, note: 'Es un ESTIMADO sujeto a confirmación de fecha y disponibilidad. Preséntalo al cliente en forma clara (renta, extras, subtotal, IVA 16 %, cargo 4 %, total y el anticipo del 30 % para apartar la fecha). Si pidió decoración o iluminación, dile que se cotiza aparte con el equipo. Si acepta, usa rancho_request_deposit.' })
+      }
+      if (!ctx.customerPhone) return JSON.stringify({ error: 'No se pudo identificar al cliente' })
+      const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
+      if (!o) return JSON.stringify({ error: 'Negocio no encontrado' })
+      const detail = q.lines.map(l => `${l.label}: $${conv(l.mxn).toLocaleString('en-US', { maximumFractionDigits: 2 })}`).join('; ')
+      const r = await requestPaymentLink(
+        { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
+        { customerPhone: ctx.customerPhone, customerName: String(input.customer_name ?? ''), amount: q.deposit, currency: cur === 'USD' ? 'usd' : 'mxn', maxAmount: 150000,
+          description: `Anticipo 30% Rancho McCoy: ${String(input.event_type ?? 'evento').slice(0, 40)}, ${String(input.event_date ?? '').slice(0, 30)}, ${Math.floor(Number(input.guests))} invitados | Total ${m(q.total)} (IVA 16% y cargo 4% incluidos) | ${detail}`.slice(0, 400) }
+      )
+      if (!r.ok) return JSON.stringify({ error: r.error })
+      return JSON.stringify({ status: 'pendiente_de_aprobacion', ...breakdown, note: 'Ya se le consultó al responsable (confirma fecha y disponibilidad). El link del anticipo NO se ha enviado. Dile al cliente que estás confirmando la fecha con el equipo y que en cuanto la autoricen le llega por este chat el link del anticipo de ' + m(q.deposit) + '. No prometas tiempos ni inventes el link; la fecha no queda apartada hasta que pague el anticipo.' })
     }
 
     case 'request_payment_link': {
