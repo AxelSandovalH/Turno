@@ -158,11 +158,11 @@ export const paymentLinkTools: Tool[] = [
   },
 ]
 
-// Farmacia con Rancho McCoy: cotización calculada por el sistema (IVA 16 % + cargo 4 %) y solicitud del anticipo del 40 %
+// Farmacia con Rancho McCoy: cotización calculada por el sistema (cargo 4 %, sin IVA) y solicitud del anticipo del 40 %
 export const ranchoTools: Tool[] = [
   {
     name: 'rancho_quote',
-    description: 'Calcula la cotización de un evento en Rancho McCoy con las tarifas oficiales: renta por invitados más los extras que pida, 16 % de IVA y 4 % de cargo, y el anticipo del 40 % para apartar la fecha, en MXN o USD. USA SIEMPRE esta herramienta para dar totales del rancho; nunca sumes tú. Es solo un estimado: no aparta fecha ni cobra.',
+    description: 'Calcula la cotización de un evento en Rancho McCoy con las tarifas oficiales: renta por invitados más los extras que pida, 4 % de cargo (sin IVA), y el anticipo del 40 % para apartar la fecha, en MXN o USD. USA SIEMPRE esta herramienta para dar totales del rancho; nunca sumes tú. Es solo un estimado: no aparta fecha ni cobra.',
     input_schema: { type: 'object' as const, properties: {
         list: { type: 'string', enum: ['general', 'destination'], description: "'destination' si el cliente escribe en inglés o es turista/extranjero; 'general' si escribe en español." },
         guests: { type: 'number', description: 'Número de invitados (1 a 199).' },
@@ -180,7 +180,7 @@ export const ranchoTools: Tool[] = [
   },
   {
     name: 'rancho_request_deposit',
-    description: 'Pide al responsable autorizar el link de pago del ANTICIPO (40 % del total, con IVA y cargo) para apartar la fecha de un evento en Rancho McCoy. El monto lo calcula el sistema con los mismos datos; tú NO envías el link: si el responsable aprueba (confirmando fecha y disponibilidad), el sistema se lo manda al cliente. Úsala solo cuando el cliente ya aceptó el estimado y diste fecha, invitados y moneda.',
+    description: 'Pide al responsable autorizar el link de pago del ANTICIPO (40 % del total, con el cargo) para apartar la fecha de un evento en Rancho McCoy. El monto lo calcula el sistema con los mismos datos; tú NO envías el link: si el responsable aprueba (confirmando fecha y disponibilidad), el sistema se lo manda al cliente. Úsala solo cuando el cliente ya aceptó el estimado y diste fecha, invitados y moneda.',
     input_schema: { type: 'object' as const, properties: {
         list: { type: 'string', enum: ['general', 'destination'], description: "'destination' si el cliente escribe en inglés o es turista/extranjero; 'general' si escribe en español." },
         guests: { type: 'number', description: 'Número de invitados (1 a 199).' },

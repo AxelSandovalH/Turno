@@ -605,11 +605,11 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const conv = (mxn: number) => cur === 'USD' && q.fx_mxn_per_usd ? Math.round(mxn / q.fx_mxn_per_usd * 100) / 100 : mxn
       const breakdown = {
         lines: q.lines.map(l => ({ concept: l.label, amount: m(conv(l.mxn)) })),
-        subtotal: m(q.subtotal), iva_16: m(q.iva), cargo_4: m(q.fee), total: m(q.total), anticipo_40: m(q.deposit), currency: cur,
+        subtotal: m(q.subtotal), cargo_4: m(q.fee), total: m(q.total), anticipo_40: m(q.deposit), currency: cur,
         not_included_quote_separately: q.pending_quote,
       }
       if (toolName === 'rancho_quote') {
-        return JSON.stringify({ success: true, ...breakdown, note: 'Es un ESTIMADO sujeto a confirmación de fecha y disponibilidad. Preséntalo con el FORMATO DE WHATSAPP del prompt, sin tablas ni markdown (renta, extras, subtotal, IVA 16 %, cargo 4 %, total y el anticipo del 40 % para apartar la fecha). Si pidió decoración o iluminación, dile que se cotiza aparte con el equipo. Si acepta, usa rancho_request_deposit.' })
+        return JSON.stringify({ success: true, ...breakdown, note: 'Es un ESTIMADO sujeto a confirmación de fecha y disponibilidad. Preséntalo con el FORMATO DE WHATSAPP del prompt, sin tablas ni markdown (renta, extras, subtotal, cargo 4 %, total y el anticipo del 40 % para apartar la fecha). Si pidió decoración o iluminación, dile que se cotiza aparte con el equipo. Si acepta, usa rancho_request_deposit.' })
       }
       if (!ctx.customerPhone) return JSON.stringify({ error: 'No se pudo identificar al cliente' })
       const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
@@ -618,7 +618,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const r = await requestPaymentLink(
         { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
         { customerPhone: ctx.customerPhone, customerName: String(input.customer_name ?? ''), amount: q.deposit, currency: cur === 'USD' ? 'usd' : 'mxn', maxAmount: 150000,
-          description: `Anticipo 40% Rancho McCoy: ${String(input.event_type ?? 'evento').slice(0, 40)}, ${String(input.event_date ?? '').slice(0, 30)}, ${Math.floor(Number(input.guests))} invitados | Total ${m(q.total)} (IVA 16% y cargo 4% incluidos) | ${detail}`.slice(0, 400) }
+          description: `Anticipo 40% Rancho McCoy: ${String(input.event_type ?? 'evento').slice(0, 40)}, ${String(input.event_date ?? '').slice(0, 30)}, ${Math.floor(Number(input.guests))} invitados | Total ${m(q.total)} (cargo 4% incluido, sin IVA) | ${detail}`.slice(0, 400) }
       )
       if (!r.ok) return JSON.stringify({ error: r.error })
       return JSON.stringify({ status: 'pendiente_de_aprobacion', ...breakdown, note: 'Ya se le consultó al responsable (confirma fecha y disponibilidad). El link del anticipo NO se ha enviado. Dile al cliente que estás confirmando la fecha con el equipo y que en cuanto la autoricen le llega por este chat el link del anticipo de ' + m(q.deposit) + '. No prometas tiempos ni inventes el link; la fecha no queda apartada hasta que pague el anticipo.' })

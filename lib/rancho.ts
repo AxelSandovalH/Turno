@@ -1,13 +1,11 @@
 /**
  * Tarifas de Rancho McCoy (octubre 2026, PESOS MXN) y cotización calculada por el sistema, no por el modelo.
- * Dos listas: "general" (español) y "destination" (inglés, +30 %). Al subtotal se le suma SIEMPRE 16 % de IVA y 4 % de cargo
- * (ambos sobre el subtotal); el anticipo para apartar la fecha es el 40 % del total.
+ * Dos listas: "general" (español) y "destination" (inglés, +30 %). Al subtotal se le suma SIEMPRE un 4 % de cargo, sin IVA; el anticipo para apartar la fecha es el 40 % del total.
  * Decoración (desde) e iluminación (por cotizar) no se calculan: se cotizan aparte con el equipo.
  */
 export type RanchoList = 'general' | 'destination'
 export type RanchoCurrency = 'MXN' | 'USD'
 
-export const RANCHO_IVA = 0.16
 export const RANCHO_FEE = 0.04
 export const RANCHO_DEPOSIT = 0.40
 
@@ -53,9 +51,9 @@ export interface RanchoQuote {
   ok: true
   currency: RanchoCurrency
   lines: RanchoLine[]
-  subtotal_mxn: number; iva_mxn: number; fee_mxn: number; total_mxn: number
+  subtotal_mxn: number; fee_mxn: number; total_mxn: number
   fx_mxn_per_usd: number | null
-  subtotal: number; iva: number; fee: number; total: number; deposit: number
+  subtotal: number; fee: number; total: number; deposit: number
   pending_quote: string[]
 }
 
@@ -84,9 +82,8 @@ export function quoteRancho(i: RanchoInput): RanchoQuote | { ok: false; error: s
   if (i.audio) lines.push({ label: 'Equipo de audio (6 h)', mxn: P.audio6h[list] })
 
   const subtotal_mxn = r2(lines.reduce((s, l) => s + l.mxn, 0))
-  const iva_mxn = r2(subtotal_mxn * RANCHO_IVA)
   const fee_mxn = r2(subtotal_mxn * RANCHO_FEE)
-  const total_mxn = r2(subtotal_mxn + iva_mxn + fee_mxn)
+  const total_mxn = r2(subtotal_mxn + fee_mxn)
 
   let fx: number | null = null
   if (i.currency === 'USD') {
@@ -96,8 +93,8 @@ export function quoteRancho(i: RanchoInput): RanchoQuote | { ok: false; error: s
   const conv = (n: number) => (fx ? r2(n / fx) : n)
   const total = conv(total_mxn)
   return {
-    ok: true, currency: i.currency, lines, subtotal_mxn, iva_mxn, fee_mxn, total_mxn, fx_mxn_per_usd: fx,
-    subtotal: conv(subtotal_mxn), iva: conv(iva_mxn), fee: conv(fee_mxn), total, deposit: r2(total * RANCHO_DEPOSIT),
+    ok: true, currency: i.currency, lines, subtotal_mxn, fee_mxn, total_mxn, fx_mxn_per_usd: fx,
+    subtotal: conv(subtotal_mxn), fee: conv(fee_mxn), total, deposit: r2(total * RANCHO_DEPOSIT),
     pending_quote: ['Decoración (desde $17,900 MXN general / $23,270 Destination, según diseño)', 'Iluminación (por cotizar)'],
   }
 }
