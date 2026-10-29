@@ -162,3 +162,22 @@ export async function instanceAction(creds: { instance: string; token: string },
   try { json = JSON.parse(text) } catch { /* respuesta no JSON */ }
   if (!res.ok || json?.error) throw new Error(`ultramsg ${action} ${res.status}: ${text.slice(0, 200)}`)
 }
+
+/** Envía un documento (PDF) por WhatsApp (UltraMsg). `base64` es el archivo codificado en base64. */
+export async function sendDocument(to: string, base64: string, filename: string, caption: string, creds?: UltramsgCreds) {
+  const instance = creds?.instance || process.env.ULTRAMSG_INSTANCE
+  const token = creds?.token || process.env.ULTRAMSG_TOKEN
+
+  if (!instance || !token) {
+    console.error('[ultramsg] missing credentials — document not sent to', to)
+    return { error: 'missing_credentials' }
+  }
+
+  await logOutbound(instance, to, `[document] ${filename} ${caption ?? ''}`)
+  const res = await fetch(`https://api.ultramsg.com/${instance}/messages/document`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, to, filename, document: base64, caption }),
+  })
+  return res.json()
+}

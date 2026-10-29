@@ -5,6 +5,7 @@ import { sendMessage, type UltramsgCreds } from '@/lib/ultramsg'
 import { getOrgStripe } from '@/lib/org-stripe'
 import { fmtMoney, normCurrency } from '@/lib/currency'
 import { phoneKey } from '@/lib/sales/phone'
+import { contractAfterDeposit } from '@/lib/rancho-contract-flow'
 
 const MAX_AMOUNT = 5000          // tope por link (en la moneda del negocio)
 const MAX_AMOUNT_EVENT = 150000  // tope de un anticipo de evento (Rancho McCoy)
@@ -57,7 +58,7 @@ async function issuePaymentLink(org: OrgCtx, req: { id: string; amount: number |
 }
 
 /** El bot pide un link: se guarda como pendiente y se le consulta al dueño. El cliente NO recibe nada todavía. */
-export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: string; customerName?: string; amount: number; description: string; orderId?: string; appointmentId?: string; auto?: boolean; currency?: 'mxn' | 'usd'; maxAmount?: number }): Promise<{ ok: true; code: string; sent?: boolean } | { ok: false; error: string }> {
+export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: string; customerName?: string; amount: number; description: string; orderId?: string; appointmentId?: string; auto?: boolean; currency?: 'mxn' | 'usd'; maxAmount?: number; eventData?: Record<string, unknown> }): Promise<{ ok: true; code: string; sent?: boolean } | { ok: false; error: string }> {
   if (!org.whatsapp_number) return { ok: false, error: 'El negocio no tiene número del responsable configurado' }
   const amount = Math.round(Number(input.amount) * 100) / 100
   const description = String(input.description ?? '').trim().slice(0, input.orderId || input.appointmentId ? 400 : 120)
@@ -84,6 +85,7 @@ export async function requestPaymentLink(org: OrgCtx, input: { customerPhone: st
   const { error } = await db.from('payment_link_requests').insert({
     organization_id: org.id, code, order_id: input.orderId ?? null, appointment_id: input.appointmentId ?? null, customer_phone: input.customerPhone, customer_name: input.customerName?.slice(0, 80) || null, amount, description,
     ...(input.currency ? { currency: input.currency } : {}),
+    ...(input.eventData ? { event_data: input.eventData } : {}),
   })
   if (error) { console.error('[payment-links] insert', error.message); return { ok: false, error: 'No se pudo registrar la solicitud' } }
 
@@ -180,8 +182,72 @@ export async function markPaymentLinkPaid(requestId: string, orgId: string, paym
   const { data: org } = await db.from('organizations').select('name, whatsapp_number, ultramsg_instance, ultramsg_token, currency').eq('id', orgId).single()
   if (!org) return
   const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
-  await sendMessage(req.customer_phone, `✅ Recibimos tu pago de ${reqMoney(org, req, Number(req.amount))} por *${req.description}*. ¡Gracias!`, creds).catch(() => {})
+  // Anticipo de un evento (Rancho McCoy): con los datos de la cotización se genera el contrato y se le manda al responsable
+  if (req.event_data) {
+    await contractAfterDeposit({ id: orgId, name: org.name, whatsapp_number: org.whatsapp_number, creds }, req).catch(err => console.error('[contrato] no se pudo generar', err))
+  }
+  if (req.customer_phone !== 'manual') await sendMessage(req.customer_phone, `✅ Recibimos tu pago de ${reqMoney(org, req, Number(req.amount))} por *${req.description}*. ¡Gracias!`, creds).catch(() => {})
   if (org.whatsapp_number) await sendMessage(`${waId(org.whatsapp_number)}@c.us`, `💰 *Pago recibido*\n${req.customer_name || req.customer_phone}: ${req.description} — ${reqMoney(org, req, Number(req.amount))}`, creds).catch(() => {})
+}
+
+
+const MAX_MANUAL = 150000
+
+/**
+ * El responsable pide un link de cobro por WhatsApp ("link 120 usd IV Recovery Juan"): se crea ya aprobado (lo pide él) y se le devuelve
+ * a ÉL para que lo reenvíe al cliente. Al pagarse se le avisa solo a él (customer_phone 'manual' = sin aviso al cliente).
+ */
+export async function createManualPaymentLink(org: OrgCtx, input: { amount: number; description: string; currency?: 'mxn' | 'usd' }): Promise<{ ok: true; url: string; code: string } | { ok: false; error: string }> {
+  const amount = Math.round(Number(input.amount) * 100) / 100
+  const description = String(input.description ?? '').trim().slice(0, 200)
+  if (!(amount > 0) || amount > MAX_MANUAL) return { ok: false, error: `El monto debe estar entre 1 y ${MAX_MANUAL}` }
+  if (description.length < 3) return { ok: false, error: 'Falta el concepto del cobro' }
+  const acct = await getOrgStripe(org.id)
+  if (!acct) return { ok: false, error: 'Este negocio no tiene Stripe propio configurado' }
+
+  const db = createServiceClient()
+  const code = String(Math.floor(1000 + Math.random() * 9000))
+  const { data: row, error } = await db.from('payment_link_requests').insert({
+    organization_id: org.id, code, customer_phone: 'manual', customer_name: null, amount, description,
+    status: 'approved', decided_at: new Date().toISOString(), ...(input.currency ? { currency: input.currency } : {}),
+  }).select('id').single()
+  if (error || !row) { console.error('[payment-links] manual insert', error?.message); return { ok: false, error: 'No se pudo registrar el cobro' } }
+
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.quickturno.app'
+    const cur = normCurrency(input.currency ?? org.currency)
+    const session = await acct.client.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{ quantity: 1, price_data: { currency: cur, unit_amount: Math.round(amount * 100), product_data: { name: description.slice(0, 120) } } }],
+      success_url: `${baseUrl}/deposit/success`,
+      cancel_url: `${baseUrl}/deposit/cancelled`,
+      metadata: { type: 'custom_payment', request_id: row.id, organization_id: org.id },
+      payment_intent_data: { description: `${description} — ${org.name}`, metadata: { request_id: row.id } },
+    })
+    await db.from('payment_link_requests').update({ checkout_url: session.url, checkout_session_id: session.id }).eq('id', row.id)
+    return { ok: true, url: session.url ?? '', code }
+  } catch (err) {
+    console.error('[payment-links] manual checkout', err)
+    await db.from('payment_link_requests').update({ status: 'expired' }).eq('id', row.id)
+    return { ok: false, error: 'Stripe no pudo crear el link; revisa la conexión de Stripe' }
+  }
+}
+
+/** Mensaje del responsable pidiendo un link ("link 120 usd concepto"). Devuelve true si lo atendió. */
+export async function handleOwnerLinkCommand(org: OrgCtx, text: string): Promise<boolean> {
+  const m = text.trim().match(/^(?:link|enlace|cobro|cobrar)\s+\$?\s*([\d][\d,]*(?:\.\d+)?)\s*(usd|us|dolares|dólares|dls|mxn|pesos|mx)?\b\s*([\s\S]*)$/i)
+  if (!m) return false
+  const to = `${waId(org.whatsapp_number ?? '')}@c.us`
+  const say = (b: string) => sendMessage(to, b, org.creds).catch(() => {})
+  const amount = Number(m[1].replace(/,/g, ''))
+  const cu = (m[2] ?? '').toLowerCase()
+  const currency: 'mxn' | 'usd' | undefined = ['usd', 'us', 'dolares', 'dólares', 'dls'].includes(cu) ? 'usd' : ['mxn', 'pesos', 'mx'].includes(cu) ? 'mxn' : undefined
+  const description = m[3].trim()
+  if (description.length < 3) { await say('Falta el concepto. Escríbelo así: "link 120 usd IV Recovery Juan Pérez".'); return true }
+  const r = await createManualPaymentLink(org, { amount, description, currency })
+  if (!r.ok) { await say(`⚠️ ${r.error}`); return true }
+  await say(`✅ Link de pago listo: ${reqMoney(org, { currency }, amount)} — ${description}\n\n${r.url}\n\nReenvíaselo al cliente. Te aviso cuando lo pague.`)
+  return true
 }
 
 /** ¿Este negocio manda solos los links de pago de citas y pedidos? Tolera que la migración 052 aún no esté corrida. */

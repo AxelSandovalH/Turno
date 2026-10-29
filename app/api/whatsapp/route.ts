@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { handleManualMessage } from '@/lib/manual-takeover'
 import { fetchImage } from '@/lib/media'
-import { isOwnerPhone, handleOwnerDecision } from '@/lib/payment-links'
+import { isOwnerPhone, handleOwnerDecision, handleOwnerLinkCommand } from '@/lib/payment-links'
 import { handleOwnerAnswer } from '@/lib/owner-consults'
+import { handleOwnerContract } from '@/lib/rancho-contract-flow'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
@@ -153,6 +154,14 @@ export async function POST(req: Request) {
     // Respuesta del responsable a una solicitud de link de pago ("SI 1234" / "NO 1234"): solo si escribe desde su número
     // y solo cuando hay solicitudes pendientes; cualquier otro mensaje suyo sigue el flujo normal
     if (isOwnerPhone(organization.whatsapp_number, phone) && creds.instance && creds.token) {
+      // "link 120 usd concepto" del responsable: se le devuelve un link de Stripe para que lo reenvíe él al cliente
+      const linkCmd = await handleOwnerLinkCommand({ id: organization.id, name: organization.name, whatsapp_number: organization.whatsapp_number, currency: organization.currency, creds }, text).catch(err => { console.error('[whatsapp] link del responsable falló', err); return false })
+      if (linkCmd) return NextResponse.json({ ok: true })
+
+      // "contrato ..." del responsable: el sistema arma el PDF del contrato de evento y se lo devuelve
+      const contract = await handleOwnerContract({ id: organization.id, name: organization.name, whatsapp_number: organization.whatsapp_number, creds }, text).catch(err => { console.error('[whatsapp] contrato falló', err); return false })
+      if (contract) return NextResponse.json({ ok: true })
+
       const handled = await handleOwnerDecision({ id: organization.id, name: organization.name, slug: organization.slug, whatsapp_number: organization.whatsapp_number, currency: organization.currency, creds }, text).catch(err => { console.error('[whatsapp] decisión de link de pago falló', err); return false })
       if (handled) return NextResponse.json({ ok: true })
 

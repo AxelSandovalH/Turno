@@ -32,6 +32,8 @@ export interface CreateOrderInput {
   payment?: 'card' | 'cash'
   /** Con tarjeta: crea el pedido pero NO el link de pago (el bot lo pide con aprobación del responsable) */
   deferCheckout?: boolean
+  /** Pedido que el cliente pidió gestionar con el concierge: se registra sin los candados del catálogo (controlados, receta, existencias, mínimos, catálogo apagado) y sin cobro; lo confirma una persona. */
+  concierge?: boolean
 }
 
 export type CreateOrderResult =
@@ -88,13 +90,13 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     .eq('is_active', true)
     .single()
   if (!org) return fail('Negocio no encontrado', 404)
-  if (org.catalog_enabled === false) return fail('El catálogo en línea no está disponible por ahora.', 409)
-  if (!org.order_accepting) return fail('Por ahora no estamos recibiendo pedidos. Intenta más tarde.', 409)
+  if (!input.concierge && org.catalog_enabled === false) return fail('El catálogo en línea no está disponible por ahora.', 409)
+  if (!input.concierge && !org.order_accepting) return fail('Por ahora no estamos recibiendo pedidos. Intenta más tarde.', 409)
 
-  if (input.fulfillment === 'delivery' && !org.order_delivery_enabled) return fail('Este negocio no tiene entrega a domicilio')
-  if (input.fulfillment === 'pickup' && !org.order_pickup_enabled) return fail('Este negocio no tiene pedidos para recoger')
+  if (!input.concierge && input.fulfillment === 'delivery' && !org.order_delivery_enabled) return fail('Este negocio no tiene entrega a domicilio')
+  if (!input.concierge && input.fulfillment === 'pickup' && !org.order_pickup_enabled) return fail('Este negocio no tiene pedidos para recoger')
   const address = input.address?.trim() ?? ''
-  if (input.fulfillment === 'delivery' && address.length < 6) return fail('Escribe tu dirección de entrega completa')
+  if (!input.concierge && input.fulfillment === 'delivery' && address.length < 6) return fail('Escribe tu dirección de entrega completa')
 
   const { data: menu } = await db
     .from('menu_items')
@@ -109,10 +111,18 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     // El ID del bot puede perderse entre mensajes: se acepta también el nombre del platillo
     const item = (it.menu_item_id ? byId.get(it.menu_item_id) : undefined)
       ?? findByName(all, it.name ?? it.menu_item_id ?? '')
+    if (!item && input.concierge) {
+      // Lo que no está en el catálogo se registra tal cual lo pidió el cliente, con precio por confirmar
+      const free = String(it.name ?? '').trim().slice(0, 120)
+      const q = Math.floor(Number(it.quantity)) || 1
+      if (!free) return fail('Falta el nombre del producto')
+      lines.push({ menu_item_id: null as unknown as string, name: free, unit_price: 0, quantity: Math.min(Math.max(q, 1), MAX_QTY), extras: [], notes: it.notes?.trim().slice(0, 200) || 'Precio por confirmar' })
+      continue
+    }
     if (!item) return fail(`No encontré "${it.name ?? it.menu_item_id ?? 'ese platillo'}" en el menú`)
-    if (item.controlled) return fail(`"${item.name}" no se vende por este medio`, 409)
-    if (item.requires_prescription) return fail(`"${item.name}" requiere receta médica y no se puede pedir directo. Debe verificarlo el farmacéutico.`, 409)
-    if (!item.is_available) return fail(`"${item.name}" está agotado por hoy`, 409)
+    if (!input.concierge && item.controlled) return fail(`"${item.name}" no se vende por este medio`, 409)
+    if (!input.concierge && item.requires_prescription) return fail(`"${item.name}" requiere receta médica y no se puede pedir directo. Debe verificarlo el farmacéutico.`, 409)
+    if (!input.concierge && !item.is_available) return fail(`"${item.name}" está agotado por hoy`, 409)
     const quantity = Math.floor(Number(it.quantity))
     if (!quantity || quantity < 1 || quantity > MAX_QTY) return fail('Cantidad no válida')
 
@@ -136,11 +146,11 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
   }
 
   const minAmount = Number(org.order_min_amount) || 0
-  if (subtotal < minAmount) return fail(`El pedido mínimo es de ${money(minAmount, org.currency)}`)
+  if (!input.concierge && subtotal < minAmount) return fail(`El pedido mínimo es de ${money(minAmount, org.currency)}`)
 
-  const deliveryFee = input.fulfillment === 'delivery' ? Number(org.order_delivery_fee) || 0 : 0
-  const payment = input.payment === 'cash' ? 'cash' : 'card'
-  if (payment === 'cash' && !org.order_cash_enabled) return fail('Este negocio solo recibe pagos con tarjeta')
+  const deliveryFee = !input.concierge && input.fulfillment === 'delivery' ? Number(org.order_delivery_fee) || 0 : 0
+  const payment = input.concierge || input.payment === 'cash' ? 'cash' : 'card'
+  if (!input.concierge && payment === 'cash' && !org.order_cash_enabled) return fail('Este negocio solo recibe pagos con tarjeta')
   // Cargo de la tarjeta (comisión del procesador): se suma al total solo si paga con tarjeta
   const cardFee = payment === 'card' ? Math.round((subtotal + deliveryFee) * (Number(org.order_card_fee_pct) || 0)) / 100 : 0
   const total = subtotal + deliveryFee + cardFee
@@ -160,7 +170,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
       customer_phone: phone,
       fulfillment: input.fulfillment,
       address: input.fulfillment === 'delivery' ? address : null,
-      notes: input.notes?.trim().slice(0, 300) || null,
+      notes: (input.concierge ? `🛎️ CONCIERGE — confirmar con el cliente: disponibilidad, precio, requisitos y pago. ${input.notes?.trim() ?? ''}` : input.notes?.trim() ?? '').trim().slice(0, 300) || null,
       subtotal,
       delivery_fee: deliveryFee,
       card_fee: cardFee,

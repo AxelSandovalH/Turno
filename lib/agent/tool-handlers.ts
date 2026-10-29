@@ -104,6 +104,23 @@ export async function handleTool(toolName: string, input: Record<string, string>
       })
     }
 
+    case 'create_concierge_order': {
+      const raw = input as unknown as { customer_name?: string; fulfillment?: string; address?: string; notes?: string; items?: OrderLineInput[] }
+      const result = await createOrder({
+        organizationId: ctx.organizationId,
+        customerName: String(raw.customer_name ?? ''),
+        customerPhone: ctx.customerPhone ?? '',
+        fulfillment: raw.fulfillment === 'pickup' ? 'pickup' : 'delivery',
+        address: raw.address,
+        notes: raw.notes,
+        source: 'whatsapp',
+        items: Array.isArray(raw.items) ? raw.items : [],
+        concierge: true,
+      })
+      if (!result.ok) return JSON.stringify({ error: result.error })
+      return JSON.stringify({ success: true, order_number: result.order.order_number, status: 'solicitud_con_concierge', note: 'La solicitud quedó registrada y el concierge ya fue avisado. NO está confirmada ni cobrada: el concierge confirmará con el cliente disponibilidad, precio, lo que haga falta y el pago. Díselo abiertamente, con calidez y sin dar precios ni prometer tiempos; no menciones receta ni prescripción salvo que ya la hubieras ofrecido.' })
+    }
+
     case 'create_order': {
       const raw = input as unknown as {
         customer_name?: string; fulfillment?: string; address?: string; notes?: string; items?: OrderLineInput[]; payment_method?: string
@@ -618,6 +635,17 @@ export async function handleTool(toolName: string, input: Record<string, string>
       const r = await requestPaymentLink(
         { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
         { customerPhone: ctx.customerPhone, customerName: String(input.customer_name ?? ''), amount: q.deposit, currency: cur === 'USD' ? 'usd' : 'mxn', maxAmount: 150000,
+          eventData: {
+            client_names: [String(input.customer_name ?? '').trim() || ctx.customerPhone], event_type: String(input.event_type ?? 'Evento'), event_date: String(input.event_date ?? ''),
+            guests: Math.floor(Number(input.guests)), hours: 6 + Math.min(Math.max(Math.floor(Number(input.extra_hours ?? 0)), 0), 2),
+            cabins: Number(input.cabins) > 0 ? { count: Math.min(Math.floor(Number(input.cabins)), 2) } : undefined,
+            horses: input.horses || (input.photo && input.photo !== 'none') ? { participations: input.horses ? 2 : undefined, photo_sessions: input.photo && input.photo !== 'none' ? 1 : undefined } : undefined,
+            staff: Number(input.staff_hours) > 0 ? `1 mesero, 1 bartender y 1 capitán, ${Math.floor(Number(input.staff_hours))} horas de servicio` : undefined,
+            audio_lighting: input.audio ? 'Equipo de audio (6 horas)' : undefined,
+            items: [...q.lines.map(l => ({ label: l.label, amount: l.mxn })), { label: 'Cargo por servicio 4%', amount: q.fee_mxn }],
+            total_mxn: q.total_mxn, deposit_mxn: Math.round(q.total_mxn * 0.4 * 100) / 100,
+            deposit_note: cur === 'USD' ? `Anticipo pagado en dólares: ${m(q.deposit)} (equivalente a ${Math.round(q.total_mxn * 0.4 * 100) / 100} MXN al tipo de cambio de la cotización).` : undefined,
+          },
           description: `Anticipo 40% Rancho McCoy: ${String(input.event_type ?? 'evento').slice(0, 40)}, ${String(input.event_date ?? '').slice(0, 30)}, ${Math.floor(Number(input.guests))} invitados | Total ${m(q.total)} (cargo 4% incluido, sin IVA) | ${detail}`.slice(0, 400) }
       )
       if (!r.ok) return JSON.stringify({ error: r.error })

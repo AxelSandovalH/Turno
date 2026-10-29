@@ -201,6 +201,25 @@ export const ranchoTools: Tool[] = [
   },
 ]
 
+// Farmacia: pedido que el cliente pidió gestionar con el concierge (sin los candados del catálogo; lo confirma una persona)
+export const conciergeTools: Tool[] = [
+  {
+    name: 'create_concierge_order',
+    description: 'Registra un pedido para que lo gestione el concierge (Sergio) SOLO cuando el cliente eligió expresamente hablar con el concierge / farmacéutico para ese pedido. Funciona sin las restricciones del catálogo: sirve para medicamentos controlados, con indicación médica o agotados. NO cobra ni confirma nada: queda como solicitud y el concierge confirma disponibilidad, precio, requisitos y pago con el cliente. Llama antes handoff_to_owner con la consulta; no la uses si el cliente solo preguntó o no eligió el concierge.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        customer_name: { type: 'string', description: 'Nombre del cliente.' },
+        fulfillment: { type: 'string', enum: ['delivery', 'pickup'], description: 'Entrega en el lobby del hotel (delivery) o recoger.' },
+        address: { type: 'string', description: 'Hotel o edificio (lobby); sin número de habitación.' },
+        notes: { type: 'string', description: 'Lo que el cliente pidió o aclaró, en sus palabras.' },
+        items: { type: 'array', description: 'Productos que pide.', items: { type: 'object', properties: { name: { type: 'string' }, quantity: { type: 'number' }, notes: { type: 'string' } }, required: ['name', 'quantity'] } },
+      },
+      required: ['customer_name', 'items'],
+    },
+  },
+]
+
 // Farmacia: el bot le pasa el caso al responsable (receta, controlados, urgencias, quejas, o si piden hablar con una persona)
 export const handoffTools: Tool[] = [
   {
