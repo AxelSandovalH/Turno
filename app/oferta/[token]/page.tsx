@@ -43,7 +43,7 @@ export default async function OfferPage({ params }: { params: Promise<{ token: s
       <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 600, color: '#a78bfa', background: '#a78bfa1a', padding: '6px 14px', borderRadius: 999, marginBottom: 18 }}>
         {OFFER_PERCENT_OFF}% de descuento en tu primer mes
       </span>
-      <h1 style={{ fontSize: 28, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.02em', marginBottom: 8 }}>{plan.name.replace('Turno — ', '')}</h1>
+      <h1 style={{ fontSize: 28, fontWeight: 600, color: '#ebebeb', letterSpacing: '-0.02em', marginBottom: 8 }}>{plan.name.replace('QuickTurno — ', '')}</h1>
       <p style={{ fontSize: 14, color: '#777', marginBottom: 26 }}>{plan.description}</p>
 
       <div style={{ marginBottom: 6 }}>

@@ -71,7 +71,7 @@ export function FeaturesBento({ t, isDay }: Props) {
             span={4}
             eyebrow="No más ghosting"
             title="Nunca pierdas una cita por no contestar"
-            desc="Mientras trabajas, Turno responde al instante. Aunque te escriban a las 11 de la noche, la cita queda agendada."
+            desc="Mientras trabajas, QuickTurno responde al instante. Aunque te escriban a las 11 de la noche, la cita queda agendada."
           >
             <ChatVisual isDay={isDay} />
           </Cell>
@@ -81,7 +81,7 @@ export function FeaturesBento({ t, isDay }: Props) {
             span={2}
             eyebrow="Anticipos"
             title="Cobra anticipo y asegura"
-            desc="Turno manda el link de pago en la conversación y aparta el horario 20 minutos. Si no pagan, se libera solo."
+            desc="QuickTurno manda el link de pago en la conversación y aparta el horario 20 minutos. Si no pagan, se libera solo."
           >
             <DepositVisual isDay={isDay} t={t} />
           </Cell>
@@ -102,7 +102,7 @@ export function FeaturesBento({ t, isDay }: Props) {
             span={2}
             Icon={Smartphone}
             title="Tus clientes no instalan nada"
-            desc="Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno se encarga del resto."
+            desc="Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y QuickTurno se encarga del resto."
           />
 
           {/* Fila 3 — 2 + 4: la otra sin mockup, y el equipo cierra el bento */}
@@ -119,7 +119,7 @@ export function FeaturesBento({ t, isDay }: Props) {
             span={4}
             eyebrow="Agendas"
             title="Todo tu equipo, cada quien su agenda"
-            desc="Cada profesional con su propio horario, servicios y precios. Turno sabe con quién agendar a cada cliente."
+            desc="Cada profesional con su propio horario, servicios y precios. QuickTurno sabe con quién agendar a cada cliente."
           >
             <TeamVisual t={t} />
           </Cell>

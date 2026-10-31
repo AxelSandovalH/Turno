@@ -81,8 +81,8 @@ export async function handleSalesTool(name: string, input: Record<string, unknow
       const basic = PLANS[planKeyFor(segment, false)]
       const withBot = PLANS[planKeyFor(segment, true)]
       return JSON.stringify({
-        plan_basico: { nombre: basic.name.replace('Turno — ', ''), precio_mensual: basic.priceLabel + ' MXN', incluye: basic.features, prueba_gratis: `${TRIAL_DAYS} días (se registra tarjeta, hoy no se cobra y se puede cancelar antes sin pagar)` },
-        plan_con_asistente: { nombre: withBot.name.replace('Turno — ', ''), precio_mensual: withBot.priceLabel + ' MXN', el_asistente_suma: money(ASSISTANT.amountBySegment[segment]) + ' al mes', prueba_gratis: '7 días gratis; el asistente contesta hasta 50 mensajes durante la prueba' },
+        plan_basico: { nombre: basic.name.replace('QuickTurno — ', ''), precio_mensual: basic.priceLabel + ' MXN', incluye: basic.features, prueba_gratis: `${TRIAL_DAYS} días (se registra tarjeta, hoy no se cobra y se puede cancelar antes sin pagar)` },
+        plan_con_asistente: { nombre: withBot.name.replace('QuickTurno — ', ''), precio_mensual: withBot.priceLabel + ' MXN', el_asistente_suma: money(ASSISTANT.amountBySegment[segment]) + ' al mes', prueba_gratis: '7 días gratis; el asistente contesta hasta 50 mensajes durante la prueba' },
         prepago: `Se puede pagar por adelantado ${PREPAID_MONTHS.join(' o ')} meses con OXXO o transferencia SPEI, sin renovación automática.`,
         cancelacion: 'Sin contratos ni permanencia; se cancela desde Configuración.',
       })

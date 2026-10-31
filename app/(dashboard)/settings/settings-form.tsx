@@ -469,7 +469,7 @@ export function SettingsForm({ organization, inTrial = false }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>
-              {PLANS[planKeyForOrg(organization.business_type, organization.whatsapp_bot_enabled)].name.replace('Turno — ', '')}
+              {PLANS[planKeyForOrg(organization.business_type, organization.whatsapp_bot_enabled)].name.replace('QuickTurno — ', '')}
             </p>
             <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>
               {PLANS[planKeyForOrg(organization.business_type, organization.whatsapp_bot_enabled)].priceLabel} MXN / mes

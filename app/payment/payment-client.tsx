@@ -102,7 +102,7 @@ export function PaymentClient({ trial = false, segment }: { trial?: boolean; seg
           disabled={loading}
           style={{ width: '100%', height: 52, background: '#7c3aed', border: 'none', borderRadius: 12, color: '#fff', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', transition: 'opacity .15s' }}
         >
-          {loading ? <Spinner size={20} color="#fff" /> : trial && trialEligible(plan) ? 'Empezar 7 días gratis →' : `Activar ${plan.name.replace('Turno — ', '')} — ${plan.priceLabel} MXN/mes →`}
+          {loading ? <Spinner size={20} color="#fff" /> : trial && trialEligible(plan) ? 'Empezar 7 días gratis →' : `Activar ${plan.name.replace('QuickTurno — ', '')} — ${plan.priceLabel} MXN/mes →`}
         </button>
 
         {/* Prepago: OXXO o transferencia SPEI (no permiten cobro automático mensual) */}

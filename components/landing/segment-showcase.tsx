@@ -140,7 +140,7 @@ export function SegmentShowcase({ t, isDay }: Props) {
       <div className="max-w-5xl mx-auto px-5 py-20 sm:py-28">
         <div data-section-head className="mb-12 sm:mb-14" style={{ opacity: 0 }}>
           <p className="text-[12px] font-semibold uppercase tracking-widest mb-4" style={{ color: t.accent }}>Giros</p>
-          <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>¿Manejas citas o pedidos? Turno es para ti.</h2>
+          <h2 className="text-[30px] sm:text-[42px] font-bold tracking-[-0.02em] mb-4" style={{ color: t.text }}>¿Manejas citas o pedidos? QuickTurno es para ti.</h2>
           <p className="text-[16px] max-w-lg" style={{ color: t.muted }}>Pasa el cursor por tu giro — o tócalo si estás en el teléfono.</p>
         </div>
 

@@ -14,6 +14,7 @@ import { FeaturesBento } from '@/components/landing/features-bento'
 import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { DemoGenerator } from '@/components/landing/demo-generator'
 import { WhatsAppLink } from '@/components/landing/whatsapp-link'
+import { SITE } from '@/lib/site'
 import { WhatsAppFloat } from '@/components/landing/whatsapp-float'
 import { SEGMENTS } from '@/components/landing/segments-data'
 import { BASES, ASSISTANT, PLANS, PRICE_RANGE, TRIAL_MESSAGES, planKeyFor, totalFor, money } from '@/lib/plans'
@@ -67,11 +68,11 @@ function tokens(isDay: boolean) {
 // FEATURES vive ahora en features-bento.tsx y SEGMENTS en segments-data.ts
 
 const FAQ = [
-  { q: '¿Para qué tipos de negocio funciona Turno?', a: 'Para negocios que trabajan con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Y también para restaurantes, taquerías y cafeterías que reciben pedidos a domicilio o para recoger.' },
-  { q: '¿Turno sirve para restaurantes y delivery?', a: 'Sí. Armas tu menú con fotos, extras y notas, y tus clientes piden por WhatsApp o desde tu link de menú con carrito, a domicilio o para recoger. Turno toma el pedido, manda las fotos de los platillos y cobra con tarjeta en línea por Stripe. Tú ves cada pedido en un tablero y, al cambiarlo de estado, el cliente recibe el aviso por WhatsApp. Sin comisión por pedido.' },
+  { q: '¿Para qué tipos de negocio funciona QuickTurno?', a: 'Para negocios que trabajan con citas o reservas: barberías, spas y estéticas, psicología, odontología, fisioterapia, laboratorios clínicos, estudios de tatuaje y charters de yates o pesca. Y también para restaurantes, taquerías y cafeterías que reciben pedidos a domicilio o para recoger.' },
+  { q: '¿QuickTurno sirve para restaurantes y delivery?', a: 'Sí. Armas tu menú con fotos, extras y notas, y tus clientes piden por WhatsApp o desde tu link de menú con carrito, a domicilio o para recoger. QuickTurno toma el pedido, manda las fotos de los platillos y cobra con tarjeta en línea por Stripe. Tú ves cada pedido en un tablero y, al cambiarlo de estado, el cliente recibe el aviso por WhatsApp. Sin comisión por pedido.' },
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
-  { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
-  { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
+  { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y QuickTurno les contesta.' },
+  { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. QuickTurno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
   { q: '¿Cuánto cuesta?', a: `Hay dos planes por tipo de negocio, sin contratos ni permanencia. Citas y reservas: Agenda ${money(totalFor('citas', false))} MXN al mes, o Agenda + Asistente de WhatsApp ${money(totalFor('citas', true))} MXN al mes. Restaurantes y pedidos: Menú y pedidos ${money(totalFor('pedidos', false))} MXN al mes, o ${money(totalFor('pedidos', true))} MXN al mes con el Asistente. Tours: ${money(totalFor('tours', false))} MXN al mes, o ${money(totalFor('tours', true))} MXN al mes con el Asistente. El Asistente es el que contesta y atiende tu WhatsApp solo, 24/7.` },
   { q: '¿Cómo funciona la prueba gratis?', a: `Todos los planes incluyen 7 días de prueba gratis, también el que trae el Asistente de WhatsApp: durante la prueba el Asistente contesta hasta ${TRIAL_MESSAGES} mensajes. Eliges tu plan, registras tu tarjeta y lo usas completo sin pagar nada: hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. Cancelas tú mismo desde Configuración, en menos de un minuto.` },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
@@ -308,7 +309,7 @@ export function LandingPage() {
               Tu WhatsApp contesta<br />y agenda solo.
             </h1>
             <p data-hero-p className="text-[16px] sm:text-[18px] leading-relaxed mb-9 max-w-md" style={{ color: t.muted, opacity: 0 }}>
-              Mientras tú atiendes, Turno responde los mensajes, agenda las citas,
+              Mientras tú atiendes, QuickTurno responde los mensajes, agenda las citas,
               toma pedidos y les recuerda a tus clientes que vayan. Para barberías,
               consultorios, restaurantes y más.
             </p>
@@ -523,20 +524,28 @@ export function LandingPage() {
 
       {/* Footer */}
       <footer style={{ borderTop: `1px solid ${t.border}` }}>
-        <div className="max-w-5xl mx-auto px-5 py-7 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <Link href="/">
-            <TurnoLogo height={38} variant={isDay ? 'black' : 'dark'} />
-          </Link>
-          <p className="text-[13px]" style={{ color: t.subtle }}>© 2026 Turno · Hecho en México</p>
-          <a
-            href="https://axelsandoval.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[13px] transition-colors hover:opacity-80"
-            style={{ color: t.subtle }}
-          >
-            axelsandoval.dev
-          </a>
+        <div className="max-w-5xl mx-auto px-5 py-10 grid gap-8 sm:grid-cols-3">
+          <div>
+            <Link href="/">
+              <TurnoLogo height={38} variant={isDay ? 'black' : 'dark'} />
+            </Link>
+            <p className="text-[13px] mt-3" style={{ color: t.subtle }}>Tu recepcionista en WhatsApp, las 24 horas.</p>
+          </div>
+          <div className="text-[13px] space-y-2" style={{ color: t.muted }}>
+            <p className="font-semibold" style={{ color: t.text }}>Contacto</p>
+            {SITE.contactEmail && <p><a href={`mailto:${SITE.contactEmail}`} className="hover:opacity-80">{SITE.contactEmail}</a></p>}
+            <p><WhatsAppLink section="footer" className="hover:opacity-80">WhatsApp {SITE.whatsappDisplay}</WhatsAppLink></p>
+            <p>Facturamos</p>
+          </div>
+          <div className="text-[13px] space-y-2" style={{ color: t.muted }}>
+            <p className="font-semibold" style={{ color: t.text }}>Legal</p>
+            <p><Link href="/privacidad" className="hover:opacity-80">Aviso de privacidad</Link></p>
+            <p><Link href="/terminos" className="hover:opacity-80">Términos y condiciones</Link></p>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-5 pb-8 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ color: t.subtle }}>
+          <p className="text-[13px]">© {new Date().getFullYear()} {SITE.brand} · Hecho en México</p>
+          <a href="https://axelsandoval.dev" target="_blank" rel="noopener noreferrer" className="text-[13px] transition-colors hover:opacity-80">axelsandoval.dev</a>
         </div>
       </footer>
 

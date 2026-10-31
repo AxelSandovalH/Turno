@@ -93,11 +93,11 @@ export const PRICE_RANGE = {
 }
 
 const PARTS: Record<PlanKey, { segment: Segment; assistant: boolean; name: string }> = {
-  agenda:    { segment: 'citas',   assistant: false, name: 'Turno — Agenda' },
-  asistente: { segment: 'citas',   assistant: true,  name: 'Turno — Agenda + Asistente' },
-  tours:     { segment: 'tours',   assistant: true,  name: 'Turno — Tours + Asistente' },
-  menu:      { segment: 'pedidos', assistant: false, name: 'Turno — Menú y pedidos' },
-  pedidos:   { segment: 'pedidos', assistant: true,  name: 'Turno — Pedidos + Asistente' },
+  agenda:    { segment: 'citas',   assistant: false, name: 'QuickTurno — Agenda' },
+  asistente: { segment: 'citas',   assistant: true,  name: 'QuickTurno — Agenda + Asistente' },
+  tours:     { segment: 'tours',   assistant: true,  name: 'QuickTurno — Tours + Asistente' },
+  menu:      { segment: 'pedidos', assistant: false, name: 'QuickTurno — Menú y pedidos' },
+  pedidos:   { segment: 'pedidos', assistant: true,  name: 'QuickTurno — Pedidos + Asistente' },
 }
 
 function buildPlan(key: PlanKey): Plan {

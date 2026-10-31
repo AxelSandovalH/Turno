@@ -24,7 +24,7 @@ interface Props {
 const STEPS = [
   { n: '1', title: 'Crea tu cuenta', desc: 'Pon el nombre de tu negocio y tu número de WhatsApp. Toma 2 minutos.' },
   { n: '2', title: 'Di qué ofreces y cuándo', desc: 'Agrega tus servicios con precios y los horarios en que atiendes tú y tu equipo.' },
-  { n: '3', title: 'Comparte tu WhatsApp', desc: 'Tus clientes escriben como siempre — y Turno les contesta, agenda y les recuerda su cita.' },
+  { n: '3', title: 'Comparte tu WhatsApp', desc: 'Tus clientes escriben como siempre — y QuickTurno les contesta, agenda y les recuerda su cita.' },
 ]
 
 // ── Visual del paso 1 — registro ────────────────────────────────────────────────

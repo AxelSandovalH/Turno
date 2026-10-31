@@ -1,4 +1,4 @@
-// Giros que atiende Turno. Vive en su propio módulo porque lo consumen dos
+// Giros que atiende QuickTurno. Vive en su propio módulo porque lo consumen dos
 // lugares distintos de la landing: el SegmentPicker del hero (solo emoji+name,
 // mapeado 1:1 por índice contra SCENARIOS de whatsapp-mockup) y el
 // SegmentShowcase, que además usa pain/bullets/preview.
@@ -39,7 +39,7 @@ export const SEGMENTS: Segment[] = [
     accent: '#7c3aed',
     pain: 'El cliente que te escribe mientras cortas, no espera: agenda con el de enfrente.',
     bullets: [
-      'Turno contesta mientras tú sigues con las tijeras en la mano',
+      'QuickTurno contesta mientras tú sigues con las tijeras en la mano',
       'Cada barbero con su agenda — se acabó el "a mí me dijeron a las 5"',
       'Recordatorio automático: menos sillas vacías por plantones',
     ],
@@ -153,7 +153,7 @@ export const SEGMENTS: Segment[] = [
     accent: '#f97316',
     pain: 'Un turista que escribe a medianoche no espera: si no le contestas en minutos, reserva con otro operador.',
     bullets: [
-      'Turno contesta a turistas 24/7 y les manda el link con las fotos de cada tour',
+      'QuickTurno contesta a turistas 24/7 y les manda el link con las fotos de cada tour',
       'Anticipo por Stripe al reservar: la salida queda asegurada',
       'Cada guía con su propio calendario y precios "desde" según el grupo',
     ],
@@ -191,7 +191,7 @@ export const SEGMENTS: Segment[] = [
     accent: '#22c55e',
     pain: 'Los pedidos por WhatsApp se pierden entre mensajes, audios y capturas, y mientras contestas no cocinas.',
     bullets: [
-      'Turno toma el pedido por chat, con extras y notas, y manda las fotos de tus platillos',
+      'QuickTurno toma el pedido por chat, con extras y notas, y manda las fotos de tus platillos',
       'Link de menú con carrito para pedir a domicilio o para recoger, sin comisiones por pedido',
       'Pago con tarjeta en línea por Stripe: el pedido llega a tu cocina ya pagado',
     ],
