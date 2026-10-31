@@ -1,5 +1,6 @@
 'use client'
 
+import { WhatsAppLink } from '@/components/landing/whatsapp-link'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowRight, ArrowUp, RotateCcw, Sparkles } from 'lucide-react'
 import type { Tokens } from './feature-visuals'
@@ -151,6 +152,10 @@ export function DemoGenerator({ t, isDay }: Props) {
                 Crear mi demo <ArrowRight size={16} />
               </button>
               {error && <p className="mt-3 text-sm text-red-500" role="alert">{error}</p>}
+              <p className="mt-4 text-sm" style={{ color: t.muted }}>
+                ¿Prefieres verlo con una persona?{' '}
+                <WhatsAppLink section="demo" className="underline underline-offset-4" style={{ color: t.accent }}>Pide tu demo por WhatsApp</WhatsAppLink>
+              </p>
             </div>
           )}
           {phase === 'working' && <GeneratingStage isDay={isDay} accent={t.accent} />}

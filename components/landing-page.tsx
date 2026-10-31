@@ -13,6 +13,8 @@ import { DashboardMockup } from '@/components/landing/dashboard-mockup'
 import { FeaturesBento } from '@/components/landing/features-bento'
 import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { DemoGenerator } from '@/components/landing/demo-generator'
+import { WhatsAppLink } from '@/components/landing/whatsapp-link'
+import { WhatsAppFloat } from '@/components/landing/whatsapp-float'
 import { SEGMENTS } from '@/components/landing/segments-data'
 import { BASES, ASSISTANT, PLANS, PRICE_RANGE, planKeyFor, totalFor, money } from '@/lib/plans'
 import gsap from 'gsap'
@@ -311,33 +313,28 @@ export function LandingPage() {
               consultorios, restaurantes y más.
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
-              {/* Si el visitante eligió restaurantes o tours en el selector, el registro ya arranca con su tipo de negocio */}
-              <FancyButton href={SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : SEGMENTS[activeSegment]?.short === 'Tours' ? '/register?plan=agenda&type=tours' : '/register'}>Empezar 7 días gratis →</FancyButton>
-              <a href="#pricing">
+              {/* CTA principal: WhatsApp. Secundario: prueba gratis (si eligió restaurantes o tours en el selector, el registro ya arranca con su tipo de negocio) */}
+              <WhatsAppLink section="hero" giro={SEGMENTS[activeSegment]?.giro}
+                className="text-[14px] font-semibold px-6 py-3 rounded-md w-full sm:w-auto text-center text-white transition-opacity hover:opacity-90"
+                style={{ background: '#25d366' }}>
+                Escríbenos por WhatsApp
+              </WhatsAppLink>
+              <Link href={SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : SEGMENTS[activeSegment]?.short === 'Tours' ? '/register?plan=agenda&type=tours' : '/register'} className="w-full sm:w-auto">
                 <button
                   onMouseEnter={() => setLoginHover(true)}
                   onMouseLeave={() => setLoginHover(false)}
                   className="relative text-[14px] font-medium px-5 py-3 rounded-md w-full sm:w-auto overflow-hidden"
                   style={{ border: `1px solid ${t.border}` }}
                 >
-                  <span
-                    className="relative z-10 transition-colors duration-300"
-                    style={{ color: loginHover ? t.accent : t.muted }}
-                  >
-                    Ver planes y precios
+                  <span className="relative z-10 transition-colors duration-300" style={{ color: loginHover ? t.accent : t.text }}>
+                    Empezar 7 días gratis
                   </span>
-                  {/* Barra de reveal: entra desde la izquierda al hover, sale hacia la derecha al salir */}
                   <span
                     className="absolute left-0 right-0 bottom-0 h-[2px]"
-                    style={{
-                      background: t.accent,
-                      transform: `scaleX(${loginHover ? 1 : 0})`,
-                      transformOrigin: loginHover ? 'left' : 'right',
-                      transition: 'transform 0.35s ease',
-                    }}
+                    style={{ background: t.accent, transform: `scaleX(${loginHover ? 1 : 0})`, transformOrigin: loginHover ? 'left' : 'right', transition: 'transform 0.35s ease' }}
                   />
                 </button>
-              </a>
+              </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
               7 días gratis · Desde {money(PRICE_RANGE.low)} MXN/mes · Cancela cuando quieras
@@ -437,6 +434,9 @@ export function LandingPage() {
                         {withAssistant ? `Contratar · ${money(total)} al mes` : 'Probar 7 días gratis'}
                       </button>
                     </Link>
+                    <WhatsAppLink section="pricing" className="block text-center text-[13px] mt-3 underline underline-offset-4" style={{ color: t.muted }}>
+                      ¿Dudas? Escríbenos por WhatsApp
+                    </WhatsAppLink>
                     <p className="text-[12px] mt-3 text-center" style={{ color: t.subtle }}>
                       {withAssistant ? 'Se cobra desde hoy. Para probar gratis, empieza con Agenda y agrega el asistente cuando quieras.' : 'Sin cobro hoy.'}
                     </p>
@@ -510,7 +510,14 @@ export function LandingPage() {
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
           <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde {money(PRICE_RANGE.low)} MXN/mes. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · Restaurantes · y más</p>
-          <FancyButton href="/register">Empieza hoy →</FancyButton>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <WhatsAppLink section="cierre" className="text-[14px] font-semibold px-6 py-3 rounded-md w-full sm:w-auto text-center text-white transition-opacity hover:opacity-90" style={{ background: '#25d366' }}>
+              Escríbenos por WhatsApp
+            </WhatsAppLink>
+            <Link href="/register" className="w-full sm:w-auto">
+              <button className="text-[14px] font-medium px-5 py-3 rounded-md w-full sm:w-auto" style={{ border: `1px solid ${t.border}`, color: t.text }}>Empezar 7 días gratis</button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -533,6 +540,7 @@ export function LandingPage() {
         </div>
       </footer>
 
+      <WhatsAppFloat />
     </div>
   )
 }

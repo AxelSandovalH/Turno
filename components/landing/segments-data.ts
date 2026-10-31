@@ -15,6 +15,8 @@ export interface Segment {
   /** Etiqueta corta para el chip flotante de /segments — el nombre completo
    *  no cabe bien bajo una burbuja de 64px (ver segment-showcase.tsx) */
   short: string
+  /** Cómo se nombra el negocio en el mensaje de WhatsApp: "para mi barbería" */
+  giro: string
   /** Acento de color propio del giro — rompe el "todo morado" y ayuda a
    *  distinguir de un vistazo en qué giro estás parado. */
   accent: string
@@ -33,6 +35,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '💈',
     name: 'Barberías y estéticas',
     short: 'Barberías',
+    giro: 'barbería',
     accent: '#7c3aed',
     pain: 'El cliente que te escribe mientras cortas, no espera: agenda con el de enfrente.',
     bullets: [
@@ -51,6 +54,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '💆',
     name: 'Spas y bienestar',
     short: 'Spas',
+    giro: 'spa',
     accent: '#ec4899',
     pain: 'Tu cabina vacía por una cancelación de último minuto es dinero que ya no regresa.',
     bullets: [
@@ -69,6 +73,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '🏥',
     name: 'Consultorios y clínicas',
     short: 'Clínicas',
+    giro: 'clínica',
     accent: '#3b82f6',
     pain: 'Tu asistente no puede contestar WhatsApp, agendar y recibir pacientes al mismo tiempo.',
     bullets: [
@@ -87,6 +92,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '🧠',
     name: 'Psicología y terapia',
     short: 'Psicología',
+    giro: 'consultorio de psicología',
     accent: '#14b8a6',
     pain: 'Cobrar la sesión que el paciente olvidó es incómodo; perderla, insostenible.',
     bullets: [
@@ -105,6 +111,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '🔬',
     name: 'Laboratorios clínicos',
     short: 'Laboratorios',
+    giro: 'laboratorio',
     accent: '#06b6d4',
     pain: 'Pacientes llamando todo el día para preguntar si ya están sus resultados.',
     bullets: [
@@ -123,6 +130,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '⛵',
     name: 'Charters de yates y pesca',
     short: 'Embarcaciones',
+    giro: 'charter',
     accent: '#f59e0b',
     pain: 'Una reserva sin anticipo que no llega al muelle te cuesta el día entero de la embarcación.',
     bullets: [
@@ -141,6 +149,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '🌴',
     name: 'Tours y actividades',
     short: 'Tours',
+    giro: 'operador de tours',
     accent: '#f97316',
     pain: 'Un turista que escribe a medianoche no espera: si no le contestas en minutos, reserva con otro operador.',
     bullets: [
@@ -159,6 +168,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '🎨',
     name: 'Estudios de tatuaje',
     short: 'Tattoo',
+    giro: 'estudio de tatuajes',
     accent: '#ef4444',
     pain: 'Una sesión de horas apartada sin anticipo, cancelada a última hora, es un día entero perdido.',
     bullets: [
@@ -177,6 +187,7 @@ export const SEGMENTS: Segment[] = [
     emoji: '🌮',
     name: 'Restaurantes y comida para llevar',
     short: 'Restaurantes',
+    giro: 'restaurante',
     accent: '#22c55e',
     pain: 'Los pedidos por WhatsApp se pierden entre mensajes, audios y capturas, y mientras contestas no cocinas.',
     bullets: [
