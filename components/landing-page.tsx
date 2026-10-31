@@ -15,6 +15,7 @@ import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { DemoGenerator } from '@/components/landing/demo-generator'
 import { WhatsAppLink } from '@/components/landing/whatsapp-link'
 import { SITE } from '@/lib/site'
+import type { LandingVariant } from '@/lib/landing-variants'
 import { WhatsAppFloat } from '@/components/landing/whatsapp-float'
 import { SEGMENTS } from '@/components/landing/segments-data'
 import { BASES, ASSISTANT, PLANS, PRICE_RANGE, TRIAL_MESSAGES, planKeyFor, totalFor, money } from '@/lib/plans'
@@ -150,14 +151,14 @@ function SegmentPicker({ t, active, onSelect }: {
 
 const THEME_KEY = 'turno-landing-theme'
 
-export function LandingPage() {
+export function LandingPage({ variant }: { variant?: LandingVariant }) {
   const root = useRef<HTMLDivElement>(null)
   useEffect(() => { track('landing_view') }, [])
   const [isDay, setIsDay] = useState(false) // dark default for SSR
   const [loginHover, setLoginHover] = useState(false)
-  const [activeSegment, setActiveSegment] = useState(0)
+  const [activeSegment, setActiveSegment] = useState(variant?.segmentIndex ?? 0)
   // Los planes se muestran según el tipo de negocio: citas o pedidos
-  const [pricingSegment, setPricingSegment] = useState<'citas' | 'tours' | 'pedidos'>('citas')
+  const [pricingSegment, setPricingSegment] = useState<'citas' | 'tours' | 'pedidos'>(variant?.pricing ?? 'citas')
 
   useEffect(() => {
     // Por defecto SIEMPRE se adapta a la hora actual. Si el visitante toca el
@@ -303,24 +304,22 @@ export function LandingPage() {
           {/* Left — copy */}
           <div className="flex-1 py-24 sm:py-32 lg:py-0 flex flex-col justify-center">
             <p data-hero-badge className="text-[12px] font-semibold mb-5 tracking-widest uppercase" style={{ color: t.accent, opacity: 0 }}>
-              Contesta, agenda y recuerda · las 24 horas
+              {variant?.badge ?? 'Contesta, agenda y recuerda · las 24 horas'}
             </p>
             <h1 data-hero-h1 className="text-[40px] sm:text-[58px] lg:text-[64px] font-bold leading-[1.06] tracking-[-0.03em] mb-6" style={{ color: t.text, opacity: 0 }}>
-              Tu WhatsApp contesta<br />y agenda solo.
+              {variant ? <>{variant.headline[0]}<br />{variant.headline[1]}</> : <>Tu WhatsApp contesta<br />y agenda solo.</>}
             </h1>
             <p data-hero-p className="text-[16px] sm:text-[18px] leading-relaxed mb-9 max-w-md" style={{ color: t.muted, opacity: 0 }}>
-              Mientras tú atiendes, QuickTurno responde los mensajes, agenda las citas,
-              toma pedidos y les recuerda a tus clientes que vayan. Para barberías,
-              consultorios, restaurantes y más.
+              {variant?.subtitle ?? 'Mientras tú atiendes, QuickTurno responde los mensajes, agenda las citas, toma pedidos y les recuerda a tus clientes que vayan. Para barberías, consultorios, restaurantes y más.'}
             </p>
             <div data-hero-cta className="flex flex-col sm:flex-row items-start sm:items-center gap-3" style={{ opacity: 0 }}>
               {/* CTA principal: WhatsApp. Secundario: prueba gratis (si eligió restaurantes o tours en el selector, el registro ya arranca con su tipo de negocio) */}
-              <WhatsAppLink section="hero" giro={SEGMENTS[activeSegment]?.giro}
+              <WhatsAppLink section="hero" giro={variant?.giro ?? SEGMENTS[activeSegment]?.giro}
                 className="text-[14px] font-semibold px-6 py-3 rounded-md w-full sm:w-auto text-center text-white transition-opacity hover:opacity-90"
                 style={{ background: '#25d366' }}>
                 Escríbenos por WhatsApp
               </WhatsAppLink>
-              <Link href={SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : SEGMENTS[activeSegment]?.short === 'Tours' ? '/register?plan=agenda&type=tours' : '/register'} className="w-full sm:w-auto">
+              <Link href={variant ? (variant.pricing === 'pedidos' ? '/register?plan=menu' : '/register') : SEGMENTS[activeSegment]?.short === 'Restaurantes' ? '/register?plan=menu' : SEGMENTS[activeSegment]?.short === 'Tours' ? '/register?plan=agenda&type=tours' : '/register'} className="w-full sm:w-auto">
                 <button
                   onMouseEnter={() => setLoginHover(true)}
                   onMouseLeave={() => setLoginHover(false)}
@@ -348,16 +347,16 @@ export function LandingPage() {
             className="hidden lg:flex flex-1 flex-col items-center justify-center py-16 gap-5"
             style={{ opacity: 0 }}
           >
-            <SegmentPicker t={t} active={activeSegment} onSelect={setActiveSegment} />
-            <WhatsappMockup isDay={isDay} activeIndex={activeSegment} onScenarioChange={setActiveSegment} />
+            {!variant && <SegmentPicker t={t} active={activeSegment} onSelect={setActiveSegment} />}
+            <WhatsappMockup isDay={isDay} activeIndex={activeSegment} onScenarioChange={variant ? undefined : setActiveSegment} />
           </div>
 
         </div>
 
         {/* Mobile — mockup debajo del copy */}
         <div className="lg:hidden flex flex-col items-center gap-5 pb-16 px-5 relative z-10">
-          <SegmentPicker t={t} active={activeSegment} onSelect={setActiveSegment} />
-          <WhatsappMockup isDay={isDay} activeIndex={activeSegment} onScenarioChange={setActiveSegment} />
+          {!variant && <SegmentPicker t={t} active={activeSegment} onSelect={setActiveSegment} />}
+          <WhatsappMockup isDay={isDay} activeIndex={activeSegment} onScenarioChange={variant ? undefined : setActiveSegment} />
         </div>
       </section>
 
@@ -368,7 +367,7 @@ export function LandingPage() {
       <FeaturesBento t={t} isDay={isDay} />
 
       {/* Segmentos — un solo panel por giro en vez de 7 columnas de bullets */}
-      <SegmentShowcase t={t} isDay={isDay} />
+      {!variant && <SegmentShowcase t={t} isDay={isDay} />}
 
       {/* Pricing */}
       <section id="pricing" style={{ borderTop: `1px solid ${t.border}` }}>
@@ -381,6 +380,7 @@ export function LandingPage() {
 
           {/* Planes por tipo de negocio: citas (Agenda, Agenda + Asistente) y pedidos (Pedidos) */}
           <div data-pricing-card style={{ opacity: 0 }} className="max-w-5xl mx-auto">
+            {!variant && (
             <div className="flex justify-center mb-3">
               <div role="tablist" aria-label="Tipo de negocio" className="inline-flex rounded-full p-1 gap-1" style={{ border: `1px solid ${t.border}`, background: t.card }}>
                 {([['citas', 'Citas y reservas'], ['tours', 'Tours'], ['pedidos', 'Restaurantes y pedidos']] as const).map(([seg, label]) => (
@@ -397,6 +397,7 @@ export function LandingPage() {
                 ))}
               </div>
             </div>
+            )}
             <p className="text-center text-[13px] mb-8" style={{ color: t.muted }}>
               {pricingSegment === 'citas'
                 ? 'Barberías, spas, clínicas, estudios de tatuaje y charters.'
@@ -435,7 +436,7 @@ export function LandingPage() {
                         Probar 7 días gratis
                       </button>
                     </Link>
-                    <WhatsAppLink section="pricing" className="block text-center text-[13px] mt-3 underline underline-offset-4" style={{ color: t.muted }}>
+                    <WhatsAppLink section="pricing" giro={variant?.giro} className="block text-center text-[13px] mt-3 underline underline-offset-4" style={{ color: t.muted }}>
                       ¿Dudas? Escríbenos por WhatsApp
                     </WhatsAppLink>
                     <p className="text-[12px] mt-3 text-center" style={{ color: t.subtle }}>
@@ -512,7 +513,7 @@ export function LandingPage() {
           <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde {money(PRICE_RANGE.low)} MXN/mes. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · Restaurantes · y más</p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <WhatsAppLink section="cierre" className="text-[14px] font-semibold px-6 py-3 rounded-md w-full sm:w-auto text-center text-white transition-opacity hover:opacity-90" style={{ background: '#25d366' }}>
+            <WhatsAppLink section="cierre" giro={variant?.giro} className="text-[14px] font-semibold px-6 py-3 rounded-md w-full sm:w-auto text-center text-white transition-opacity hover:opacity-90" style={{ background: '#25d366' }}>
               Escríbenos por WhatsApp
             </WhatsAppLink>
             <Link href="/register" className="w-full sm:w-auto">
@@ -549,7 +550,7 @@ export function LandingPage() {
         </div>
       </footer>
 
-      <WhatsAppFloat />
+      <WhatsAppFloat giro={variant?.giro} />
     </div>
   )
 }
