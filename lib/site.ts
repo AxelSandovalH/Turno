@@ -1,3 +1,5 @@
+import { TRIAL_DAYS, TRIAL_MESSAGES } from '@/lib/plans'
+
 // Datos del sitio en un solo lugar: marca, contacto y WhatsApp de ventas. Lo que aún no está definido queda como null
 // (TODO) y la interfaz lo oculta en lugar de mostrar un dato falso.
 
@@ -12,8 +14,8 @@ export const SITE = {
   /** TODO: correo de contacto (aviso de privacidad, términos y footer). Define NEXT_PUBLIC_CONTACT_EMAIL en Vercel. */
   contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || null,
   /** Mensajes de la prueba gratis incluidos con el Asistente de WhatsApp. */
-  trialMessages: 50,
-  trialDays: 7,
+  trialMessages: TRIAL_MESSAGES,
+  trialDays: TRIAL_DAYS,
 } as const
 
 /** Link wa.me con mensaje prellenado. */

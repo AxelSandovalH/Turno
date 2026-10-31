@@ -3,6 +3,7 @@ import { handleManualMessage } from '@/lib/manual-takeover'
 import { fetchImage } from '@/lib/media'
 import { isOwnerPhone, handleOwnerDecision, handleOwnerLinkCommand, waId } from '@/lib/payment-links'
 import { handleOwnerAnswer, getOpenConcierge } from '@/lib/owner-consults'
+import { trialBlocksBot } from '@/lib/trial'
 import { handleOwnerContract } from '@/lib/rancho-contract-flow'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
@@ -312,6 +313,12 @@ export async function POST(req: Request) {
       if (img) image = { url: imageUrl, ...img }
       else text = `${text} (la foto no se pudo abrir: pídele que la mande de nuevo o que escriba lo que necesita)`
     }
+    // Prueba gratis: pasado el tope de mensajes del Asistente, el bot calla y se avisa al dueño
+    if (await trialBlocksBot({ id: organization.id, name: organization.name, whatsapp_number: organization.whatsapp_number }, creds).catch(() => false)) {
+      console.log('[whatsapp] tope de la prueba gratis alcanzado:', organization.id)
+      return NextResponse.json({ ok: true })
+    }
+
     const reply = await runAgent({
       organizationId: organization.id,
       customerPhone: phone,

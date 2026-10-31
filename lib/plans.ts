@@ -130,6 +130,9 @@ export const PLANS: Record<PlanKey, Plan> = {
 /** Días de prueba gratis en toda suscripción nueva. Stripe cobra el primer mes al terminar. */
 export const TRIAL_DAYS = 7
 
+/** Mensajes que el Asistente de WhatsApp contesta durante la prueba gratis. */
+export const TRIAL_MESSAGES = 50
+
 /** Meses que se pueden prepagar con OXXO o SPEI (OXXO tiene tope de $10,000 por pago). */
 export const PREPAID_MONTHS = [1, 3] as const
 export type PrepaidMonths = (typeof PREPAID_MONTHS)[number]
@@ -165,9 +168,9 @@ export function planKeyForOrg(businessType: string | null | undefined, botEnable
   return planKeyFor(segmentForType(businessType), botEnabled)
 }
 
-/** La prueba gratis es solo para el plan básico: el asistente (WhatsApp y IA) tiene costo desde el primer día. */
-export function trialEligible(plan: Plan): boolean {
-  return !plan.bot
+/** La prueba gratis aplica a todos los planes; con el asistente incluye hasta TRIAL_MESSAGES mensajes (ver lib/trial.ts). */
+export function trialEligible(_plan: Plan): boolean { // eslint-disable-line @typescript-eslint/no-unused-vars
+  return true
 }
 
 /** Solo 'agenda' y 'menu' no incluyen el bot — las suscripciones viejas ('turno-ai') lo conservan. */

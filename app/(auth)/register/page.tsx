@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Spinner } from '@/components/ui/spinner'
 import { ALL_PROFILES } from '@/lib/profiles/registry'
-import { isPlanKey, PLANS, DEFAULT_PLAN, planKeyFor, segmentForType, trialEligible, type PlanKey } from '@/lib/plans'
+import { isPlanKey, PLANS, DEFAULT_PLAN, planKeyFor, segmentForType, trialEligible, TRIAL_MESSAGES, type PlanKey } from '@/lib/plans'
 import { PlanComposer } from '@/components/pricing/plan-composer'
 import { buildPhone } from '@/lib/booking-format'
 import { GoogleButton } from '@/components/auth/google-button'
@@ -430,8 +430,8 @@ export default function RegisterPage() {
           {!paidSessionId && (
             <p style={{ textAlign: 'center', fontSize: 11.5, color: '#6b6b6b', marginTop: -4 }}>
               {trialEligible(plan)
-                ? `Hoy no se te cobra nada. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.`
-                : `Se cobra hoy el primer mes (${plan.priceLabel} MXN) y después cada mes. Cancela cuando quieras. La prueba gratis es del plan básico.`}
+                ? `Hoy no se te cobra nada. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.${plan.bot ? ` La prueba incluye hasta ${TRIAL_MESSAGES} mensajes del Asistente.` : ''}`
+                : `Se cobra hoy el primer mes (${plan.priceLabel} MXN) y después cada mes. Cancela cuando quieras.`}
             </p>
           )}
           {!googleUser && (

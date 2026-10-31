@@ -16,7 +16,7 @@ import { DemoGenerator } from '@/components/landing/demo-generator'
 import { WhatsAppLink } from '@/components/landing/whatsapp-link'
 import { WhatsAppFloat } from '@/components/landing/whatsapp-float'
 import { SEGMENTS } from '@/components/landing/segments-data'
-import { BASES, ASSISTANT, PLANS, PRICE_RANGE, planKeyFor, totalFor, money } from '@/lib/plans'
+import { BASES, ASSISTANT, PLANS, PRICE_RANGE, TRIAL_MESSAGES, planKeyFor, totalFor, money } from '@/lib/plans'
 import gsap from 'gsap'
 import { track } from '@/lib/funnel/client'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -73,7 +73,7 @@ const FAQ = [
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
   { q: '¿Cuánto cuesta?', a: `Hay dos planes por tipo de negocio, sin contratos ni permanencia. Citas y reservas: Agenda ${money(totalFor('citas', false))} MXN al mes, o Agenda + Asistente de WhatsApp ${money(totalFor('citas', true))} MXN al mes. Restaurantes y pedidos: Menú y pedidos ${money(totalFor('pedidos', false))} MXN al mes, o ${money(totalFor('pedidos', true))} MXN al mes con el Asistente. Tours: ${money(totalFor('tours', false))} MXN al mes, o ${money(totalFor('tours', true))} MXN al mes con el Asistente. El Asistente es el que contesta y atiende tu WhatsApp solo, 24/7.` },
-  { q: '¿Cómo funciona la prueba gratis?', a: 'El plan básico incluye 7 días de prueba gratis. Eliges tu plan, registras tu tarjeta y lo usas completo sin pagar nada: hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. El plan con asistente de WhatsApp no incluye prueba porque tiene costo desde el primer día, pero puedes empezar con el básico y agregarlo cuando quieras. Cancelas tú mismo desde Configuración, en menos de un minuto.' },
+  { q: '¿Cómo funciona la prueba gratis?', a: `Todos los planes incluyen 7 días de prueba gratis, también el que trae el Asistente de WhatsApp: durante la prueba el Asistente contesta hasta ${TRIAL_MESSAGES} mensajes. Eliges tu plan, registras tu tarjeta y lo usas completo sin pagar nada: hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. Cancelas tú mismo desde Configuración, en menos de un minuto.` },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
 
@@ -337,7 +337,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              7 días gratis · Desde {money(PRICE_RANGE.low)} MXN/mes · Cancela cuando quieras
+              7 días gratis con Asistente incluido · Desde {money(PRICE_RANGE.low)} MXN/mes · Cancela cuando quieras
             </p>
           </div>
 
@@ -431,21 +431,21 @@ export function LandingPage() {
                     <Link href={`/register?plan=${planKey}`} className="block">
                       <button className="w-full py-3 rounded-md text-[14px] font-medium transition-colors"
                         style={withAssistant ? { background: t.accent, color: '#fff' } : { border: `1px solid ${t.border}`, color: t.text }}>
-                        {withAssistant ? `Contratar · ${money(total)} al mes` : 'Probar 7 días gratis'}
+                        Probar 7 días gratis
                       </button>
                     </Link>
                     <WhatsAppLink section="pricing" className="block text-center text-[13px] mt-3 underline underline-offset-4" style={{ color: t.muted }}>
                       ¿Dudas? Escríbenos por WhatsApp
                     </WhatsAppLink>
                     <p className="text-[12px] mt-3 text-center" style={{ color: t.subtle }}>
-                      {withAssistant ? 'Se cobra desde hoy. Para probar gratis, empieza con Agenda y agrega el asistente cuando quieras.' : 'Sin cobro hoy.'}
+                      {withAssistant ? `Sin cobro hoy. La prueba incluye hasta ${TRIAL_MESSAGES} mensajes del Asistente.` : 'Sin cobro hoy.'}
                     </p>
                   </div>
                 )
               })}
             </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
-              Plan básico con 7 días gratis · Sin contrato · Cancela cuando quieras
+              7 días gratis en cualquier plan · Sin contrato · Cancela cuando quieras
             </p>
           </div>
         </div>

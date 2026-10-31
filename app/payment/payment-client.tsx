@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TurnoLogo } from '@/components/ui/turno-logo'
 import { Spinner } from '@/components/ui/spinner'
-import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, trialEligible, type PlanKey, type PrepaidMonths, type Segment } from '@/lib/plans'
+import { PLANS, DEFAULT_PLAN, PREPAID_MONTHS, isPlanKey, planKeyFor, trialEligible, TRIAL_MESSAGES, type PlanKey, type PrepaidMonths, type Segment } from '@/lib/plans'
 import { PlanComposer } from '@/components/pricing/plan-composer'
 
 
@@ -139,7 +139,7 @@ export function PaymentClient({ trial = false, segment }: { trial?: boolean; seg
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 11, color: '#3d3d3d', marginTop: 14 }}>
-          {trial && trialEligible(plan) ? `Hoy no se te cobra. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.` : trial ? 'La prueba gratis de 7 días es del plan básico. Con el asistente se cobra hoy el primer mes. Pago seguro vía Stripe.' : 'Pago seguro vía Stripe · Cancela cuando quieras'}
+          {trial && trialEligible(plan) ? `Hoy no se te cobra. Después de 7 días: ${plan.priceLabel} MXN al mes. Cancela antes y no pagas.${plan.bot ? ` La prueba incluye hasta ${TRIAL_MESSAGES} mensajes del Asistente.` : ''}` : 'Pago seguro vía Stripe · Cancela cuando quieras'}
         </p>
       </div>
     </div>

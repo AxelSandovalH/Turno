@@ -28,7 +28,7 @@ export const salesTools: Tool[] = [
     description: 'Devuelve el enlace de registro de QuickTurno para este negocio. Úsalo cuando quiera probar o contratar.',
     input_schema: {
       type: 'object' as const,
-      properties: { with_assistant: { type: 'boolean', description: 'true si quiere el plan con Asistente de WhatsApp (sin prueba gratis); false para el básico con 7 días gratis.' } },
+      properties: { with_assistant: { type: 'boolean', description: 'true si quiere el plan con Asistente de WhatsApp; false para el básico. Ambos tienen 7 días de prueba gratis.' } },
       required: [],
     },
   },
@@ -82,7 +82,7 @@ export async function handleSalesTool(name: string, input: Record<string, unknow
       const withBot = PLANS[planKeyFor(segment, true)]
       return JSON.stringify({
         plan_basico: { nombre: basic.name.replace('Turno — ', ''), precio_mensual: basic.priceLabel + ' MXN', incluye: basic.features, prueba_gratis: `${TRIAL_DAYS} días (se registra tarjeta, hoy no se cobra y se puede cancelar antes sin pagar)` },
-        plan_con_asistente: { nombre: withBot.name.replace('Turno — ', ''), precio_mensual: withBot.priceLabel + ' MXN', el_asistente_suma: money(ASSISTANT.amountBySegment[segment]) + ' al mes', prueba_gratis: 'no incluye; se cobra desde el primer día' },
+        plan_con_asistente: { nombre: withBot.name.replace('Turno — ', ''), precio_mensual: withBot.priceLabel + ' MXN', el_asistente_suma: money(ASSISTANT.amountBySegment[segment]) + ' al mes', prueba_gratis: '7 días gratis; el asistente contesta hasta 50 mensajes durante la prueba' },
         prepago: `Se puede pagar por adelantado ${PREPAID_MONTHS.join(' o ')} meses con OXXO o transferencia SPEI, sin renovación automática.`,
         cancelacion: 'Sin contratos ni permanencia; se cancela desde Configuración.',
       })
