@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { SplashScreen } from '@/components/splash-screen'
 import { Analytics } from '@vercel/analytics/next'
+import { GoogleTag } from '@/components/analytics/google-tag'
 import './globals.css'
 
 const geistSans = Inter({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Toaster richColors position="top-right" />
         </TooltipProvider>
         <Analytics />
+        <GoogleTag />
       </body>
     </html>
   )

@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
+import { track as trackGa } from '@/lib/analytics'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -177,7 +178,7 @@ export default function RegisterPage() {
 
   const plan = PLANS[planKey]
   const step: 1 | 2 = googleUser ? 2 : stepState
-  useEffect(() => { track('register_view') }, [])
+  useEffect(() => { track('register_view'); trackGa('register_start', { plan: plan.key }) }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (step === 2) track('register_step2', form.businessType) }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function goToStep(n: 1 | 2) {
