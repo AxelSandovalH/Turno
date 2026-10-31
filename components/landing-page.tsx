@@ -14,7 +14,7 @@ import { FeaturesBento } from '@/components/landing/features-bento'
 import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { DemoGenerator } from '@/components/landing/demo-generator'
 import { SEGMENTS } from '@/components/landing/segments-data'
-import { BASES, ASSISTANT, PLANS, planKeyFor, money } from '@/lib/plans'
+import { BASES, ASSISTANT, PLANS, PRICE_RANGE, planKeyFor, totalFor, money } from '@/lib/plans'
 import gsap from 'gsap'
 import { track } from '@/lib/funnel/client'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -70,7 +70,7 @@ const FAQ = [
   { q: '¿Necesito un número nuevo de WhatsApp?', a: 'No. Puedes usar tu número actual de WhatsApp Business. Te ayudamos a configurarlo sin costo adicional.' },
   { q: '¿Mis clientes o pacientes tienen que instalar algo?', a: 'Nada. Usan el WhatsApp que ya tienen en su teléfono. Escriben como siempre y Turno les contesta.' },
   { q: '¿Puedo pedir anticipo para apartar la cita?', a: 'Sí. Lo activas desde Configuración y defines el monto. Turno manda el link de pago de Stripe en la misma conversación y aparta el horario 20 minutos: si el cliente no paga en ese rato, el espacio se libera automáticamente para alguien más. El dinero llega directo a tu cuenta de Stripe.' },
-  { q: '¿Cuánto cuesta?', a: `Empiezas con un plan básico de ${money(BASES.citas.amount)} MXN al mes: para citas es Agenda (calendario, página de reservas, anticipos y recordatorios) y para restaurantes es Menú y pedidos (menú con fotos, link con carrito, cobro con tarjeta y tablero). Si quieres que WhatsApp conteste y atienda solo, 24/7, agregas el Asistente: el plan queda en ${PLANS.asistente.priceLabel} MXN al mes en citas, ${PLANS.tours.priceLabel} en tours y ${PLANS.pedidos.priceLabel} en restaurantes. Sin contratos ni permanencia.` },
+  { q: '¿Cuánto cuesta?', a: `Hay dos planes por tipo de negocio, sin contratos ni permanencia. Citas y reservas: Agenda ${money(totalFor('citas', false))} MXN al mes, o Agenda + Asistente de WhatsApp ${money(totalFor('citas', true))} MXN al mes. Restaurantes y pedidos: Menú y pedidos ${money(totalFor('pedidos', false))} MXN al mes, o ${money(totalFor('pedidos', true))} MXN al mes con el Asistente. Tours: ${money(totalFor('tours', false))} MXN al mes, o ${money(totalFor('tours', true))} MXN al mes con el Asistente. El Asistente es el que contesta y atiende tu WhatsApp solo, 24/7.` },
   { q: '¿Cómo funciona la prueba gratis?', a: 'El plan básico incluye 7 días de prueba gratis. Eliges tu plan, registras tu tarjeta y lo usas completo sin pagar nada: hoy no se te cobra. Si cancelas antes de que termine la prueba, no pagas; si no, al día 8 se cobra el primer mes. El plan con asistente de WhatsApp no incluye prueba porque tiene costo desde el primer día, pero puedes empezar con el básico y agregarlo cuando quieras. Cancelas tú mismo desde Configuración, en menos de un minuto.' },
   { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Sin penalizaciones ni letras chicas. Cancelas desde tu cuenta en menos de un minuto.' },
 ]
@@ -155,7 +155,6 @@ export function LandingPage() {
   const [activeSegment, setActiveSegment] = useState(0)
   // Los planes se muestran según el tipo de negocio: citas o pedidos
   const [pricingSegment, setPricingSegment] = useState<'citas' | 'tours' | 'pedidos'>('citas')
-  const [pricingAssistant, setPricingAssistant] = useState(false)
 
   useEffect(() => {
     // Por defecto SIEMPRE se adapta a la hora actual. Si el visitante toca el
@@ -341,7 +340,7 @@ export function LandingPage() {
               </a>
             </div>
             <p data-hero-note className="text-[12px] mt-5" style={{ color: t.subtle, opacity: 0 }}>
-              7 días gratis · Desde $700 MXN/mes · Cancela cuando quieras
+              7 días gratis · Desde {money(PRICE_RANGE.low)} MXN/mes · Cancela cuando quieras
             </p>
           </div>
 
@@ -407,79 +406,44 @@ export function LandingPage() {
                   ? 'Operadores de tours y actividades.'
                   : 'Restaurantes, taquerías y cafeterías con pedidos a domicilio o para recoger.'}
             </p>
-            {/* Una sola tarjeta armada con piezas: plan base + complemento del asistente */}
-            {(() => {
-              const base = BASES[pricingSegment]
-              const addonAmount = ASSISTANT.amountBySegment[pricingSegment]
-              const total = base.amount + (pricingAssistant ? addonAmount : 0)
-              const planKey = planKeyFor(pricingSegment, pricingAssistant)
-              return (
-                <div className="max-w-xl mx-auto rounded-xl p-7 flex flex-col" style={{ border: `1px solid ${t.accent}`, background: `${t.accent}0d` }}>
-                  <div className="flex items-baseline justify-between gap-4 mb-1">
-                    <p className="text-[16px] font-semibold" style={{ color: t.text }}>{base.name}</p>
-                    <p className="text-[15px] font-semibold" style={{ color: t.text }}>{money(base.amount)}<span className="text-[12px] font-normal" style={{ color: t.muted }}> MXN/mes</span></p>
-                  </div>
-                  <p className="text-[12px] mb-5" style={{ color: t.muted }}>{base.description}</p>
-                  <ul className="space-y-2.5 mb-6">
-                    {base.features.map(f => (
-                      <li key={f} className="flex items-center gap-2.5">
-                        <Check className="h-3.5 w-3.5 shrink-0" style={{ color: t.accent }} />
-                        <span className="text-[13px]" style={{ color: t.muted }}>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Complemento */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={pricingAssistant}
-                    onClick={() => setPricingAssistant(v => !v)}
-                    className="w-full text-left rounded-lg p-4 mb-6 transition-colors"
-                    style={{ border: `1px solid ${pricingAssistant ? t.accent : t.border}`, background: pricingAssistant ? `${t.accent}14` : t.card }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="relative inline-block h-5 w-9 shrink-0 rounded-full transition-colors" style={{ background: pricingAssistant ? t.accent : t.border }}>
-                        <span className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all" style={{ left: pricingAssistant ? 18 : 2 }} />
-                      </span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-[14px] font-semibold" style={{ color: t.text }}>Agregar {ASSISTANT.name}</span>
-                        <span className="block text-[12px]" style={{ color: t.muted }}>{ASSISTANT.description}</span>
-                      </span>
-                      <span className="text-[14px] font-semibold whitespace-nowrap" style={{ color: t.text }}>+{money(addonAmount)}<span className="text-[11px] font-normal" style={{ color: t.muted }}>/mes</span></span>
-                    </div>
-                    {pricingAssistant && (
-                      <ul className="mt-3 ml-12 space-y-1.5">
-                        {ASSISTANT.featuresBySegment[pricingSegment].map(f => (
-                          <li key={f} className="flex items-center gap-2">
-                            <Check className="h-3 w-3 shrink-0" style={{ color: t.accent }} />
-                            <span className="text-[12px]" style={{ color: t.muted }}>{f}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </button>
-
-                  <div className="flex items-end justify-between mb-5">
-                    <span className="text-[13px]" style={{ color: t.muted }}>Total</span>
-                    <span>
+            {/* Dos planes por giro, cada uno con su total real (base + asistente ya sumados) */}
+            <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+              {([false, true] as const).map(withAssistant => {
+                const base = BASES[pricingSegment]
+                const total = totalFor(pricingSegment, withAssistant)
+                const planKey = planKeyFor(pricingSegment, withAssistant)
+                const features = withAssistant ? [...base.features, ...ASSISTANT.featuresBySegment[pricingSegment]] : base.features
+                return (
+                  <div key={String(withAssistant)} data-plan-card={planKey} className="rounded-xl p-7 flex flex-col"
+                    style={{ border: `1px solid ${withAssistant ? t.accent : t.border}`, background: withAssistant ? `${t.accent}0d` : t.card }}>
+                    {withAssistant && <p className="text-[11px] font-semibold uppercase tracking-widest mb-2" style={{ color: t.accent }}>Más completo</p>}
+                    <p className="text-[16px] font-semibold" style={{ color: t.text }}>{withAssistant ? `${base.name} + Asistente de WhatsApp` : base.name}</p>
+                    <p className="text-[12px] mb-4" style={{ color: t.muted }}>{withAssistant ? ASSISTANT.description : base.description}</p>
+                    <p className="mb-5">
                       <span className="text-[38px] font-bold tracking-tight" style={{ color: t.text }}>{money(total)}</span>
                       <span className="text-[14px]" style={{ color: t.muted }}> MXN/mes</span>
-                    </span>
+                    </p>
+                    <ul className="space-y-2.5 mb-6 flex-1">
+                      {features.map(f => (
+                        <li key={f} className="flex items-center gap-2.5">
+                          <Check className="h-3.5 w-3.5 shrink-0" style={{ color: t.accent }} />
+                          <span className="text-[13px]" style={{ color: t.muted }}>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link href={`/register?plan=${planKey}`} className="block">
+                      <button className="w-full py-3 rounded-md text-[14px] font-medium transition-colors"
+                        style={withAssistant ? { background: t.accent, color: '#fff' } : { border: `1px solid ${t.border}`, color: t.text }}>
+                        {withAssistant ? `Contratar · ${money(total)} al mes` : 'Probar 7 días gratis'}
+                      </button>
+                    </Link>
+                    <p className="text-[12px] mt-3 text-center" style={{ color: t.subtle }}>
+                      {withAssistant ? 'Se cobra desde hoy. Para probar gratis, empieza con Agenda y agrega el asistente cuando quieras.' : 'Sin cobro hoy.'}
+                    </p>
                   </div>
-                  <Link href={`/register?plan=${planKey}`} className="block">
-                    <button className="w-full py-3 rounded-md text-[14px] font-medium transition-colors" style={{ background: t.accent, color: '#fff' }}>
-                      {pricingAssistant ? `Contratar · ${money(total)} al mes` : 'Probar 7 días gratis'}
-                    </button>
-                  </Link>
-                  <p className="text-[12px] mt-3 text-center" style={{ color: t.subtle }}>
-                    {pricingAssistant
-                      ? 'Con asistente se cobra desde hoy. Para probar gratis, empieza con el plan básico y agrégalo cuando quieras.'
-                      : 'Sin cobro hoy. Agrega el asistente cuando quieras.'}
-                  </p>
-                </div>
-              )
-            })()}
+                )
+              })}
+            </div>
             <p className="text-[12px] mt-6 text-center" style={{ color: t.subtle }}>
               Plan básico con 7 días gratis · Sin contrato · Cancela cuando quieras
             </p>
@@ -544,7 +508,7 @@ export function LandingPage() {
       <section style={{ borderTop: `1px solid ${t.border}` }}>
         <div data-cta className="max-w-5xl mx-auto px-5 py-20 sm:py-28" style={{ opacity: 0 }}>
           <h2 className="text-[38px] sm:text-[56px] font-bold tracking-[-0.03em] mb-4" style={{ color: t.text }}>Empieza hoy.</h2>
-          <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde $700 MXN/mes. Cancela cuando quieras.</p>
+          <p className="text-[16px] mb-3" style={{ color: t.muted }}>7 días gratis. Desde {money(PRICE_RANGE.low)} MXN/mes. Cancela cuando quieras.</p>
           <p className="text-[13px] mb-10" style={{ color: t.subtle }}>Barberías · Spas · Psicología · Odontología · Fisioterapia · Laboratorios · Tatuajes · Charters · Restaurantes · y más</p>
           <FancyButton href="/register">Empieza hoy →</FancyButton>
         </div>

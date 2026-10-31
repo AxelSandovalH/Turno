@@ -1,4 +1,5 @@
 import { LandingPage } from '@/components/landing-page'
+import { PRICE_RANGE } from '@/lib/plans'
 
 // Datos estructurados: describen el producto, su precio y sus funciones para buscadores y herramientas que leen la página
 const jsonLd = {
@@ -21,8 +22,8 @@ const jsonLd = {
   offers: {
     '@type': 'AggregateOffer',
     priceCurrency: 'MXN',
-    lowPrice: 700,
-    highPrice: 1700,
+    lowPrice: PRICE_RANGE.low / 100,
+    highPrice: PRICE_RANGE.high / 100,
     offerCount: 4,
     url: 'https://www.quickturno.app/#pricing',
     description: '7 días gratis en el plan básico. Cancela cuando quieras.',

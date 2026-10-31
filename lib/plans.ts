@@ -83,6 +83,15 @@ export interface Plan {
 
 export const money = (centavos: number) => `$${(centavos / 100).toLocaleString('es-MX')}`
 
+/** Precio mensual total (centavos MXN) de un giro con o sin el asistente. Única fuente para landing, FAQ y datos estructurados. */
+export const totalFor = (segment: Segment, assistant: boolean) => BASES[segment].amount + (assistant ? ASSISTANT.amountBySegment[segment] : 0)
+
+/** Precio más bajo y más alto de todos los planes (centavos MXN). */
+export const PRICE_RANGE = {
+  low: Math.min(...(Object.keys(BASES) as Segment[]).map(s => totalFor(s, false))),
+  high: Math.max(...(Object.keys(BASES) as Segment[]).map(s => totalFor(s, true))),
+}
+
 const PARTS: Record<PlanKey, { segment: Segment; assistant: boolean; name: string }> = {
   agenda:    { segment: 'citas',   assistant: false, name: 'Turno — Agenda' },
   asistente: { segment: 'citas',   assistant: true,  name: 'Turno — Agenda + Asistente' },
