@@ -6,6 +6,7 @@ import { getOrgStripe } from '@/lib/org-stripe'
 import { fmtMoney, normCurrency } from '@/lib/currency'
 import { phoneKey } from '@/lib/sales/phone'
 import { contractAfterDeposit } from '@/lib/rancho-contract-flow'
+import { getOpenConsultByCode } from '@/lib/owner-consults'
 
 const MAX_AMOUNT = 5000          // tope por link (en la moneda del negocio)
 const MAX_AMOUNT_EVENT = 150000  // tope de un anticipo de evento (Rancho McCoy)
@@ -197,7 +198,7 @@ const MAX_MANUAL = 150000
  * El responsable pide un link de cobro por WhatsApp ("link 120 usd IV Recovery Juan"): se crea ya aprobado (lo pide él) y se le devuelve
  * a ÉL para que lo reenvíe al cliente. Al pagarse se le avisa solo a él (customer_phone 'manual' = sin aviso al cliente).
  */
-export async function createManualPaymentLink(org: OrgCtx, input: { amount: number; description: string; currency?: 'mxn' | 'usd' }): Promise<{ ok: true; url: string; code: string } | { ok: false; error: string }> {
+export async function createManualPaymentLink(org: OrgCtx, input: { amount: number; description: string; currency?: 'mxn' | 'usd'; customerPhone?: string; customerName?: string | null }): Promise<{ ok: true; url: string; code: string } | { ok: false; error: string }> {
   const amount = Math.round(Number(input.amount) * 100) / 100
   const description = String(input.description ?? '').trim().slice(0, 200)
   if (!(amount > 0) || amount > MAX_MANUAL) return { ok: false, error: `El monto debe estar entre 1 y ${MAX_MANUAL}` }
@@ -208,7 +209,7 @@ export async function createManualPaymentLink(org: OrgCtx, input: { amount: numb
   const db = createServiceClient()
   const code = String(Math.floor(1000 + Math.random() * 9000))
   const { data: row, error } = await db.from('payment_link_requests').insert({
-    organization_id: org.id, code, customer_phone: 'manual', customer_name: null, amount, description,
+    organization_id: org.id, code, customer_phone: input.customerPhone ?? 'manual', customer_name: input.customerName ?? null, amount, description,
     status: 'approved', decided_at: new Date().toISOString(), ...(input.currency ? { currency: input.currency } : {}),
   }).select('id').single()
   if (error || !row) { console.error('[payment-links] manual insert', error?.message); return { ok: false, error: 'No se pudo registrar el cobro' } }
@@ -235,17 +236,26 @@ export async function createManualPaymentLink(org: OrgCtx, input: { amount: numb
 
 /** Mensaje del responsable pidiendo un link ("link 120 usd concepto"). Devuelve true si lo atendió. */
 export async function handleOwnerLinkCommand(org: OrgCtx, text: string): Promise<boolean> {
-  const m = text.trim().match(/^(?:link|enlace|cobro|cobrar)\s+\$?\s*([\d][\d,]*(?:\.\d+)?)\s*(usd|us|dolares|dólares|dls|mxn|pesos|mx)?\b\s*([\s\S]*)$/i)
+  const m = text.trim().match(/^(?:link|enlace|cobro|cobrar)\s+(?:(\d{4})\s+(?=\$?\s*\d))?\$?\s*([\d][\d,]*(?:\.\d+)?)\s*(usd|us|dolares|dólares|dls|mxn|pesos|mx)?\b\s*([\s\S]*)$/i)
   if (!m) return false
   const to = `${waId(org.whatsapp_number ?? '')}@c.us`
   const say = (b: string) => sendMessage(to, b, org.creds).catch(() => {})
-  const amount = Number(m[1].replace(/,/g, ''))
-  const cu = (m[2] ?? '').toLowerCase()
+  const consultCode = m[1]
+  const amount = Number(m[2].replace(/,/g, ''))
+  const cu = (m[3] ?? '').toLowerCase()
   const currency: 'mxn' | 'usd' | undefined = ['usd', 'us', 'dolares', 'dólares', 'dls'].includes(cu) ? 'usd' : ['mxn', 'pesos', 'mx'].includes(cu) ? 'mxn' : undefined
-  const description = m[3].trim()
+  const description = m[4].trim()
   if (description.length < 3) { await say('Falta el concepto. Escríbelo así: "link 120 usd IV Recovery Juan Pérez".'); return true }
-  const r = await createManualPaymentLink(org, { amount, description, currency })
+  // "link 4821 120 usd concepto": el link se le manda directo al cliente de esa conversación abierta (modo concierge)
+  const target = consultCode ? await getOpenConsultByCode(org.id, consultCode) : null
+  if (consultCode && !target) { await say(`No encontré una conversación abierta con el código ${consultCode}.`); return true }
+  const r = await createManualPaymentLink(org, { amount, description, currency, customerPhone: target?.customer_phone, customerName: target?.customer_name })
   if (!r.ok) { await say(`⚠️ ${r.error}`); return true }
+  if (target) {
+    await sendMessage(`${target.customer_phone}@c.us`, `Aquí tienes tu link de pago por *${description.split('\n')[0]}* (${reqMoney(org, { currency }, amount)}):\n${r.url}\n\nEs seguro y se paga con tarjeta. Al pagar te avisamos por aquí.`, org.creds).catch(() => {})
+    await say(`✅ Link enviado a ${target.customer_name || '+' + target.customer_phone}: ${reqMoney(org, { currency }, amount)} — ${description}. Te aviso cuando lo pague.`)
+    return true
+  }
   await say(`✅ Link de pago listo: ${reqMoney(org, { currency }, amount)} — ${description}\n\n${r.url}\n\nReenvíaselo al cliente. Te aviso cuando lo pague.`)
   return true
 }

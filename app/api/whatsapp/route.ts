@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { handleManualMessage } from '@/lib/manual-takeover'
 import { fetchImage } from '@/lib/media'
-import { isOwnerPhone, handleOwnerDecision, handleOwnerLinkCommand } from '@/lib/payment-links'
-import { handleOwnerAnswer } from '@/lib/owner-consults'
+import { isOwnerPhone, handleOwnerDecision, handleOwnerLinkCommand, waId } from '@/lib/payment-links'
+import { handleOwnerAnswer, getOpenConcierge } from '@/lib/owner-consults'
 import { handleOwnerContract } from '@/lib/rancho-contract-flow'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
@@ -166,9 +166,14 @@ export async function POST(req: Request) {
       if (handled) return NextResponse.json({ ok: true })
 
       // Si el bot le consultó algo, su mensaje es la respuesta: el bot se la comunica al cliente
-      const answered = await handleOwnerAnswer({ id: organization.id, name: organization.name, whatsapp_number: organization.whatsapp_number, creds }, text, async (customerPhone, answer) => {
+      const answered = await handleOwnerAnswer({ id: organization.id, name: organization.name, whatsapp_number: organization.whatsapp_number, creds }, text, async (customerPhone, answer, _name, mode) => {
         const { data: cv } = await db.from('conversations').select('bot_paused_until').eq('organization_id', organization.id).eq('whatsapp_phone', customerPhone).maybeSingle()
         if (cv?.bot_paused_until && new Date(cv.bot_paused_until).getTime() > Date.now()) return 'paused'
+        // Modo concierge: el responsable habla directo con el cliente, sus palabras van tal cual
+        if (mode === 'concierge') {
+          await sendMessage(`${customerPhone}@c.us`, answer, creds)
+          return 'sent'
+        }
         const reply = await runAgent({
           organizationId: organization.id,
           customerPhone,
@@ -179,6 +184,15 @@ export async function POST(req: Request) {
         return 'sent'
       }).catch(err => { console.error('[whatsapp] respuesta del responsable falló', err); return false })
       if (answered) return NextResponse.json({ ok: true })
+    }
+
+    // Modo concierge: el responsable lleva este chat desde su conversación con el bot; lo que escribe el cliente se le reenvía a él
+    if (organization.whatsapp_number && !isOwnerPhone(organization.whatsapp_number, phone) && creds.instance && creds.token) {
+      const cc = await getOpenConcierge(organization.id, phone).catch(() => null)
+      if (cc) {
+        await sendMessage(`${waId(organization.whatsapp_number)}@c.us`, `💬 *${cc.customer_name || '+' + phone}* (código ${cc.code}):\n${text || '[archivo o foto]'}\n\nResponde con *${cc.code} tu mensaje* si tienes varios chats abiertos.`, creds).catch(() => {})
+        return NextResponse.json({ ok: true })
+      }
     }
 
     // Una persona del negocio está atendiendo este chat: el bot no contesta (se guarda el mensaje del cliente)
