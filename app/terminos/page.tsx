@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { SITE } from '@/lib/site'
 import { PLANS, TRIAL_DAYS, TRIAL_MESSAGES, money } from '@/lib/plans'
 import { LegalPage, H2, P, UL, contactText } from '@/components/legal-page'
@@ -43,7 +44,7 @@ export default function Terminos() {
       <P>El Asistente genera respuestas automáticas con IA y puede cometer errores. Eres responsable de revisar la configuración de tu negocio (servicios, precios y horarios) y de atender los casos que requieran a una persona. El Asistente no brinda asesoría médica, legal ni financiera.</P>
 
       <H2>7. Datos</H2>
-      <P>Tus datos y los de tus clientes se tratan conforme a nuestro <a href="/privacidad" style={{ color: '#6d28d9' }}>aviso de privacidad</a>. Sigues siendo dueño de la información que cargas.</P>
+      <P>Tus datos y los de tus clientes se tratan conforme a nuestro <Link href="/privacidad" style={{ color: '#6d28d9' }}>aviso de privacidad</Link>. Sigues siendo dueño de la información que cargas.</P>
 
       <H2>8. Disponibilidad y responsabilidad</H2>
       <P>Procuramos que el servicio esté disponible, pero depende de terceros (WhatsApp, Stripe, proveedores de infraestructura) y puede tener interrupciones. El servicio se ofrece &quot;tal cual&quot;; en la medida permitida por la ley, nuestra responsabilidad total se limita a lo que hayas pagado en los últimos tres meses y no incluimos daños indirectos como pérdida de ventas.</P>
