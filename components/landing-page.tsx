@@ -15,6 +15,8 @@ import { SegmentShowcase } from '@/components/landing/segment-showcase'
 import { DemoGenerator } from '@/components/landing/demo-generator'
 import { WhatsAppLink } from '@/components/landing/whatsapp-link'
 import { SITE } from '@/lib/site'
+import { Testimonials } from '@/components/landing/testimonials'
+import { BotVideo } from '@/components/landing/bot-video'
 import type { LandingVariant } from '@/lib/landing-variants'
 import { WhatsAppFloat } from '@/components/landing/whatsapp-float'
 import { SEGMENTS } from '@/components/landing/segments-data'
@@ -360,6 +362,9 @@ export function LandingPage({ variant }: { variant?: LandingVariant }) {
         </div>
       </section>
 
+      {/* Video del bot */}
+      <BotVideo t={t} />
+
       {/* Demo con IA: el visitante describe su negocio y ve cómo quedaría */}
       <DemoGenerator t={t} isDay={isDay} />
 
@@ -452,6 +457,9 @@ export function LandingPage({ variant }: { variant?: LandingVariant }) {
           </div>
         </div>
       </section>
+
+      {/* Prueba social */}
+      <Testimonials t={t} />
 
       {/* El sistema detrás del bot */}
       <section id="dashboard" style={{ borderTop: `1px solid ${t.border}` }}>
