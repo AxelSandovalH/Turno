@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { PRICE_RANGE, money } from '@/lib/plans'
 
 export const OG_SIZE = { width: 1200, height: 630 }
 
@@ -15,7 +16,7 @@ export function renderOgImage() {
           <div style={{ fontSize: 84, fontWeight: 800, lineHeight: 1.05, display: 'flex' }}>Tu WhatsApp contesta y agenda solo.</div>
           <div style={{ fontSize: 34, color: '#c4b5fd', display: 'flex' }}>Citas, pedidos, recordatorios y cobros por WhatsApp, 24 horas.</div>
         </div>
-        <div style={{ display: 'flex', fontSize: 30, color: '#e5e7eb' }}>7 días gratis · Desde $700 MXN/mes · quickturno.app</div>
+        <div style={{ display: 'flex', fontSize: 30, color: '#e5e7eb' }}>7 días gratis · Desde {money(PRICE_RANGE.low)} MXN/mes · quickturno.app</div>
       </div>
     ),
     { ...OG_SIZE }
