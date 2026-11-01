@@ -152,6 +152,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
+    // Números de prueba (env CONTRACT_TEST_PHONES, separados por coma): pueden pedir "contrato ..." y reciben el PDF en su propio número,
+    // sin ser el responsable ni afectar el resto del flujo
+    if (creds.instance && creds.token && !isOwnerPhone(organization.whatsapp_number, phone) && /^\s*contrato\b/i.test(text)) {
+      const testers = (process.env.CONTRACT_TEST_PHONES ?? '').split(',').map(n => n.replace(/\D/g, '').slice(-10)).filter(Boolean)
+      if (testers.includes(phone.replace(/\D/g, '').slice(-10))) {
+        const done = await handleOwnerContract({ id: organization.id, name: organization.name, whatsapp_number: phone, creds }, text).catch(err => { console.error('[whatsapp] contrato de prueba falló', err); return false })
+        if (done) return NextResponse.json({ ok: true })
+      }
+    }
+
     // Respuesta del responsable a una solicitud de link de pago ("SI 1234" / "NO 1234"): solo si escribe desde su número
     // y solo cuando hay solicitudes pendientes; cualquier otro mensaje suyo sigue el flujo normal
     if (isOwnerPhone(organization.whatsapp_number, phone) && creds.instance && creds.token) {
