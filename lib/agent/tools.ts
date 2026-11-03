@@ -201,6 +201,32 @@ export const ranchoTools: Tool[] = [
   },
 ]
 
+// Farmacia con Cabo Surprise: precios en USD calculados por el sistema (sin cargo adicional) y anticipo del 50 %
+export const surpriseTools: Tool[] = [
+  {
+    name: 'surprise_quote',
+    description: 'Cotiza un paquete de Cabo Surprise (cena de aniversario, recepción de boda en el rancho, sesión de fotos con caballos, cabañas, experiencia con caballos, despedida de soltera) con el catálogo oficial en USD y el anticipo del 50 %. USA SIEMPRE esta herramienta para dar precios de estos paquetes; nunca sumes ni inventes. Es un estimado: no aparta fecha ni cobra. Si devuelve quote_only, no des precio: reúne los datos y usa handoff_to_owner con reason "cotizacion".',
+    input_schema: { type: 'object' as const, properties: {
+        product: { type: 'string', enum: ['anniversary', 'wedding', 'horse_photo', 'cabin_stay', 'horse_experience', 'bachelorette', 'group_dinner'], description: 'anniversary = cena privada de aniversario/celebración; wedding = recepción de boda en el rancho; horse_photo = sesión de fotos con caballos en la playa; cabin_stay = estancia en cabañas del rancho; horse_experience = experiencia con caballos en la playa; bachelorette = despedida de soltera en el rancho; group_dinner = cena grupal (solo cotización).' },
+        guests: { type: 'number', description: 'Número de personas o invitados.' },
+        nights: { type: 'number', description: 'Noches (solo cabin_stay).' },
+        variant: { type: 'string', enum: ['standard', 'signature', 'premium', 'luxury'], description: "'signature' (cena para 2 mejorada), 'premium' o 'luxury' (bodas) solo si el cliente los pide: son solo cotización." },
+      }, required: ['product', 'guests'] },
+  },
+  {
+    name: 'surprise_request_deposit',
+    description: 'Pide al responsable autorizar el link de pago del ANTICIPO (50 %, en USD) de un paquete de Cabo Surprise. El monto lo calcula el sistema; tú NO envías el link: si el responsable aprueba (confirmando fecha y disponibilidad), el sistema se lo manda al cliente. Úsala solo cuando el cliente ya aceptó el estimado y diste fecha. No sirve para paquetes quote_only.',
+    input_schema: { type: 'object' as const, properties: {
+        product: { type: 'string', enum: ['anniversary', 'wedding', 'horse_photo', 'cabin_stay', 'horse_experience', 'bachelorette', 'group_dinner'], description: 'anniversary = cena privada de aniversario/celebración; wedding = recepción de boda en el rancho; horse_photo = sesión de fotos con caballos en la playa; cabin_stay = estancia en cabañas del rancho; horse_experience = experiencia con caballos en la playa; bachelorette = despedida de soltera en el rancho; group_dinner = cena grupal (solo cotización).' },
+        guests: { type: 'number', description: 'Número de personas o invitados.' },
+        nights: { type: 'number', description: 'Noches (solo cabin_stay).' },
+        variant: { type: 'string', enum: ['standard', 'signature', 'premium', 'luxury'], description: "'signature' (cena para 2 mejorada), 'premium' o 'luxury' (bodas) solo si el cliente los pide: son solo cotización." },
+        event_date: { type: 'string', description: 'Fecha del evento (YYYY-MM-DD) o la que dio el cliente.' },
+        customer_name: { type: 'string', description: 'Nombre del cliente.' },
+      }, required: ['product', 'guests', 'event_date'] },
+  },
+]
+
 // Farmacia: pedido que el cliente pidió gestionar con el concierge (sin los candados del catálogo; lo confirma una persona)
 export const conciergeTools: Tool[] = [
   {

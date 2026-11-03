@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requestPaymentLink, autoSendEnabled, waId } from '@/lib/payment-links'
 import { quoteRancho, type RanchoInput } from '@/lib/rancho'
+import { quoteSurprise, type SurpriseProduct, type SurpriseVariant } from '@/lib/cabosurprise'
 import { createOwnerConsult } from '@/lib/owner-consults'
 import { stripeFor, hasOrgStripe } from '@/lib/org-stripe'
 import { staffCanDo, filterStaffForService, serviceWindow, clampToWindow } from '@/lib/staff-services'
@@ -650,6 +651,33 @@ export async function handleTool(toolName: string, input: Record<string, string>
       )
       if (!r.ok) return JSON.stringify({ error: r.error })
       return JSON.stringify({ status: 'pendiente_de_aprobacion', ...breakdown, note: 'Ya se le consultó al responsable (confirma fecha y disponibilidad). El link del anticipo NO se ha enviado. Dile al cliente que estás confirmando la fecha con el equipo y que en cuanto la autoricen le llega por este chat el link del anticipo de ' + m(q.deposit) + '. No prometas tiempos ni inventes el link; la fecha no queda apartada hasta que pague el anticipo.' })
+    }
+
+    case 'surprise_quote':
+    case 'surprise_request_deposit': {
+      const q = quoteSurprise({ product: input.product as SurpriseProduct, guests: Number(input.guests), nights: Number(input.nights ?? 0), variant: input.variant as SurpriseVariant | undefined })
+      if (!q.ok) return JSON.stringify({ error: q.error })
+      if (q.quote_only) return JSON.stringify({ quote_only: true, title: q.title, note: q.reason + ' No des precio ni cobres: reúne fecha, personas, ubicación y alcance y llama handoff_to_owner con reason "cotizacion".' })
+      const m = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })} USD`
+      const summary = {
+        title: q.title, package: q.package, includes: q.includes,
+        price: q.nights ? `${m(q.unit_price)} ${q.unit} x ${q.nights} noches` : `${m(q.unit_price)} ${q.unit}`,
+        total: m(q.total), anticipo_50: m(q.deposit),
+        saldo: q.balance_days ? `El saldo se liquida ${q.balance_days} días antes del evento.` : 'El saldo se coordina con el equipo.',
+      }
+      if (toolName === 'surprise_quote') {
+        return JSON.stringify({ success: true, ...summary, note: 'Precio final en USD, sin cargo adicional. Es un ESTIMADO sujeto a disponibilidad. Preséntalo en líneas cortas, sin tablas ni markdown (un solo asterisco para negritas): paquete, qué incluye, total y anticipo del 50 % para apartar la fecha. Si acepta, usa surprise_request_deposit.' })
+      }
+      if (!ctx.customerPhone) return JSON.stringify({ error: 'No se pudo identificar al cliente' })
+      const { data: o } = await db.from('organizations').select('id, name, whatsapp_number, currency').eq('id', ctx.organizationId).single()
+      if (!o) return JSON.stringify({ error: 'Negocio no encontrado' })
+      const r = await requestPaymentLink(
+        { id: o.id, name: o.name, whatsapp_number: o.whatsapp_number, currency: o.currency, creds: ctx.ultramsg ?? {} as UltramsgCreds },
+        { customerPhone: ctx.customerPhone, customerName: String(input.customer_name ?? ''), amount: q.deposit, currency: 'usd', maxAmount: 20000,
+          description: `Anticipo 50% ${q.title}: ${q.package}, ${String(input.event_date ?? '').slice(0, 20)} | Total ${m(q.total)}`.slice(0, 118) }
+      )
+      if (!r.ok) return JSON.stringify({ error: r.error })
+      return JSON.stringify({ status: 'pendiente_de_aprobacion', ...summary, note: 'Ya se le consultó al responsable (confirma fecha y disponibilidad). El link del anticipo NO se ha enviado. Dile al cliente que estás confirmando la fecha con el equipo y que en cuanto la autoricen le llega por este chat el link del anticipo de ' + m(q.deposit) + '. No prometas tiempos ni inventes el link; la fecha no queda apartada hasta que pague.' })
     }
 
     case 'request_payment_link': {
