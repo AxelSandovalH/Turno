@@ -70,6 +70,7 @@ export function EventSlides(p: SlidesProps) {
   const [tick, setTick] = useState(0)
   // Teclado del celular: el alto real es el del viewport visual y, con el teclado abierto, el contenido se compacta (no solo se desplaza)
   const [vvh, setVvh] = useState(0)
+  const [vvTop, setVvTop] = useState(0)
   const [kb, setKb] = useState(false)
   const baseH = useRef(0)
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
@@ -145,12 +146,20 @@ export function EventSlides(p: SlidesProps) {
     const sync = () => {
       baseH.current = Math.max(baseH.current, vv.height)
       setVvh(vv.height)
+      setVvTop(vv.offsetTop)
       setKb(baseH.current - vv.height > 120)
-      if (window.scrollY !== 0) window.scrollTo(0, 0)
     }
     vv.addEventListener('resize', sync)
     vv.addEventListener('scroll', sync)
     return () => { vv.removeEventListener('resize', sync); vv.removeEventListener('scroll', sync) }
+  }, [])
+
+  // La página nunca se desplaza: iOS mueve el viewport visual y el contenedor lo sigue, sin forzar el scroll
+  useEffect(() => {
+    const h = document.documentElement, b = document.body
+    const prev = [h.style.overflow, b.style.overflow, h.style.overscrollBehavior]
+    h.style.overflow = 'hidden'; b.style.overflow = 'hidden'; h.style.overscrollBehavior = 'none'
+    return () => { h.style.overflow = prev[0]; b.style.overflow = prev[1]; h.style.overscrollBehavior = prev[2] }
   }, [])
 
   // Celular: en vez del mosaico, un bloque grande que va alternando las fotos
@@ -268,11 +277,11 @@ export function EventSlides(p: SlidesProps) {
   }
 
   return (
-    <div ref={root} className={`es-root relative h-dvh w-full overflow-hidden bg-[#070907] text-white ${zone ? `cur-${zone}` : ''}`} onWheel={onWheel}
-      style={vvh ? { height: vvh, ['--vh' as string]: `${vvh / 100}px` } : { ['--vh' as string]: '1dvh' }}
+    <div ref={root} className={`es-root fixed left-0 top-0 h-dvh w-full overflow-hidden bg-[#070907] text-white ${zone ? `cur-${zone}` : ''}`} onWheel={onWheel}
+      style={vvh ? { height: vvh, top: vvTop, ['--vh' as string]: `${vvh / 100}px` } : { ['--vh' as string]: '1dvh' }}
       onBlurCapture={() => {
         // Al soltar el foco el layout vuelve de inmediato (sin esperar al teclado)
-        setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0) } }, 120)
+        setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0); setVvTop(0) } }, 120)
       }}
       onFocusCapture={e => {
         const el = e.target as HTMLElement
