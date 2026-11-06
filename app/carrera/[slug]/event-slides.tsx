@@ -17,7 +17,7 @@ export interface SlidesProps {
   slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
   when: string; time: string; location: string | null; fromLabel: string
   flyer: string | null; gallery: Photo[]; packages: PkgOption[]
-  closed: boolean; raceFull: boolean; currency: string; spotsLeft: number | null; cancelado: boolean
+  closed: boolean; raceFull: boolean; currency: string; spotsLeft: number | null; cancelado: boolean; debug?: boolean
 }
 
 const CSS = () => `
@@ -76,6 +76,7 @@ export function EventSlides(p: SlidesProps) {
   const [logoFailed, setLogoFailed] = useState(false)
   const baseH = useRef(0)
   const syncRef = useRef<() => void>(() => {})
+  const debugRef = useRef<HTMLDivElement>(null)
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const lock = useRef(false)
@@ -160,6 +161,17 @@ export function EventSlides(p: SlidesProps) {
     vv.addEventListener('scroll', sync)
     return () => { vv.removeEventListener('resize', sync); vv.removeEventListener('scroll', sync) }
   }, [])
+
+  // Diagnóstico (?debug=1): solo muestra medidas en vivo
+  useEffect(() => {
+    if (!p.debug) return
+    const t = setInterval(() => {
+      const d = debugRef.current, vv = window.visualViewport
+      if (!d || !vv) return
+      d.textContent = `inner ${Math.round(window.innerHeight)} · vv ${Math.round(vv.height)} · top ${Math.round(vv.offsetTop)} · scrollY ${Math.round(window.scrollY)} · base ${Math.round(baseH.current)} · foco ${document.activeElement?.tagName ?? '-'} · root ${Math.round(root.current?.getBoundingClientRect().height ?? 0)} · kb ${kb ? 1 : 0}`
+    }, 150)
+    return () => clearInterval(t)
+  }, [p.debug, kb])
 
   // La página nunca se desplaza: iOS mueve el viewport visual y el contenedor lo sigue, sin forzar el scroll
   useEffect(() => {
@@ -321,6 +333,7 @@ export function EventSlides(p: SlidesProps) {
         touch.current = null
       }}>
       <style>{CSS()}</style>
+      {p.debug && <div ref={debugRef} className="pointer-events-none absolute left-1 top-1 z-50 max-w-[96%] rounded bg-black/80 px-2 py-1 font-mono text-[10px] leading-tight text-lime-300" />}
 
       {panels.map((name, i) => {
         const on = i === idx
