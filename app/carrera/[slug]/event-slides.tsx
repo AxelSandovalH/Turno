@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 interface Photo { src: string; alt?: string }
-export interface PkgOption { name: string; price: number; label: string; includes?: string[] }
+export interface PkgOption { name: string; price: number; label: string; includes?: string[]; kind?: 'race' | 'donation' }
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 const FIELD = 'h-14 w-full rounded-2xl bg-white/[0.07] px-4 text-[17px] text-white outline-none ring-1 ring-inset ring-white/10 transition placeholder:text-white/35 focus:bg-white/[0.1] focus:ring-2 focus:ring-[#ffd60a]'
@@ -17,7 +17,7 @@ export interface SlidesProps {
   slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
   when: string; time: string; location: string | null; fromLabel: string
   flyer: string | null; gallery: Photo[]; packages: PkgOption[]
-  closed: boolean; spotsLeft: number | null; cancelado: boolean
+  closed: boolean; raceFull: boolean; currency: string; spotsLeft: number | null; cancelado: boolean
 }
 
 const CSS = () => `
@@ -46,9 +46,19 @@ export function EventSlides(p: SlidesProps) {
   const photoPanels = p.gallery.length >= 5 ? [p.gallery.slice(0, 5), p.gallery.slice(5, 10)].filter(g => g.length >= 3) : []
   const captions = ['Una mañana llena de energía', 'Corre, disfruta y haz que cada paso cuente']
   // La historia es también el registro: cada panel le pide al corredor una sola cosa y el último cierra y cobra
+  const racePkgs = p.packages.filter(o => o.kind !== 'donation')
+  const donPkgs = p.packages.filter(o => o.kind === 'donation')
+  const money = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: p.currency === 'usd' ? 'USD' : 'MXN', maximumFractionDigits: 0 })
+  // Modalidad: correr (con un extra de donación opcional) o solo donar
+  const [mode, setMode] = useState<'run' | 'donate'>(racePkgs.length && !(p.raceFull && donPkgs.length) ? 'run' : 'donate')
+  const [donSel, setDonSel] = useState('')
+  const [donCustom, setDonCustom] = useState('')
+  const [extraSel, setExtraSel] = useState(0)
+  const [extraCustom, setExtraCustom] = useState('')
+  // La historia es también el registro: cada panel le pide al corredor una sola cosa y el último cierra y cobra
   const story = ['hero', ...(photoPanels[0] ? ['fotos0'] : []), 'info', ...(photoPanels[1] ? ['fotos1'] : [])]
-  const TASKS = ['nombre', 'telefono', 'correo', 'talla'] as const
-  type Task = typeof TASKS[number]
+  const TASKS = ['nombre', 'telefono', 'correo', mode === 'donate' ? 'monto' : 'talla'] as const
+  type Task = 'nombre' | 'telefono' | 'correo' | 'talla' | 'monto'
   const taskOf: Record<string, Task> = {}
   story.forEach((n, i) => { if (TASKS[i]) taskOf[n] = TASKS[i] })
   const extraTasks = TASKS.filter(t => !Object.values(taskOf).includes(t))
@@ -64,21 +74,27 @@ export function EventSlides(p: SlidesProps) {
   const touch = useRef<{ x: number; y: number } | null>(null)
 
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', birth_date: '', shirt_size: '', emergency_name: '', emergency_phone: '' })
-  const [pkg, setPkg] = useState(p.packages[0]?.name ?? '')
+  const [pkg, setPkg] = useState(racePkgs[0]?.name ?? '')
   const [showErr, setShowErr] = useState(false)
   const [busy, setBusy] = useState(false)
   const [payErr, setPayErr] = useState('')
   const [emergencyOpen, setEmergencyOpen] = useState(false)
-  const chosen = p.packages.find(x => x.name === pkg) ?? p.packages[0]
+  const chosen = racePkgs.find(x => x.name === pkg) ?? racePkgs[0]
+  const donPkg = donPkgs.find(o => o.name === donSel)
+  const donAmount = mode === 'donate' ? (donPkg ? donPkg.price : donSel === 'otro' ? Math.round(Number(donCustom) || 0) : 0) : 0
+  const extraAmount = mode === 'run' ? (extraSel === -1 ? Math.round(Number(extraCustom) || 0) : extraSel) : 0
+  const total = mode === 'donate' ? donAmount : (chosen?.price ?? 0) + extraAmount
+  const extraErr = mode === 'run' && extraSel === -1 && (extraAmount < 20 || extraAmount > 50000) ? 'El monto va de $20 a $50,000' : ''
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }))
   const errs: Record<Task, string> = {
     nombre: form.full_name.trim().length < 3 ? 'Escribe tu nombre completo' : '',
     telefono: digits(form.phone) < 10 ? 'Escribe un teléfono de 10 dígitos' : '',
     correo: !/^\S+@\S+\.\S+$/.test(form.email.trim()) ? 'Escribe un correo válido' : '',
     talla: '',
+    monto: mode === 'donate' && (donAmount < 20 || donAmount > 50000) ? 'Elige un monto (de $20 a $50,000)' : '',
   }
   const required = (t: Task | undefined) => !t || !errs[t]
-  const valid = (name: string) => name === 'cierre' ? !(errs.nombre || errs.telefono || errs.correo) : required(taskOf[name])
+  const valid = (name: string) => name === 'cierre' ? !(errs.nombre || errs.telefono || errs.correo || errs.monto) : required(taskOf[name])
 
   // Avanzar se bloquea en el primer panel con su dato pendiente
   const go = (n: number) => {
@@ -90,12 +106,14 @@ export function EventSlides(p: SlidesProps) {
   async function pay() {
     const bad = story.findIndex(n => !required(taskOf[n]))
     if (bad >= 0) { setShowErr(true); setIdx(bad); return }
+    if (extraErr) { setPayErr(extraErr); return }
     setBusy(true); setPayErr('')
     try {
-      const res = await fetch('/api/events/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: p.slug, ...form, package: chosen?.name }) })
+      const body = { slug: p.slug, ...form, mode, package: mode === 'run' ? chosen?.name : donPkg?.name ?? 'otro', donation_amount: mode === 'run' ? extraAmount : donAmount }
+      const res = await fetch('/api/events/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
       if (!res.ok || !data.url) { setPayErr(data.error ?? 'No se pudo completar la inscripción'); setBusy(false); return }
-      window.location.href = data.url
+      window.location.assign(data.url)
     } catch { setPayErr('Sin conexión, intenta de nuevo'); setBusy(false) }
   }
 
@@ -160,11 +178,22 @@ export function EventSlides(p: SlidesProps) {
       {SIZES.map(z => <button type="button" key={z} onClick={() => setForm(f => ({ ...f, shirt_size: f.shirt_size === z ? '' : z }))} className={`h-11 min-w-12 rounded-full px-4 text-[15px] font-semibold ring-1 ring-inset transition ${form.shirt_size === z ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/85 ring-white/25 hover:ring-white/55'}`}>{z}</button>)}
     </div>
   )
+  const chip = (on: boolean) => `rounded-full px-3.5 py-1.5 text-[14px] font-medium ring-1 ring-inset transition ${on ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/80 ring-white/25 hover:ring-white/50'}`
+  const donChips = (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {donPkgs.map(o => <button type="button" key={o.name} onClick={() => setDonSel(o.name)} className={chip(donSel === o.name)}>{o.name} · {o.label}</button>)}
+        <button type="button" onClick={() => setDonSel('otro')} className={chip(donSel === 'otro')}>Otro monto</button>
+      </div>
+      {donSel === 'otro' && <input value={donCustom} onChange={e => setDonCustom(e.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" placeholder="Monto en pesos (mínimo $20)" className={DOCK_FIELD} />}
+    </div>
+  )
   const cfg: Record<Task, { q: string; sub: string; input: React.ReactNode | null }> = {
     nombre: { q: '¿Cómo te llamas?', sub: 'Empecemos por tu nombre.', input: <input value={form.full_name} onChange={set('full_name')} placeholder="Nombre completo" autoComplete="name" className={DOCK_FIELD} /> },
     telefono: { q: '¿Cuál es tu WhatsApp?', sub: 'Para avisarte todo lo de la carrera.', input: <input value={form.phone} onChange={set('phone')} type="tel" inputMode="tel" placeholder="10 dígitos" autoComplete="tel" className={DOCK_FIELD} /> },
     correo: { q: '¿A qué correo te confirmamos?', sub: 'Ahí llegará tu confirmación.', input: <input value={form.email} onChange={set('email')} type="email" placeholder="tucorreo@ejemplo.com" autoComplete="email" className={DOCK_FIELD} /> },
     talla: { q: '¿Qué talla de playera usas?', sub: 'Toca una talla o presiona Omitir.', input: null },
+    monto: { q: '¿Con cuánto quieres ayudar?', sub: 'Elige un monto o escribe el tuyo.', input: donChips },
   }
   const dock = (name: string) => {
     const t = taskOf[name]
@@ -179,9 +208,15 @@ export function EventSlides(p: SlidesProps) {
             <p className="text-[19px] font-semibold tracking-[-0.02em]">{c.q}</p>
             <p className="text-[14px] text-white/55">{c.sub}</p>
           </div>
-          {name === 'hero' && p.packages.length > 1 && (
+          {name === 'hero' && racePkgs.length > 0 && donPkgs.length > 0 && (
+            <div className="grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1 text-[14px] font-semibold">
+              <button type="button" disabled={p.raceFull} onClick={() => setMode('run')} className={`rounded-full py-2 transition disabled:opacity-40 ${mode === 'run' ? 'bg-white text-black' : 'text-white/75'}`}>{p.raceFull ? 'Lugares agotados' : 'Voy a correr'}</button>
+              <button type="button" onClick={() => setMode('donate')} className={`rounded-full py-2 transition ${mode === 'donate' ? 'bg-white text-black' : 'text-white/75'}`}>Solo quiero donar</button>
+            </div>
+          )}
+          {name === 'hero' && mode === 'run' && racePkgs.length > 1 && (
             <div className="flex flex-wrap gap-2">
-              {p.packages.map(o => <button type="button" key={o.name} onClick={() => setPkg(o.name)} className={`rounded-full px-3.5 py-1.5 text-[14px] font-medium ring-1 ring-inset transition ${pkg === o.name ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/80 ring-white/25 hover:ring-white/50'}`}>{o.name} · {o.label}</button>)}
+              {racePkgs.map(o => <button type="button" key={o.name} onClick={() => setPkg(o.name)} className={chip(pkg === o.name)}>{o.name} · {o.label}</button>)}
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -293,11 +328,12 @@ export function EventSlides(p: SlidesProps) {
                         <div className="flex justify-between gap-6 py-2.5"><dt className="text-white/50">Fecha</dt><dd className="text-right">{p.when.charAt(0).toUpperCase() + p.when.slice(1)}</dd></div>
                         <div className="flex justify-between gap-6 py-2.5"><dt className="text-white/50">Salida</dt><dd className="text-right">{p.time}</dd></div>
                         {p.location && <div className="flex justify-between gap-6 py-2.5"><dt className="text-white/50">Lugar</dt><dd className="text-right">{p.location}</dd></div>}
-                        {p.packages.map(pk => <div key={pk.name} className="flex justify-between gap-6 py-2.5"><dt className="text-white/50">{pk.name}</dt><dd className="text-right font-semibold text-[#ffd60a]">{pk.label}</dd></div>)}
+                        {racePkgs.map(pk => <div key={pk.name} className="flex justify-between gap-6 py-2.5"><dt className="text-white/50">Inscripción {pk.name}</dt><dd className="text-right font-semibold text-[#ffd60a]">{pk.label}</dd></div>)}
+                        {donPkgs.length > 0 && <div className="flex justify-between gap-6 py-2.5"><dt className="text-white/50">Donación</dt><dd className="text-right font-semibold text-[#ffd60a]">desde {money(Math.min(...donPkgs.map(o => o.price)))}</dd></div>}
                       </dl>
-                      {!!p.packages[0]?.includes?.length && (
+                      {!!racePkgs[0]?.includes?.length && (
                         <ul data-a style={{ ['--i' as string]: 4 }} className="grid max-w-xl gap-x-6 gap-y-1.5 text-[15px] text-white/75 sm:grid-cols-2">
-                          {p.packages[0].includes.map(it => <li key={it} className="flex gap-2"><span className="text-[#ffd60a]">✓</span>{it}</li>)}
+                          {racePkgs[0].includes.map(it => <li key={it} className="flex gap-2"><span className="text-[#ffd60a]">✓</span>{it}</li>)}
                         </ul>
                       )}
                     </div>
@@ -322,41 +358,58 @@ export function EventSlides(p: SlidesProps) {
                       <div data-a style={{ ['--i' as string]: 0 }} className="space-y-4">
                         <div className="flex items-center gap-3">{bars(last)}<span className="text-[12px] font-medium tabular-nums text-white/50">{panels.length}/{panels.length}</span></div>
                         <div>
-                          <h2 className="text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] md:text-[2.8rem]">Último paso.</h2>
-                          <p className="mt-2 text-[17px] leading-snug text-white/60">Un par de datos más y apartas tu lugar al pagar.</p>
+                          <h2 className="text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] md:text-[2.8rem]">{mode === 'donate' ? 'Gracias por ayudar.' : 'Último paso.'}</h2>
+                          <p className="mt-2 text-[17px] leading-snug text-white/60">{mode === 'donate' ? 'Revisa tu aporte y completa el pago.' : 'Un par de datos más y apartas tu lugar al pagar.'}</p>
                         </div>
                       </div>
                       {p.closed ? <p className="rounded-2xl bg-white/10 p-4 text-center font-medium">Las inscripciones están cerradas.</p> : (
                         <div data-a style={{ ['--i' as string]: 1 }} className="space-y-3">
                           {extraTasks.filter(t => t !== 'talla').map(t => <div key={t}><p className="mb-1.5 px-1 text-[13px] text-white/50">{cfg[t].q}</p>{cfg[t].input}{showErr && errs[t] && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}</div>)}
-                          {extraTasks.includes('talla') && <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizes}</div>}
-                          <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50">Fecha de nacimiento</span><input value={form.birth_date} onChange={set('birth_date')} type="date" className={`${FIELD} [color-scheme:dark]`} /></label>
-                          <div>
-                            <button type="button" onClick={() => setEmergencyOpen(o => !o)} aria-expanded={emergencyOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
-                              <span>Contacto de emergencia <span className="text-white/45">· opcional</span></span>
-                              <span aria-hidden className={`text-lg text-white/60 transition-transform duration-300 ${emergencyOpen ? 'rotate-45' : ''}`}>+</span>
-                            </button>
-                            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${emergencyOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                              <div className="overflow-hidden">
-                                <div className="space-y-2 pt-2" {...(!emergencyOpen ? { inert: true } : {})}>
-                                  <input value={form.emergency_name} onChange={set('emergency_name')} placeholder="Nombre del contacto" className={FIELD} />
-                                  <input value={form.emergency_phone} onChange={set('emergency_phone')} type="tel" placeholder="Teléfono del contacto" className={FIELD} />
+                          {mode === 'run' && extraTasks.includes('talla') && <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizes}</div>}
+                          {mode === 'run' && (<>
+                            <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50">Fecha de nacimiento</span><input value={form.birth_date} onChange={set('birth_date')} type="date" className={`${FIELD} [color-scheme:dark]`} /></label>
+                            <div>
+                              <button type="button" onClick={() => setEmergencyOpen(o => !o)} aria-expanded={emergencyOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
+                                <span>Contacto de emergencia <span className="text-white/45">· opcional</span></span>
+                                <span aria-hidden className={`text-lg text-white/60 transition-transform duration-300 ${emergencyOpen ? 'rotate-45' : ''}`}>+</span>
+                              </button>
+                              <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${emergencyOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                <div className="overflow-hidden">
+                                  <div className="space-y-2 pt-2" {...(!emergencyOpen ? { inert: true } : {})}>
+                                    <input value={form.emergency_name} onChange={set('emergency_name')} placeholder="Nombre del contacto" className={FIELD} />
+                                    <input value={form.emergency_phone} onChange={set('emergency_phone')} type="tel" placeholder="Teléfono del contacto" className={FIELD} />
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
+                            {donPkgs.length > 0 && (
+                              <div className="space-y-2 rounded-2xl bg-white/[0.05] p-4 ring-1 ring-inset ring-white/10">
+                                <p className="text-[15px]">Suma una donación <span className="text-white/45">· opcional</span></p>
+                                <div className="flex flex-wrap gap-2">
+                                  <button type="button" onClick={() => setExtraSel(0)} className={chip(extraSel === 0)}>Sin extra</button>
+                                  {donPkgs.map(o => <button type="button" key={o.name} onClick={() => setExtraSel(o.price)} className={chip(extraSel === o.price)}>+{o.label}</button>)}
+                                  <button type="button" onClick={() => setExtraSel(-1)} className={chip(extraSel === -1)}>Otro monto</button>
+                                </div>
+                                {extraSel === -1 && <input value={extraCustom} onChange={e => setExtraCustom(e.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" placeholder="Monto en pesos" className={FIELD} />}
+                                {extraErr && <p className="text-[13px] text-[#ff9f0a]">{extraErr}</p>}
+                              </div>
+                            )}
+                          </>)}
                           <div className="divide-y divide-white/10 rounded-2xl bg-white/[0.05] px-4 text-[15px] ring-1 ring-inset ring-white/10">
-                            <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Corredor</span><b className="font-medium">{form.full_name || '—'}</b></div>
+                            <div className="flex justify-between gap-4 py-3"><span className="text-white/55">{mode === 'donate' ? 'Donante' : 'Corredor'}</span><b className="font-medium">{form.full_name || '—'}</b></div>
                             <div className="flex justify-between gap-4 py-3"><span className="text-white/55">WhatsApp</span><span>{form.phone || '—'}</span></div>
                             <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Correo</span><span className="truncate">{form.email || '—'}</span></div>
-                            {form.shirt_size && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
-                            {form.birth_date && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
-                            {form.emergency_name && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
-                            <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Paquete</span><span>{chosen?.name}</span></div>
-                            <div className="flex items-baseline justify-between gap-4 py-4 text-xl"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{chosen?.label}</b></div>
+                            {mode === 'run' && form.shirt_size && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
+                            {mode === 'run' && form.birth_date && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
+                            {mode === 'run' && form.emergency_name && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
+                            {mode === 'run'
+                              ? <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Inscripción {chosen?.name}</span><span>{chosen ? money(chosen.price) : '—'}</span></div>
+                              : <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Aporte {donPkg ? donPkg.name : ''}</span><span>{donAmount ? money(donAmount) : '—'}</span></div>}
+                            {mode === 'run' && extraAmount > 0 && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Donación extra</span><span>{money(extraAmount)}</span></div>}
+                            <div className="flex items-baseline justify-between gap-4 py-4 text-xl"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{money(total)}</b></div>
                           </div>
                           {payErr && <p className="px-1 text-[13px] text-[#ff9f0a]">{payErr}</p>}
-                          <button type="button" disabled={busy} onClick={pay} className={primary}>{busy ? 'Abriendo pago…' : `Pagar ${chosen?.label}`}</button>
+                          <button type="button" disabled={busy} onClick={pay} className={primary}>{busy ? 'Abriendo pago…' : `${mode === 'donate' ? 'Donar' : 'Pagar'} ${money(total)}`}</button>
                           {p.cancelado && <p className="px-1 text-center text-[13px] text-white/50">El pago anterior no se completó. Puedes intentarlo de nuevo.</p>}
                           <button type="button" onClick={() => go(idx - 1)} className="mx-auto block pt-1 text-[15px] text-white/55 transition hover:text-white">‹ Atrás</button>
                         </div>

@@ -41,13 +41,19 @@ export async function POST(req: Request) {
         const regId = session.metadata.registration_id
         if (regId && session.payment_status === 'paid') {
           const { data: reg } = await db.from('event_registrations').update({ status: 'paid', paid_at: new Date().toISOString(), amount: (session.amount_total ?? 0) / 100 })
-            .eq('id', regId).neq('status', 'paid').select('full_name, email, events(title, event_date, location)').maybeSingle()
+            .eq('id', regId).neq('status', 'paid').select('full_name, email, kind, donation_amount, events(title, event_date, location)').maybeSingle()
           const ev = (Array.isArray(reg?.events) ? reg?.events[0] : reg?.events) as { title: string; event_date: string; location: string | null } | undefined
           if (reg?.email && ev) {
             const when = new Date(ev.event_date).toLocaleString('es-MX', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Mexico_City' })
+            const isDonation = reg.kind === 'donation'
+            const money = (n: number) => `$${Number(n).toLocaleString('es-MX')}`
+            const extra = Number(reg.donation_amount) > 0 && !isDonation ? `<p>Gracias también por tu donación de <b>${money(reg.donation_amount)}</b>.</p>` : ''
             await resend.emails.send({
-              from: FROM, to: reg.email, subject: `Inscripción confirmada — ${ev.title}`,
-              html: `<p>¡Hola ${reg.full_name}!</p><p>Tu inscripción a <b>${ev.title}</b> está confirmada y pagada.</p><p><b>Fecha:</b> ${when}<br/>${ev.location ? `<b>Lugar:</b> ${ev.location}` : ''}</p><p>Presenta tu nombre el día del evento para recoger tu paquete. ¡Nos vemos!</p>`,
+              from: FROM, to: reg.email,
+              subject: isDonation ? `Gracias por tu donación — ${ev.title}` : `Inscripción confirmada — ${ev.title}`,
+              html: isDonation
+                ? `<p>¡Hola ${reg.full_name}!</p><p>Recibimos tu donación de <b>${money(reg.donation_amount)}</b> para <b>${ev.title}</b>. ¡Gracias por ayudar!</p>`
+                : `<p>¡Hola ${reg.full_name}!</p><p>Tu inscripción a <b>${ev.title}</b> está confirmada y pagada.</p>${extra}<p><b>Fecha:</b> ${when}<br/>${ev.location ? `<b>Lugar:</b> ${ev.location}` : ''}</p><p>Presenta tu nombre el día del evento para recoger tu paquete. ¡Nos vemos!</p>`,
             }).catch(err => console.error('[events] correo de confirmación falló', err))
           }
         }

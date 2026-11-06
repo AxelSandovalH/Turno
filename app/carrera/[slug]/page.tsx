@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
 import { EventSlides } from './event-slides'
 
-interface Pkg { name: string; price: number; includes?: string[] }
+interface Pkg { name: string; price: number; includes?: string[]; kind?: 'race' | 'donation' }
 interface Props { params: Promise<{ slug: string }>; searchParams: Promise<{ cancelado?: string }> }
 
 export const dynamic = 'force-dynamic'
@@ -42,11 +42,17 @@ export default async function EventPage({ params, searchParams }: Props) {
   const date = new Date(ev.event_date)
   const when = date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' })
   const time = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' })
-  const closed = !ev.is_open || date < new Date() || spotsLeft === 0
   const fmt = (n: number) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: ev.currency === 'usd' ? 'USD' : 'MXN', maximumFractionDigits: 0 })
   const packages = ((Array.isArray(ev.packages) ? ev.packages : []) as Pkg[]).filter(p => p?.name && p.price > 0)
-  const options: Pkg[] = packages.length ? packages : [{ name: 'Inscripción', price: Number(ev.price), includes: [] }]
-  const from = Math.min(...options.map(o => o.price))
+  const hasRace = packages.some(p => p.kind !== 'donation')
+  const options: Pkg[] = hasRace || packages.length ? packages : [{ name: 'Inscripción', price: Number(ev.price), includes: [] }]
+  if (!packages.length) options[0].kind = 'race'
+  const racePrices = options.filter(o => o.kind !== 'donation').map(o => o.price)
+  const from = racePrices.length ? Math.min(...racePrices) : Math.min(...options.map(o => o.price))
+  const hasDonations = options.some(o => o.kind === 'donation')
+  // Lugares agotados cierra solo la carrera: las donaciones siguen abiertas
+  const raceFull = spotsLeft === 0
+  const closed = !ev.is_open || date < new Date() || (raceFull && !hasDonations)
   const gallery = (Array.isArray(ev.gallery) ? ev.gallery : []) as { src: string; alt?: string }[]
 
   return (
@@ -54,7 +60,7 @@ export default async function EventPage({ params, searchParams }: Props) {
       slug={ev.slug} title={ev.title} subtitle={ev.subtitle} organizer={ev.organizer} description={ev.description}
       when={when} time={time} location={ev.location} fromLabel={fmt(from)}
       flyer={ev.image_url} gallery={gallery} packages={options.map(o => ({ ...o, label: fmt(o.price) }))}
-      closed={closed} spotsLeft={spotsLeft} cancelado={!!cancelado}
+      closed={closed} raceFull={raceFull} currency={ev.currency} spotsLeft={spotsLeft} cancelado={!!cancelado}
     />
   )
 }
