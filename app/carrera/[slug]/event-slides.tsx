@@ -297,6 +297,16 @@ export function EventSlides(p: SlidesProps) {
     )
   }
 
+  // Al tocar un campo en celular se compacta de inmediato, antes de que iOS decida desplazar la página para mostrarlo
+  const compactNow = () => {
+    if (kb) return
+    setVvh(Math.round(window.innerHeight * 0.58)); setVvTop(0); setKb(true)
+    const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    setKbInset(ios ? 8 : 0)
+    // Si el toque no termina en un campo enfocado (por ejemplo fue un desplazamiento), se revierte
+    setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0); setVvTop(0); setKbInset(0) } }, 700)
+  }
+
   return (
     <div ref={root} className={`es-root fixed left-0 top-0 h-dvh w-full overflow-hidden bg-[#070907] text-white ${zone ? `cur-${zone}` : ''}`} onWheel={onWheel}
       style={vvh ? { height: vvh, top: vvTop, ['--vh' as string]: `${vvh / 100}px` } : { ['--vh' as string]: '1dvh' }}
@@ -324,7 +334,10 @@ export function EventSlides(p: SlidesProps) {
       onMouseMove={e => { const z = zoneAt(e); if (z !== zone) setZone(z) }}
       onMouseLeave={() => setZone(null)}
       onClick={e => { const z = zoneAt(e); if (z) go(idx + (z === 'next' ? 1 : -1)) }}
-      onTouchStart={e => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }}
+      onTouchStart={e => {
+        touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        if ((e.target as HTMLElement).matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) compactNow()
+      }}
       onTouchEnd={e => {
         const t = touch.current; if (!t) return
         if ((e.target as HTMLElement).closest('input,select,textarea')) { touch.current = null; return }
