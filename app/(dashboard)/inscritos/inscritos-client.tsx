@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 interface Ev { id: string; slug: string; title: string; price: number; currency: string; capacity: number | null; event_date: string }
-interface Reg { id: string; event_id: string; full_name: string; email: string | null; phone: string; birth_date: string | null; shirt_size: string | null; emergency_name: string | null; emergency_phone: string | null; status: string; amount: number | null; paid_at: string | null; created_at: string }
+interface Reg { id: string; event_id: string; full_name: string; email: string | null; phone: string; birth_date: string | null; shirt_size: string | null; emergency_name: string | null; emergency_phone: string | null; package_name: string | null; status: string; amount: number | null; paid_at: string | null; created_at: string }
 
 const money = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
 
@@ -20,9 +20,9 @@ export function InscritosClient({ events, regs, baseUrl }: { events: Ev[]; regs:
   const link = ev ? `${baseUrl}/carrera/${ev.slug}` : ''
 
   function csv() {
-    const head = ['Nombre', 'Teléfono', 'Correo', 'Nacimiento', 'Talla', 'Contacto emergencia', 'Tel. emergencia', 'Estado', 'Monto', 'Pagado']
+    const head = ['Nombre', 'Teléfono', 'Correo', 'Paquete', 'Nacimiento', 'Talla', 'Contacto emergencia', 'Tel. emergencia', 'Estado', 'Monto', 'Pagado']
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const lines = rows.map(r => [r.full_name, r.phone, r.email, r.birth_date, r.shirt_size, r.emergency_name, r.emergency_phone, r.status === 'paid' ? 'Pagado' : r.status === 'pending' ? 'Pendiente' : 'Cancelado', r.amount, r.paid_at ?? ''].map(esc).join(','))
+    const lines = rows.map(r => [r.full_name, r.phone, r.email, r.package_name, r.birth_date, r.shirt_size, r.emergency_name, r.emergency_phone, r.status === 'paid' ? 'Pagado' : r.status === 'pending' ? 'Pendiente' : 'Cancelado', r.amount, r.paid_at ?? ''].map(esc).join(','))
     const blob = new Blob(['﻿' + [head.map(esc).join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' })
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `inscritos-${ev?.slug ?? 'evento'}.csv`; a.click()
   }
@@ -58,19 +58,20 @@ export function InscritosClient({ events, regs, baseUrl }: { events: Ev[]; regs:
 
       <div className="overflow-x-auto rounded-xl border">
         <table className="w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase text-zinc-500 dark:bg-zinc-900"><tr>{['Nombre', 'Teléfono', 'Correo', 'Talla', 'Emergencia', 'Estado'].map(h => <th key={h} className="px-3 py-2">{h}</th>)}</tr></thead>
+          <thead className="bg-zinc-50 text-xs uppercase text-zinc-500 dark:bg-zinc-900"><tr>{['Nombre', 'Teléfono', 'Correo', 'Paquete', 'Talla', 'Emergencia', 'Estado'].map(h => <th key={h} className="px-3 py-2">{h}</th>)}</tr></thead>
           <tbody>
             {rows.map(r => (
               <tr key={r.id} className="border-t">
                 <td className="px-3 py-2 font-medium">{r.full_name}</td>
                 <td className="px-3 py-2">{r.phone}</td>
                 <td className="px-3 py-2">{r.email}</td>
+                <td className="px-3 py-2">{r.package_name ?? '—'}</td>
                 <td className="px-3 py-2">{r.shirt_size ?? '—'}</td>
                 <td className="px-3 py-2">{r.emergency_name ? `${r.emergency_name} · ${r.emergency_phone ?? ''}` : '—'}</td>
                 <td className="px-3 py-2">{r.status === 'paid' ? '✅ Pagado' : r.status === 'pending' ? '⏳ Pendiente' : 'Cancelado'}</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={6} className="px-3 py-6 text-center text-zinc-500">Todavía no hay inscritos.</td></tr>}
+            {!rows.length && <tr><td colSpan={7} className="px-3 py-6 text-center text-zinc-500">Todavía no hay inscritos.</td></tr>}
           </tbody>
         </table>
       </div>

@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: 'Escribe un correo válido para enviarte tu confirmación' }, { status: 400 })
 
   const db = createServiceClient()
-  const { data: ev } = await db.from('events').select('id, organization_id, slug, title, price, currency, capacity, is_open, event_date').eq('slug', clean(b.slug, 80)).maybeSingle()
+  const { data: ev } = await db.from('events').select('id, organization_id, slug, title, price, currency, capacity, is_open, event_date, packages').eq('slug', clean(b.slug, 80)).maybeSingle()
   if (!ev || !ev.is_open || new Date(ev.event_date) < new Date()) return NextResponse.json({ error: 'Las inscripciones de este evento están cerradas' }, { status: 400 })
 
   if (ev.capacity) {
@@ -28,11 +28,17 @@ export async function POST(req: Request) {
     if ((count ?? 0) >= ev.capacity) return NextResponse.json({ error: 'Se agotaron los lugares' }, { status: 409 })
   }
 
+  // El precio sale siempre del servidor: del paquete elegido (o del precio base del evento si no hay paquetes)
+  const packages = (Array.isArray(ev.packages) ? ev.packages : []) as { name: string; price: number }[]
+  const pkg = packages.length ? packages.find(p => p.name === clean(b.package, 60)) : null
+  if (packages.length && !pkg) return NextResponse.json({ error: 'Elige un paquete de inscripción' }, { status: 400 })
+  const price = Number(pkg?.price ?? ev.price)
+
   const { data: reg, error } = await db.from('event_registrations').insert({
     event_id: ev.id, organization_id: ev.organization_id, full_name, phone, email,
     birth_date: clean(b.birth_date, 10) || null, shirt_size: clean(b.shirt_size, 10) || null,
     emergency_name: clean(b.emergency_name, 120) || null, emergency_phone: clean(b.emergency_phone, 30) || null,
-    amount: ev.price,
+    amount: price, package_name: pkg?.name ?? null,
   }).select('id').single()
   if (error || !reg) return NextResponse.json({ error: 'No se pudo registrar, intenta de nuevo' }, { status: 500 })
 
@@ -42,7 +48,7 @@ export async function POST(req: Request) {
       mode: 'payment',
       payment_method_types: ['card'],
       customer_email: email,
-      line_items: [{ quantity: 1, price_data: { currency: ev.currency === 'usd' ? 'usd' : 'mxn', unit_amount: Math.round(Number(ev.price) * 100), product_data: { name: `Inscripción — ${ev.title}`, description: full_name } } }],
+      line_items: [{ quantity: 1, price_data: { currency: ev.currency === 'usd' ? 'usd' : 'mxn', unit_amount: Math.round(price * 100), product_data: { name: `Inscripción${pkg ? ` ${pkg.name}` : ''} — ${ev.title}`, description: full_name } } }],
       success_url: `${base}/carrera/${ev.slug}/gracias`,
       cancel_url: `${base}/carrera/${ev.slug}?cancelado=1`,
       metadata: { type: 'event_registration', registration_id: reg.id, organization_id: ev.organization_id },
