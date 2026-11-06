@@ -67,6 +67,7 @@ export function EventSlides(p: SlidesProps) {
   const [showErr, setShowErr] = useState(false)
   const [busy, setBusy] = useState(false)
   const [payErr, setPayErr] = useState('')
+  const [emergencyOpen, setEmergencyOpen] = useState(false)
   const chosen = p.packages.find(x => x.name === pkg) ?? p.packages[0]
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }))
   const errs: Record<Task, string> = {
@@ -312,10 +313,19 @@ export function EventSlides(p: SlidesProps) {
                           {extraTasks.filter(t => t !== 'talla').map(t => <div key={t}><p className="mb-1.5 px-1 text-[13px] text-white/50">{cfg[t].q}</p>{cfg[t].input}{showErr && errs[t] && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}</div>)}
                           {extraTasks.includes('talla') && <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizes}</div>}
                           <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50">Fecha de nacimiento</span><input value={form.birth_date} onChange={set('birth_date')} type="date" className={`${FIELD} [color-scheme:dark]`} /></label>
-                          <div className="space-y-2">
-                            <p className="px-1 text-[13px] text-white/50">Contacto de emergencia (opcional)</p>
-                            <input value={form.emergency_name} onChange={set('emergency_name')} placeholder="Nombre del contacto" className={FIELD} />
-                            <input value={form.emergency_phone} onChange={set('emergency_phone')} type="tel" placeholder="Teléfono del contacto" className={FIELD} />
+                          <div>
+                            <button type="button" onClick={() => setEmergencyOpen(o => !o)} aria-expanded={emergencyOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
+                              <span>Contacto de emergencia <span className="text-white/45">· opcional</span></span>
+                              <span aria-hidden className={`text-lg text-white/60 transition-transform duration-300 ${emergencyOpen ? 'rotate-45' : ''}`}>+</span>
+                            </button>
+                            <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${emergencyOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                              <div className="overflow-hidden">
+                                <div className="space-y-2 pt-2" {...(!emergencyOpen ? { inert: true } : {})}>
+                                  <input value={form.emergency_name} onChange={set('emergency_name')} placeholder="Nombre del contacto" className={FIELD} />
+                                  <input value={form.emergency_phone} onChange={set('emergency_phone')} type="tel" placeholder="Teléfono del contacto" className={FIELD} />
+                                </div>
+                              </div>
+                            </div>
                           </div>
                           <div className="divide-y divide-white/10 rounded-2xl bg-white/[0.05] px-4 text-[15px] ring-1 ring-inset ring-white/10">
                             <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Corredor</span><b className="font-medium">{form.full_name || '—'}</b></div>
