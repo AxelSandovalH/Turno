@@ -6,7 +6,7 @@ interface Photo { src: string; alt?: string }
 export interface PkgOption { name: string; price: number; label: string; includes?: string[] }
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-const FIELD = 'w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white placeholder:text-white/40 focus:border-yellow-300 focus:outline-none'
+const FIELD = 'h-14 w-full rounded-2xl bg-white/[0.07] px-4 text-[17px] text-white outline-none ring-1 ring-inset ring-white/10 transition placeholder:text-white/35 focus:bg-white/[0.1] focus:ring-2 focus:ring-[#ffd60a]'
 const digits = (v: string) => v.replace(/\D/g, '').length
 export interface SlidesProps {
   slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
@@ -16,19 +16,22 @@ export interface SlidesProps {
 }
 
 const CSS = `
-.es-panel{transition:transform .8s cubic-bezier(.77,0,.18,1),opacity .6s}
+.es-root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.es-root h1,.es-root h2{text-wrap:balance}
+.es-panel{transition:transform .9s cubic-bezier(.76,0,.2,1),opacity .6s ease}
 .es-panel:not(.on) [data-a]{opacity:0}
-.es-panel.on [data-a]{animation:es-rise .8s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*140ms + 350ms)}
-.es-panel.on .es-tile{animation:es-pop .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*220ms + 450ms)}
+.es-panel.on [data-a]{animation:es-rise .9s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0)*110ms + 300ms)}
+.es-panel.on .es-tile{animation:es-pop 1s cubic-bezier(.16,1,.3,1) both;animation-delay:calc(var(--i,0)*180ms + 400ms)}
 .es-panel:not(.on) .es-tile{opacity:0}
-.es-panel.on .es-tile img{animation:es-kb 9s ease-out both;animation-delay:calc(var(--i,0)*220ms + 450ms)}
-.es-kb{animation:es-kb 9s ease-out both}
-.es-bg{transition:opacity 1.6s ease}
-.es-bg.show img{animation:es-kb 8s ease-out both}
-@keyframes es-rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
-@keyframes es-pop{from{opacity:0;transform:scale(.86) rotate(-2.5deg) translateY(30px)}to{opacity:1;transform:none}}
-@keyframes es-kb{from{transform:scale(1.12)}to{transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){.es-panel,.es-panel [data-a],.es-tile,.es-tile img,.es-bg img{animation:none!important;transition:none!important}.es-panel:not(.on) [data-a],.es-panel:not(.on) .es-tile{opacity:1}}
+.es-panel.on .es-tile img{animation:es-kb 10s cubic-bezier(.2,.6,.2,1) both;animation-delay:calc(var(--i,0)*180ms + 400ms)}
+.es-kb{animation:es-kb 10s cubic-bezier(.2,.6,.2,1) both}
+.es-bg{transition:opacity 1.8s ease}
+.es-bg.show img{animation:es-kb 9s cubic-bezier(.2,.6,.2,1) both}
+.es-scroll{scrollbar-width:none}.es-scroll::-webkit-scrollbar{display:none}
+@keyframes es-rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes es-pop{from{opacity:0;transform:scale(.94) translateY(24px)}to{opacity:1;transform:none}}
+@keyframes es-kb{from{transform:scale(1.1)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.es-panel,.es-panel [data-a],.es-tile,.es-tile img,.es-bg img,.es-kb{animation:none!important;transition:none!important}.es-panel:not(.on) [data-a],.es-panel:not(.on) .es-tile{opacity:1}}
 `
 
 export function EventSlides(p: SlidesProps) {
@@ -110,10 +113,16 @@ export function EventSlides(p: SlidesProps) {
   }
 
   const tileCls = ['col-span-2 md:row-span-2', '', '', '', '']
-  const card = 'overflow-hidden rounded-2xl shadow-xl shadow-black/40 es-tile'
+
+  const ACCENT = 'bg-[#ffd60a] text-black'
+  const primary = `h-14 w-full rounded-full ${ACCENT} text-[17px] font-semibold transition hover:brightness-105 active:scale-[.985] disabled:opacity-60`
+  const eyebrow = 'text-[12px] font-semibold uppercase tracking-[0.18em] text-white/55'
+  const h2 = 'text-[2.4rem] font-semibold leading-[1.04] tracking-[-0.035em] md:text-[3.4rem]'
+  const dateLine = `${p.when.replace(/^\w+,\s*/, '')}${p.time ? ' · ' + p.time : ''}`
+  const card = 'overflow-hidden rounded-[26px] es-tile bg-white/5'
 
   return (
-    <div ref={root} className="relative h-dvh w-full overflow-hidden bg-[#0f2614] text-white" onWheel={onWheel}
+    <div ref={root} className="es-root relative h-dvh w-full overflow-hidden bg-[#070907] text-white" onWheel={onWheel}
       onTouchStart={e => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }}
       onTouchEnd={e => {
         const t = touch.current; if (!t) return
@@ -128,29 +137,27 @@ export function EventSlides(p: SlidesProps) {
         return (
           <section key={name} aria-hidden={!on} {...(!on ? { inert: true } : {})} className={`es-panel absolute inset-0 ${on ? 'on' : ''}`}
             style={{ transform: `translateX(${(i - idx) * 100}%)`, opacity: Math.abs(i - idx) > 1 ? 0 : 1 }}>
+
             {name === 'hero' && (
-              <div className="relative flex h-full items-center justify-center px-5 text-center">
+              <div className="relative flex h-full items-center justify-center px-6 text-center">
                 {p.gallery.map((g, k) => (
                   <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={g.src} alt="" className="h-full w-full object-cover" />
                   </div>
                 ))}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#0f2614]/60 via-[#0f2614]/55 to-[#0f2614]/90" />
-                <div className="relative max-w-3xl">
-                  {p.organizer && <p data-a style={{ ['--i' as string]: 0 }} className="text-xs font-semibold uppercase tracking-[0.3em] text-yellow-300">{p.organizer}</p>}
-                  <h1 data-a style={{ ['--i' as string]: 1 }} className="mt-3 text-6xl font-black leading-none md:text-8xl">{p.title}</h1>
-                  {p.subtitle && <p data-a style={{ ['--i' as string]: 2 }} className="mt-4 text-lg text-green-50/90 md:text-xl">{p.subtitle}</p>}
-                  <div data-a style={{ ['--i' as string]: 3 }} className="mt-7 flex flex-wrap items-center justify-center gap-2 text-sm">
-                    <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">📅 <span className="capitalize">{p.when}</span></span>
-                    <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">⏰ {p.time}</span>
-                    {p.location && <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">📍 {p.location}</span>}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.35),rgba(7,9,7,.82)_75%)]" />
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#070907] to-transparent" />
+                <div className="relative max-w-4xl">
+                  {p.organizer && <p data-a style={{ ['--i' as string]: 0 }} className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a]">{p.organizer}</p>}
+                  <h1 data-a style={{ ['--i' as string]: 1 }} className="mt-4 text-[clamp(4rem,14vw,9.5rem)] font-semibold leading-[.92] tracking-[-0.05em]">{p.title}</h1>
+                  {p.subtitle && <p data-a style={{ ['--i' as string]: 2 }} className="mx-auto mt-5 max-w-xl text-xl text-white/80 md:text-2xl">{p.subtitle}</p>}
+                  <p data-a style={{ ['--i' as string]: 3 }} className="mt-3 text-[17px] text-white/65">{dateLine}{p.location ? ` · ${p.location}` : ''}</p>
+                  <div data-a style={{ ['--i' as string]: 4 }} className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                    {!p.closed && <button onClick={() => go(firstStep)} className={`h-14 rounded-full px-9 text-[17px] font-semibold transition hover:brightness-105 active:scale-[.985] ${ACCENT}`}>Inscribirme · desde {p.fromLabel}</button>}
+                    <button onClick={() => go(1)} className="text-[17px] font-medium text-white/85 transition hover:text-white">Conocer más <span aria-hidden>›</span></button>
                   </div>
-                  <div data-a style={{ ['--i' as string]: 4 }} className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                    {!p.closed && <button onClick={() => go(firstStep)} className="rounded-xl bg-yellow-400 px-7 py-3.5 text-base font-bold text-green-950 shadow-lg transition hover:bg-yellow-300">Inscribirme · desde {p.fromLabel}</button>}
-                    <button onClick={() => go(1)} className="rounded-xl border border-white/40 px-6 py-3.5 text-base font-medium backdrop-blur transition hover:bg-white/10">Conocer más</button>
-                  </div>
-                  {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && <p data-a style={{ ['--i' as string]: 5 }} className="mt-4 text-sm text-yellow-200">⚡ Quedan {p.spotsLeft} lugares</p>}
+                  {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && <p data-a style={{ ['--i' as string]: 5 }} className="mt-5 text-sm text-[#ffd60a]">Quedan {p.spotsLeft} lugares</p>}
                 </div>
               </div>
             )}
@@ -158,9 +165,12 @@ export function EventSlides(p: SlidesProps) {
             {(name === 'fotos0' || name === 'fotos1') && (() => {
               const k = name === 'fotos0' ? 0 : 1
               return (
-                <div className="flex h-full flex-col px-4 pb-20 pt-14 md:px-10 md:pt-16">
-                  <h2 data-a style={{ ['--i' as string]: 0 }} className="mb-3 text-center text-2xl font-extrabold md:text-4xl">{captions[k]}</h2>
-                  <div className="mx-auto grid min-h-0 w-full max-w-6xl flex-1 grid-cols-2 grid-rows-3 gap-3 md:grid-cols-4 md:grid-rows-2">
+                <div className="flex h-full flex-col px-4 pb-24 pt-16 md:px-12 md:pt-20">
+                  <div data-a style={{ ['--i' as string]: 0 }} className="mx-auto mb-5 w-full max-w-6xl">
+                    <p className={eyebrow}>{p.title}</p>
+                    <h2 className={`${h2} mt-1.5`}>{captions[k]}</h2>
+                  </div>
+                  <div className="mx-auto grid min-h-0 w-full max-w-6xl flex-1 grid-cols-2 grid-rows-3 gap-3 md:grid-cols-4 md:grid-rows-2 md:gap-4">
                     {photoPanels[k].map((g, j) => (
                       <div key={g.src} style={{ ['--i' as string]: j }} className={`${card} ${tileCls[j] ?? ''}`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -173,32 +183,36 @@ export function EventSlides(p: SlidesProps) {
             })()}
 
             {name === 'info' && (
-              <div className="relative es-scroll flex h-full items-center overflow-y-auto px-5 pb-20 pt-14 md:px-10">
+              <div className="relative h-full">
                 {p.gallery[2] && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.gallery[2].src} alt="" className="es-kb pointer-events-none fixed inset-0 -z-0 h-full w-full object-cover opacity-25" />
+                  <img src={p.gallery[2].src} alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-[.22] blur-2xl" />
                 )}
-                <div className="relative mx-auto grid w-full max-w-5xl items-center gap-8 md:grid-cols-5">
-                  {p.flyer && (
-                    <div data-a style={{ ['--i' as string]: 0 }} className="mx-auto w-full max-w-[260px] md:col-span-2 md:max-w-sm">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.flyer} alt={`Cartel de ${p.title}`} className="max-h-[60dvh] w-full rounded-2xl object-contain shadow-2xl md:max-h-[72dvh]" />
-                    </div>
-                  )}
-                  <div className="space-y-4 md:col-span-3">
-                    <h2 data-a style={{ ['--i' as string]: 1 }} className="text-3xl font-black md:text-5xl">¿Qué te espera?</h2>
-                    {p.description && <p data-a style={{ ['--i' as string]: 2 }} className="whitespace-pre-line text-[15px] leading-relaxed text-green-50/85 md:text-lg">{p.description}</p>}
-                    <ul data-a style={{ ['--i' as string]: 3 }} className="space-y-1.5 text-[15px] text-green-50/90">
-                      <li>📅 <span className="capitalize">{p.when}</span>, {p.time}</li>
-                      {p.location && <li>📍 {p.location}</li>}
-                    </ul>
-                    <div data-a style={{ ['--i' as string]: 4 }} className="flex flex-wrap gap-2">
-                      {p.packages.map(pk => (
-                        <div key={pk.name} className="rounded-xl bg-white/10 px-4 py-3">
-                          <p className="font-bold">{pk.name} · <span className="text-yellow-300">{pk.label}</span></p>
-                          {!!pk.includes?.length && <p className="mt-0.5 text-xs text-white/65">{pk.includes.join(' · ')}</p>}
-                        </div>
-                      ))}
+                <div className="es-scroll relative flex h-full items-center overflow-y-auto px-6 pb-24 pt-16 md:px-12">
+                  <div className="mx-auto grid w-full max-w-6xl items-center gap-10 md:grid-cols-[minmax(0,380px)_1fr] md:gap-16">
+                    {p.flyer && (
+                      <div data-a style={{ ['--i' as string]: 0 }} className="mx-auto w-full max-w-[250px] md:max-w-none">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.flyer} alt={`Cartel de ${p.title}`} className="max-h-[56dvh] w-full rounded-[26px] object-contain shadow-2xl shadow-black/60 md:max-h-[74dvh]" />
+                      </div>
+                    )}
+                    <div className="space-y-7">
+                      <div data-a style={{ ['--i' as string]: 1 }}>
+                        <p className={eyebrow}>La carrera</p>
+                        <h2 className={`${h2} mt-1.5`}>Qué te espera.</h2>
+                      </div>
+                      {p.description && <p data-a style={{ ['--i' as string]: 2 }} className="max-w-xl whitespace-pre-line text-[17px] leading-relaxed text-white/70 md:text-xl">{p.description}</p>}
+                      <dl data-a style={{ ['--i' as string]: 3 }} className="max-w-xl divide-y divide-white/10 border-y border-white/10 text-[17px]">
+                        <div className="flex justify-between gap-6 py-3"><dt className="text-white/50">Fecha</dt><dd className="text-right">{p.when.charAt(0).toUpperCase() + p.when.slice(1)}</dd></div>
+                        <div className="flex justify-between gap-6 py-3"><dt className="text-white/50">Salida</dt><dd className="text-right">{p.time}</dd></div>
+                        {p.location && <div className="flex justify-between gap-6 py-3"><dt className="text-white/50">Lugar</dt><dd className="text-right">{p.location}</dd></div>}
+                        {p.packages.map(pk => <div key={pk.name} className="flex justify-between gap-6 py-3"><dt className="text-white/50">{pk.name}</dt><dd className="text-right font-semibold text-[#ffd60a]">{pk.label}</dd></div>)}
+                      </dl>
+                      {!!p.packages[0]?.includes?.length && (
+                        <ul data-a style={{ ['--i' as string]: 4 }} className="grid max-w-xl gap-x-6 gap-y-2 text-[15px] text-white/75 sm:grid-cols-2">
+                          {p.packages[0].includes.map(it => <li key={it} className="flex gap-2"><span className="text-[#ffd60a]">✓</span>{it}</li>)}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -209,51 +223,56 @@ export function EventSlides(p: SlidesProps) {
               const k = steps.indexOf(name)
               const photo = p.gallery.length ? p.gallery[(k * 2 + 1) % p.gallery.length] : null
               const meta: Record<string, { title: string; sub: string }> = {
-                paquete: { title: 'Elige tu paquete', sub: 'Todos incluyen tu lugar en la carrera.' },
-                datos: { title: '¿Quién va a correr?', sub: 'Te mandaremos tu confirmación por correo y WhatsApp.' },
-                corredor: { title: 'Casi listo', sub: 'Para preparar tu playera y tu número.' },
-                emergencia: { title: 'Por tu seguridad', sub: 'Un contacto por si pasa algo el día del evento (opcional).' },
-                pago: { title: 'Revisa y paga', sub: 'Pago seguro con tarjeta. Tu lugar se aparta al pagar.' },
+                paquete: { title: 'Elige tu paquete.', sub: 'Todos incluyen tu lugar en la carrera.' },
+                datos: { title: '¿Quién va a correr?', sub: 'Te enviaremos la confirmación por correo y WhatsApp.' },
+                corredor: { title: 'Casi listo.', sub: 'Para preparar tu playera y tu número.' },
+                emergencia: { title: 'Por tu seguridad.', sub: 'Un contacto por si pasa algo el día del evento. Es opcional.' },
+                pago: { title: 'Revisa y paga.', sub: 'Pago seguro con tarjeta. Tu lugar se aparta al pagar.' },
               }
               const m = meta[name]
-              const err = (k2: keyof typeof errs) => showErr && errs[k2] ? <p className="mt-1 text-xs text-red-300">{errs[k2]}</p> : null
-              const next = <button type="button" onClick={() => go(idx + 1)} className="w-full rounded-xl bg-yellow-400 py-3.5 text-base font-bold text-green-950 transition hover:bg-yellow-300">Continuar</button>
+              const err = (k2: keyof typeof errs) => showErr && errs[k2] ? <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[k2]}</p> : null
+              const next = <button type="button" onClick={() => go(idx + 1)} className={primary}>Continuar</button>
               return (
-                <div className="grid h-full grid-rows-[26dvh_1fr] md:grid-cols-2 md:grid-rows-1">
+                <div className="grid h-full grid-rows-[24dvh_1fr] md:grid-cols-[1fr_minmax(0,560px)] md:grid-rows-1 lg:grid-cols-[1.15fr_minmax(0,620px)]">
                   <div className="relative overflow-hidden">
                     {photo && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={photo.src} alt={photo.alt ?? ''} className="es-kb absolute inset-0 h-full w-full object-cover" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f2614] via-[#0f2614]/20 to-[#0f2614]/30 md:bg-gradient-to-r md:from-transparent md:via-[#0f2614]/10 md:to-[#0f2614]" />
-                    <p className="absolute bottom-3 left-5 text-xs font-semibold uppercase tracking-[0.25em] text-yellow-300 md:bottom-8 md:left-8">Paso {k + 1} de {steps.length} · {p.title}</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#070907] via-transparent to-transparent md:bg-gradient-to-l md:from-[#070907] md:via-transparent md:to-transparent md:[mask-image:none]" />
                   </div>
-                  <div className="es-scroll flex min-h-0 items-center overflow-y-auto px-5 pb-20 pt-4 md:px-10 md:pt-14">
-                    <div className="mx-auto w-full max-w-md space-y-4">
-                      <div data-a style={{ ['--i' as string]: 0 }}>
-                        <h2 className="text-3xl font-black md:text-4xl">{m.title}</h2>
-                        <p className="mt-1 text-sm text-green-50/70">{m.sub}</p>
+                  <div className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-24 pt-2 md:px-14 md:pt-8">
+                    <div className="mx-auto w-full max-w-[420px] space-y-6">
+                      <div data-a style={{ ['--i' as string]: 0 }} className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-1 gap-1.5">{steps.map((_, n) => <span key={n} className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ${n <= k ? 'bg-[#ffd60a]' : 'bg-white/15'}`} />)}</div>
+                          <span className="text-[12px] font-medium tabular-nums text-white/50">{k + 1}/{steps.length}</span>
+                        </div>
+                        <div>
+                          <h2 className="text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] md:text-[2.8rem]">{m.title}</h2>
+                          <p className="mt-2 text-[17px] leading-snug text-white/60">{m.sub}</p>
+                        </div>
                       </div>
-                      {p.closed && <p className="rounded-xl bg-white/10 p-4 text-center font-medium">Las inscripciones están cerradas.</p>}
+                      {p.closed && <p className="rounded-2xl bg-white/10 p-4 text-center font-medium">Las inscripciones están cerradas.</p>}
                       {!p.closed && (
                         <div data-a style={{ ['--i' as string]: 1 }} className="space-y-3">
                           {name === 'paquete' && p.packages.map(o => (
-                            <label key={o.name} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${pkg === o.name ? 'border-yellow-300 bg-yellow-300/10' : 'border-white/15 hover:border-white/40'}`}>
-                              <input type="radio" name="pkg" checked={pkg === o.name} onChange={() => setPkg(o.name)} className="mt-1 accent-yellow-300" />
-                              <span className="flex-1"><span className="flex items-baseline justify-between gap-2"><b>{o.name}</b><b className="text-yellow-300">{o.label}</b></span>
-                                {!!o.includes?.length && <span className="mt-1 block text-xs text-white/60">{o.includes.join(' · ')}</span>}</span>
+                            <label key={o.name} className={`flex cursor-pointer items-start gap-3 rounded-2xl p-4 ring-1 ring-inset transition ${pkg === o.name ? 'bg-[#ffd60a]/10 ring-2 ring-[#ffd60a]' : 'bg-white/[0.05] ring-white/10 hover:bg-white/[0.08]'}`}>
+                              <input type="radio" name="pkg" checked={pkg === o.name} onChange={() => setPkg(o.name)} className="mt-1 accent-[#ffd60a]" />
+                              <span className="flex-1"><span className="flex items-baseline justify-between gap-2 text-[17px]"><b className="font-semibold">{o.name}</b><b className="font-semibold text-[#ffd60a]">{o.label}</b></span>
+                                {!!o.includes?.length && <span className="mt-1 block text-[13px] text-white/55">{o.includes.join(' · ')}</span>}</span>
                             </label>
                           ))}
                           {name === 'datos' && (<>
-                            {p.packages.length === 1 && chosen && <p className="rounded-xl bg-white/10 px-4 py-2.5 text-sm">🎟️ {chosen.name} · <b className="text-yellow-300">{chosen.label}</b></p>}
+                            {p.packages.length === 1 && chosen && <p className="flex justify-between rounded-2xl bg-white/[0.05] px-4 py-3 text-[15px] ring-1 ring-inset ring-white/10"><span className="text-white/60">{chosen.name}</span><b className="font-semibold text-[#ffd60a]">{chosen.label}</b></p>}
                             <div><input value={form.full_name} onChange={set('full_name')} placeholder="Nombre completo" autoComplete="name" className={FIELD} />{err('full_name')}</div>
                             <div><input value={form.phone} onChange={set('phone')} type="tel" inputMode="tel" placeholder="Teléfono (WhatsApp)" autoComplete="tel" className={FIELD} />{err('phone')}</div>
-                            <div><input value={form.email} onChange={set('email')} type="email" placeholder="Correo" autoComplete="email" className={FIELD} />{err('email')}</div>
+                            <div><input value={form.email} onChange={set('email')} type="email" placeholder="Correo electrónico" autoComplete="email" className={FIELD} />{err('email')}</div>
                           </>)}
                           {name === 'corredor' && (<>
-                            <label className="block text-xs text-white/60">Fecha de nacimiento<input value={form.birth_date} onChange={set('birth_date')} type="date" className={`${FIELD} mt-1`} /></label>
-                            <label className="block text-xs text-white/60">Talla de playera
-                              <select value={form.shirt_size} onChange={set('shirt_size')} className={`${FIELD} mt-1`}><option value="" className="text-black">Elegir talla</option>{SIZES.map(z => <option key={z} value={z} className="text-black">{z}</option>)}</select>
+                            <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50">Fecha de nacimiento</span><input value={form.birth_date} onChange={set('birth_date')} type="date" className={`${FIELD} [color-scheme:dark]`} /></label>
+                            <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50">Talla de playera</span>
+                              <select value={form.shirt_size} onChange={set('shirt_size')} className={`${FIELD} [color-scheme:dark]`}><option value="">Elegir talla</option>{SIZES.map(z => <option key={z} value={z}>{z}</option>)}</select>
                             </label>
                           </>)}
                           {name === 'emergencia' && (<>
@@ -261,19 +280,20 @@ export function EventSlides(p: SlidesProps) {
                             <input value={form.emergency_phone} onChange={set('emergency_phone')} type="tel" placeholder="Teléfono del contacto" className={FIELD} />
                           </>)}
                           {name === 'pago' && (
-                            <div className="space-y-2 rounded-2xl bg-black/25 p-4 text-sm">
-                              <div className="flex justify-between"><span className="text-white/60">Corredor</span><b>{form.full_name || '—'}</b></div>
-                              <div className="flex justify-between"><span className="text-white/60">Correo</span><span>{form.email || '—'}</span></div>
-                              {form.shirt_size && <div className="flex justify-between"><span className="text-white/60">Playera</span><span>{form.shirt_size}</span></div>}
-                              <div className="flex justify-between"><span className="text-white/60">Paquete</span><span>{chosen?.name}</span></div>
-                              <div className="flex justify-between border-t border-white/15 pt-2 text-lg"><span>Total</span><b className="text-yellow-300">{chosen?.label}</b></div>
+                            <div className="divide-y divide-white/10 rounded-2xl bg-white/[0.05] px-4 text-[15px] ring-1 ring-inset ring-white/10">
+                              <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Corredor</span><b className="font-medium">{form.full_name || '—'}</b></div>
+                              <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Correo</span><span className="truncate">{form.email || '—'}</span></div>
+                              {form.shirt_size && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
+                              <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Paquete</span><span>{chosen?.name}</span></div>
+                              <div className="flex items-baseline justify-between gap-4 py-4 text-xl"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{chosen?.label}</b></div>
                             </div>
                           )}
                           {name === 'pago'
-                            ? <>{payErr && <p className="text-sm text-red-300">{payErr}</p>}
-                                <button type="button" disabled={busy} onClick={pay} className="w-full rounded-xl bg-yellow-400 py-3.5 text-base font-bold text-green-950 transition hover:bg-yellow-300 disabled:opacity-60">{busy ? 'Abriendo pago…' : `Pagar ${chosen?.label}`}</button>
-                                {p.cancelado && <p className="rounded-lg bg-yellow-400/15 px-3 py-2 text-xs text-yellow-200">El pago anterior no se completó. Puedes intentarlo de nuevo.</p>}</>
+                            ? <>{payErr && <p className="px-1 text-[13px] text-[#ff9f0a]">{payErr}</p>}
+                                <button type="button" disabled={busy} onClick={pay} className={primary}>{busy ? 'Abriendo pago…' : `Pagar ${chosen?.label}`}</button>
+                                {p.cancelado && <p className="px-1 text-[13px] text-white/50">El pago anterior no se completó. Puedes intentarlo de nuevo.</p>}</>
                             : next}
+                          {idx > firstStep && <button type="button" onClick={() => go(idx - 1)} className="mx-auto block pt-1 text-[15px] text-white/55 transition hover:text-white">‹ Atrás</button>}
                         </div>
                       )}
                     </div>
@@ -285,18 +305,18 @@ export function EventSlides(p: SlidesProps) {
         )
       })}
 
-      {/* Marca arriba, navegación abajo */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4">
-        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-white/70">{p.title}</span>
-        {idx > 0 && !p.closed && idx < firstStep && <button onClick={() => go(firstStep)} className="pointer-events-auto rounded-full bg-yellow-400 px-4 py-1.5 text-xs font-bold text-green-950">Inscribirme</button>}
+      {/* Marca arriba; navegación flotante abajo */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 md:px-8">
+        <span className="rounded-full bg-black/30 px-3 py-1.5 text-[13px] font-semibold tracking-tight text-white/90 ring-1 ring-white/10 backdrop-blur-xl">{p.title}</span>
+        {idx > 0 && !p.closed && idx < firstStep && <button onClick={() => go(firstStep)} className={`pointer-events-auto rounded-full px-4 py-1.5 text-[13px] font-semibold ${ACCENT}`}>Inscribirme</button>}
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-4 py-4 md:px-8">
-        <button onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Anterior" className="h-11 w-11 rounded-full bg-white/15 text-xl backdrop-blur transition hover:bg-white/25 disabled:opacity-0">‹</button>
-        <div className="flex gap-2">
-          {panels.map((n, i) => <button key={n} onClick={() => go(i)} aria-label={`Panel ${i + 1}`} className={`h-2 rounded-full transition-all ${i === idx ? 'w-7 bg-yellow-300' : 'w-2 bg-white/40'}`} />)}
+      <nav aria-label="Paneles" className="absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/35 p-1.5 ring-1 ring-white/15 backdrop-blur-xl">
+        <button onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Anterior" className="grid h-9 w-9 place-items-center rounded-full text-lg text-white/80 transition hover:bg-white/15 disabled:opacity-25">‹</button>
+        <div className="flex items-center gap-1.5 px-1">
+          {panels.map((n, i) => <button key={n} onClick={() => go(i)} aria-label={`Panel ${i + 1}`} className={`h-[7px] rounded-full transition-all duration-500 ${i === idx ? 'w-6 bg-white' : 'w-[7px] bg-white/35 hover:bg-white/55'}`} />)}
         </div>
-        <button onClick={() => go(idx + 1)} disabled={idx === last} aria-label="Siguiente" className="h-11 w-11 rounded-full bg-white/15 text-xl backdrop-blur transition hover:bg-white/25 disabled:opacity-0">›</button>
-      </div>
+        <button onClick={() => go(idx + 1)} disabled={idx === last} aria-label="Siguiente" className="grid h-9 w-9 place-items-center rounded-full text-lg text-white/80 transition hover:bg-white/15 disabled:opacity-25">›</button>
+      </nav>
     </div>
   )
 }
