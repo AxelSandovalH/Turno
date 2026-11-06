@@ -7,6 +7,10 @@ export interface PkgOption { name: string; price: number; label: string; include
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 const FIELD = 'h-14 w-full rounded-2xl bg-white/[0.07] px-4 text-[17px] text-white outline-none ring-1 ring-inset ring-white/10 transition placeholder:text-white/35 focus:bg-white/[0.1] focus:ring-2 focus:ring-[#ffd60a]'
+// Cursores de flecha para avanzar / regresar con un clic en los costados
+const arrowCursor = (d: string) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='26' fill='white' fill-opacity='.94'/><path d='${d}' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>`)}") 28 28`
+const CUR_NEXT = arrowCursor('M21 28h14m-6-7 7 7-7 7')
+const CUR_PREV = arrowCursor('M35 28H21m6-7-7 7 7 7')
 const digits = (v: string) => v.replace(/\D/g, '').length
 export interface SlidesProps {
   slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
@@ -15,7 +19,7 @@ export interface SlidesProps {
   closed: boolean; spotsLeft: number | null; cancelado: boolean
 }
 
-const CSS = `
+const CSS = () => `
 .es-root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .es-root h1,.es-root h2{text-wrap:balance}
 .es-panel{transition:transform .9s cubic-bezier(.76,0,.2,1),opacity .6s ease}
@@ -27,6 +31,9 @@ const CSS = `
 .es-kb{animation:es-kb 10s cubic-bezier(.2,.6,.2,1) both}
 .es-bg{transition:opacity 1.8s ease}
 .es-bg.show img{animation:es-kb 9s cubic-bezier(.2,.6,.2,1) both}
+.es-root.cur-next{cursor:${CUR_NEXT},e-resize}
+.es-root.cur-prev{cursor:${CUR_PREV},w-resize}
+.es-root.cur-next button,.es-root.cur-prev button,.es-root.cur-next input,.es-root.cur-prev input{cursor:revert}
 .es-scroll{scrollbar-width:none}.es-scroll::-webkit-scrollbar{display:none}
 @keyframes es-rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 @keyframes es-pop{from{opacity:0;transform:scale(.94) translateY(24px)}to{opacity:1;transform:none}}
@@ -45,6 +52,7 @@ export function EventSlides(p: SlidesProps) {
 
   const [idx, setIdx] = useState(p.cancelado ? firstStep : 0)
   const [bg, setBg] = useState(0)
+  const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const lock = useRef(false)
   const touch = useRef<{ x: number; y: number } | null>(null)
@@ -105,6 +113,16 @@ export function EventSlides(p: SlidesProps) {
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  // Con mouse: el costado derecho avanza y el izquierdo regresa (no en formularios ni controles)
+  function zoneAt(e: React.MouseEvent): 'next' | 'prev' | null {
+    if (typeof window === 'undefined' || !window.matchMedia('(pointer: fine)').matches) return null
+    if ((e.target as HTMLElement).closest('input,select,textarea,button,a,label,nav,[data-nonav]')) return null
+    const x = e.clientX / window.innerWidth
+    if (x > 0.7 && idx < last) return 'next'
+    if (x < 0.3 && idx > 0) return 'prev'
+    return null
+  }
+
   function onWheel(e: React.WheelEvent) {
     if (lock.current || Math.abs(e.deltaY) < 30) return
     // Si el panel tiene scroll interno (formulario en pantallas chicas), solo cambia de panel al llegar al borde
@@ -129,7 +147,10 @@ export function EventSlides(p: SlidesProps) {
   const card = 'overflow-hidden rounded-[26px] es-tile bg-white/5'
 
   return (
-    <div ref={root} className="es-root relative h-dvh w-full overflow-hidden bg-[#070907] text-white" onWheel={onWheel}
+    <div ref={root} className={`es-root relative h-dvh w-full overflow-hidden bg-[#070907] text-white ${zone ? `cur-${zone}` : ''}`} onWheel={onWheel}
+      onMouseMove={e => { const z = zoneAt(e); if (z !== zone) setZone(z) }}
+      onMouseLeave={() => setZone(null)}
+      onClick={e => { const z = zoneAt(e); if (z) go(idx + (z === 'next' ? 1 : -1)) }}
       onTouchStart={e => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }}
       onTouchEnd={e => {
         const t = touch.current; if (!t) return
@@ -137,7 +158,7 @@ export function EventSlides(p: SlidesProps) {
         if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.3) go(idx + (dx < 0 ? 1 : -1))
         touch.current = null
       }}>
-      <style>{CSS}</style>
+      <style>{CSS()}</style>
 
       {panels.map((name, i) => {
         const on = i === idx
@@ -162,7 +183,7 @@ export function EventSlides(p: SlidesProps) {
                   </div>
                 </div>
 
-                <div className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-24 pt-6 md:px-14 md:pt-8">
+                <div data-nonav className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-24 pt-6 md:px-14 md:pt-8">
                   <div data-a style={{ ['--i' as string]: 2 }} className="mx-auto w-full max-w-[420px]">
                     {p.closed ? (
                       <p className="py-6 text-center text-[17px] font-medium">Las inscripciones están cerradas.</p>
@@ -274,7 +295,7 @@ export function EventSlides(p: SlidesProps) {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#070907] via-transparent to-transparent md:bg-gradient-to-l md:from-[#070907] md:via-transparent md:to-transparent md:[mask-image:none]" />
                   </div>
-                  <div className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-24 pt-2 md:px-14 md:pt-8">
+                  <div data-nonav className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-24 pt-2 md:px-14 md:pt-8">
                     <div className="mx-auto w-full max-w-[420px] space-y-6">
                       <div data-a style={{ ['--i' as string]: 0 }} className="space-y-4">
                         <div className="flex items-center gap-3">
