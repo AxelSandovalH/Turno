@@ -72,6 +72,7 @@ export function EventSlides(p: SlidesProps) {
   const [vvh, setVvh] = useState(0)
   const [vvTop, setVvTop] = useState(0)
   const [kb, setKb] = useState(false)
+  const [kbInset, setKbInset] = useState(0)
   const baseH = useRef(0)
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -241,7 +242,7 @@ export function EventSlides(p: SlidesProps) {
     const k = panels.indexOf(name)
     const c = cfg[t]
     return (
-      <div data-nonav className={`absolute inset-x-0 z-10 flex justify-center px-4 ${kb ? 'bottom-3' : 'bottom-[84px]'}`}>
+      <div data-nonav style={{ bottom: kb ? 12 + kbInset : 84 }} className="absolute inset-x-0 z-10 flex justify-center px-4 transition-[bottom] duration-300 ease-out">
         <form data-a style={{ ['--i' as string]: 6 }} onSubmit={e => { e.preventDefault(); go(k + 1) }} className="w-full max-w-xl space-y-3 rounded-[28px] bg-black/55 p-4 ring-1 ring-white/15 backdrop-blur-2xl md:p-5">
           {!kb && <div className="flex items-center gap-3">{bars(k)}<span className="text-[12px] font-medium tabular-nums text-white/55">{k + 1}/{panels.length}</span></div>}
           <div className="flex items-start justify-between gap-3">
@@ -281,12 +282,16 @@ export function EventSlides(p: SlidesProps) {
       style={vvh ? { height: vvh, top: vvTop, ['--vh' as string]: `${vvh / 100}px` } : { ['--vh' as string]: '1dvh' }}
       onBlurCapture={() => {
         // Al soltar el foco el layout vuelve de inmediato (sin esperar al teclado)
-        setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0); setVvTop(0) } }, 120)
+        setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0); setVvTop(0); setKbInset(0) } }, 120)
       }}
       onFocusCapture={e => {
         const el = e.target as HTMLElement
         // En cuanto se toca un campo en celular el layout se compacta, sin esperar a que el teclado termine de subir
-        if (el.matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) { setKb(true); setVvh(v => v || Math.round(window.innerHeight * 0.58)) }
+        if (el.matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) {
+          setKb(true); setVvh(v => v || Math.round(window.innerHeight * 0.58))
+          const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+          setKbInset(ios ? 112 : 0)
+        }
         const sc = el.matches('input,select,textarea') ? el.closest<HTMLElement>('.es-scroll') : null
         // Solo se desplaza el formulario interno; la pantalla principal nunca se mueve
         if (sc) setTimeout(() => { const r = el.getBoundingClientRect(), c = sc.getBoundingClientRect(); sc.scrollTo({ top: sc.scrollTop + (r.top - c.top) - c.height / 3, behavior: 'smooth' }) }, 320)
@@ -313,7 +318,7 @@ export function EventSlides(p: SlidesProps) {
 
             {name === 'hero' && (
               <div className="relative h-full">
-                <div className={`absolute inset-x-0 top-0 overflow-hidden md:inset-0 ${kb ? 'bottom-[150px]' : 'bottom-[300px]'}`}>
+                <div style={{ ['--hb' as string]: `${kb ? 150 + kbInset : 300}px` }} className="absolute inset-x-0 bottom-[var(--hb)] top-0 overflow-hidden transition-[bottom] duration-300 ease-out md:inset-0">
                   {p.gallery.map((g, k) => (
                     <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -323,7 +328,7 @@ export function EventSlides(p: SlidesProps) {
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.3),rgba(7,9,7,.8)_75%)] max-md:hidden" />
                   <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-[#070907] via-[#070907]/70 to-transparent md:h-1/2 md:via-transparent" />
                 </div>
-                <div className={`absolute inset-x-0 px-6 text-center md:inset-0 md:flex md:items-center md:justify-center md:pb-44 ${kb ? 'bottom-[150px]' : 'bottom-[300px]'}`}>
+                <div style={{ ['--hb' as string]: `${kb ? 150 + kbInset : 300}px` }} className="absolute inset-x-0 bottom-[var(--hb)] px-6 text-center transition-[bottom] duration-300 ease-out md:inset-0 md:flex md:items-center md:justify-center md:pb-44">
                   <div className="relative mx-auto max-w-4xl pb-3 md:pb-0">
                     {p.organizer && !kb && <p data-a style={{ ['--i' as string]: 0 }} className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a] md:text-[13px]">{p.organizer}</p>}
                     <h1 data-a style={{ ['--i' as string]: 1 }} className={`font-semibold leading-[.95] tracking-[-0.05em] ${kb ? 'text-[2.6rem]' : 'mt-1 text-[3.6rem] md:mt-4 md:text-[clamp(3.6rem,13vw,9.5rem)]'}`}>{p.title}</h1>
@@ -339,7 +344,7 @@ export function EventSlides(p: SlidesProps) {
             {(name === 'fotos0' || name === 'fotos1') && (() => {
               const k = name === 'fotos0' ? 0 : 1
               return (
-                <div className={`flex h-full flex-col px-4 pt-16 md:px-12 md:pb-[256px] md:pt-20 ${kb ? 'pb-[160px]' : 'pb-[262px]'}`}>
+                <div style={{ ['--pb' as string]: `${kb ? 160 + kbInset : 262}px` }} className="flex h-full flex-col px-4 pb-[var(--pb)] pt-16 transition-[padding] duration-300 ease-out md:px-12 md:pb-[256px] md:pt-20">
                   <div data-a style={{ ['--i' as string]: 0 }} className={`mx-auto mb-4 w-full max-w-6xl ${kb ? 'hidden' : ''}`}>
                     <p className={eyebrow}>{p.title}</p>
                     <h2 className={`${h2} mt-1.5 !text-[1.9rem] md:!text-[2.8rem]`}>{captions[k]}</h2>
@@ -373,7 +378,7 @@ export function EventSlides(p: SlidesProps) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.gallery[2].src} alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-[.22] blur-2xl" />
                 )}
-                <div className={`relative flex h-full items-center gap-4 px-5 pt-14 md:hidden ${kb ? 'pb-[150px]' : 'pb-[244px]'}`}>
+                <div style={{ ['--pb' as string]: `${kb ? 150 + kbInset : 244}px` }} className="relative flex h-full items-center gap-4 px-5 pb-[var(--pb)] pt-14 transition-[padding] duration-300 ease-out md:hidden">
                   <div data-a style={{ ['--i' as string]: 0 }} className="flex h-full min-h-0 w-[65%] shrink-0 items-center">
                     {p.flyer && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -430,7 +435,7 @@ export function EventSlides(p: SlidesProps) {
                     <div className="absolute inset-0 bg-gradient-to-t from-[#070907] via-transparent to-transparent md:bg-gradient-to-l md:from-[#070907] md:via-transparent md:to-transparent" />
                     <h2 className="absolute bottom-2 left-6 text-[1.9rem] font-semibold leading-[1.2] tracking-[-0.035em] md:hidden">{mode === 'donate' ? 'Gracias por ayudar.' : 'Último paso.'}</h2>
                   </div>
-                  <div data-nonav className="es-scroll flex min-h-0 overflow-y-auto px-6 pb-3 pt-2 md:px-14 md:pb-24 md:pt-8">
+                  <div data-nonav style={kb ? { paddingBottom: kbInset + 12 } : undefined} className="es-scroll flex min-h-0 overflow-y-auto px-6 pb-3 pt-2 md:px-14 md:pb-24 md:pt-8">
                     <div className="m-auto w-full max-w-[420px] space-y-5 max-md:space-y-2">
                       <div data-a style={{ ['--i' as string]: 0 }} className="space-y-4">
                         <div className="flex items-center gap-3 max-md:hidden">{bars(last)}<span className="text-[12px] font-medium tabular-nums text-white/50">{panels.length}/{panels.length}</span></div>
