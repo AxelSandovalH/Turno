@@ -317,8 +317,11 @@ export function EventSlides(p: SlidesProps) {
                           </div>
                           <div className="divide-y divide-white/10 rounded-2xl bg-white/[0.05] px-4 text-[15px] ring-1 ring-inset ring-white/10">
                             <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Corredor</span><b className="font-medium">{form.full_name || '—'}</b></div>
+                            <div className="flex justify-between gap-4 py-3"><span className="text-white/55">WhatsApp</span><span>{form.phone || '—'}</span></div>
                             <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Correo</span><span className="truncate">{form.email || '—'}</span></div>
                             {form.shirt_size && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
+                            {form.birth_date && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
+                            {form.emergency_name && <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
                             <div className="flex justify-between gap-4 py-3"><span className="text-white/55">Paquete</span><span>{chosen?.name}</span></div>
                             <div className="flex items-baseline justify-between gap-4 py-4 text-xl"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{chosen?.label}</b></div>
                           </div>
