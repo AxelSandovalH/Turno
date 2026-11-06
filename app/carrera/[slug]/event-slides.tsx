@@ -538,12 +538,16 @@ export function EventSlides(p: SlidesProps) {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 md:px-8">
         <span className="rounded-full bg-black/30 px-3 py-1.5 text-[13px] font-semibold tracking-tight text-white/90 ring-1 ring-white/10 backdrop-blur-xl">{p.title}</span>
       </div>
-      {/* Marcas de agua a los lados de la barra inferior: QuickTurno a la izquierda y AxelDev a la derecha */}
-      <div aria-hidden className={`pointer-events-none absolute inset-x-0 bottom-5 z-10 flex h-12 items-center justify-between px-5 md:px-8 ${kb || idx === last ? 'max-md:hidden' : ''} ${kb ? 'hidden' : ''}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logotrans.svg" alt="" className="-ml-2 h-14 w-auto opacity-60 brightness-0 invert" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/axeldev-mark.svg" alt="" className="h-8 w-auto opacity-70" />
+      {/* Marcas a los lados de la barra inferior, con acceso directo: QuickTurno a la izquierda y AxelDev a la derecha */}
+      <div className={`pointer-events-none absolute inset-x-0 bottom-5 z-10 flex h-12 items-center justify-between px-3 md:px-6 ${kb || idx === last ? 'max-md:hidden' : ''} ${kb ? 'hidden' : ''}`}>
+        <a href="https://www.quickturno.app" target="_blank" rel="noopener noreferrer" aria-label="QuickTurno" className="pointer-events-auto flex h-12 items-center rounded-full px-2 opacity-60 transition hover:opacity-100 active:scale-95">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logotrans.svg" alt="" className="-ml-2 h-14 w-auto brightness-0 invert" />
+        </a>
+        <a href="https://www.axelsandoval.dev" target="_blank" rel="noopener noreferrer" aria-label="AxelDev" className="pointer-events-auto flex h-12 items-center rounded-full px-3 opacity-70 transition hover:opacity-100 active:scale-95">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/axeldev-mark.svg" alt="" className="h-8 w-auto" />
+        </a>
       </div>
       <nav aria-label="Paneles" className={`absolute bottom-5 ${kb ? 'hidden' : idx === last ? 'max-md:hidden' : ''} left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/35 p-1.5 ring-1 ring-white/15 backdrop-blur-xl`}>
         <button onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Anterior" className="grid h-9 w-9 place-items-center rounded-full text-lg text-white/80 transition hover:bg-white/15 disabled:opacity-25">‹</button>
