@@ -25,6 +25,12 @@ export default async function BookingPage({ params }: Props) {
     .single()
 
   if (!org || !org.is_active) notFound()
+  // Negocios de eventos (carreras) no tienen agenda: su link público es la página de inscripción del próximo evento
+  if (hasCapability(org.business_type, 'events')) {
+    const { data: ev } = await db.from('events').select('slug').eq('organization_id', org.id).eq('is_open', true).order('event_date').limit(1).maybeSingle()
+    if (ev) redirect(`/carrera/${ev.slug}`)
+    notFound()
+  }
   // Negocios solo de pedidos no tienen agenda: su link público es el menú (la farmacia tiene ambos)
   if (hasCapability(org.business_type, 'orders') && !hasCapability(org.business_type, 'appointments')) redirect(`/pedir/${org.slug}`)
 
