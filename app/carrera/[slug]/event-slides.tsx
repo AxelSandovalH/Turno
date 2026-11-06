@@ -156,7 +156,7 @@ export function EventSlides(p: SlidesProps) {
     nombre: { q: '¿Cómo te llamas?', sub: 'Empecemos por tu nombre.', input: <input value={form.full_name} onChange={set('full_name')} placeholder="Nombre completo" autoComplete="name" className={DOCK_FIELD} /> },
     telefono: { q: '¿Cuál es tu WhatsApp?', sub: 'Para avisarte todo lo de la carrera.', input: <input value={form.phone} onChange={set('phone')} type="tel" inputMode="tel" placeholder="10 dígitos" autoComplete="tel" className={DOCK_FIELD} /> },
     correo: { q: '¿A qué correo te confirmamos?', sub: 'Ahí llegará tu confirmación.', input: <input value={form.email} onChange={set('email')} type="email" placeholder="tucorreo@ejemplo.com" autoComplete="email" className={DOCK_FIELD} /> },
-    talla: { q: '¿Qué talla de playera usas?', sub: 'Toca una talla. Puedes omitirla.', input: null },
+    talla: { q: '¿Qué talla de playera usas?', sub: 'Toca una talla o presiona Omitir.', input: null },
   }
   const dock = (name: string) => {
     const t = taskOf[name]
@@ -178,7 +178,9 @@ export function EventSlides(p: SlidesProps) {
           )}
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">{t === 'talla' ? sizes : c.input}</div>
-            <button type="submit" aria-label="Continuar" className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-xl font-semibold transition hover:brightness-105 active:scale-95 ${ACCENT}`}>→</button>
+            {t === 'talla' && !form.shirt_size
+              ? <button type="submit" className="h-12 shrink-0 rounded-full px-5 text-[15px] font-semibold text-white/85 ring-1 ring-inset ring-white/30 transition hover:bg-white/10 hover:ring-white/60">Omitir</button>
+              : <button type="submit" aria-label="Continuar" className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-xl font-semibold transition hover:brightness-105 active:scale-95 ${ACCENT}`}>→</button>}
           </div>
           {showErr && errs[t] && <p className="px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}
         </form>
