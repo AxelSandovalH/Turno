@@ -17,7 +17,7 @@ export interface SlidesProps {
   slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
   when: string; time: string; location: string | null; fromLabel: string
   flyer: string | null; gallery: Photo[]; packages: PkgOption[]
-  closed: boolean; raceFull: boolean; currency: string; spotsLeft: number | null; cancelado: boolean; debug?: boolean
+  closed: boolean; raceFull: boolean; currency: string; spotsLeft: number | null; cancelado: boolean
 }
 
 const CSS = () => `
@@ -74,9 +74,8 @@ export function EventSlides(p: SlidesProps) {
   const [kb, setKb] = useState(false)
   const [kbInset, setKbInset] = useState(0)
   const [logoFailed, setLogoFailed] = useState(false)
-  const readRef = useRef<(final?: boolean) => void>(() => {})
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const debugRef = useRef<HTMLDivElement>(null)
+  const baseH = useRef(0)
+  const syncRef = useRef<() => void>(() => {})
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const lock = useRef(false)
@@ -146,33 +145,21 @@ export function EventSlides(p: SlidesProps) {
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-    const coarse = window.matchMedia('(pointer: coarse)')
-    const read = (final?: boolean) => {
-      const focused = coarse.matches && !!document.activeElement?.matches('input,select,textarea')
-      // El teclado se mide contra el alto de la página en ese momento (no contra un máximo guardado, que cambia con la barra de Safari)
-      const open = focused && window.innerHeight - vv.height > 100
-      if (open) { setVvh(vv.height); setVvTop(vv.offsetTop); setKb(true) }
-      else if (!focused || final) { setVvh(0); setVvTop(0); setKb(false); setKbInset(0) }
-      const d = debugRef.current
-      if (d) d.textContent = `inner ${Math.round(window.innerHeight)} · vv ${Math.round(vv.height)} · top ${Math.round(vv.offsetTop)} · foco ${focused ? 1 : 0} · teclado ${open ? 1 : 0} · root ${Math.round(root.current?.getBoundingClientRect().height ?? 0)}`
+    baseH.current = Math.max(window.innerHeight, vv.height)
+    const sync = () => {
+      baseH.current = Math.max(baseH.current, vv.height)
+      const focused = !!document.activeElement?.matches('input,select,textarea')
+      const open = baseH.current - vv.height > 120
+      // Con un campo enfocado y el teclado aún sin salir se conserva la estimación; sin foco se toma la altura real
+      if (open || !focused) { setVvh(vv.height); setVvTop(vv.offsetTop) }
+      if (open) setKb(true)
+      else if (!focused) setKb(false)
     }
-    readRef.current = read
-    const onVv = () => read()
-    vv.addEventListener('resize', onVv)
-    vv.addEventListener('scroll', onVv)
-    return () => { vv.removeEventListener('resize', onVv); vv.removeEventListener('scroll', onVv) }
+    syncRef.current = sync
+    vv.addEventListener('resize', sync)
+    vv.addEventListener('scroll', sync)
+    return () => { vv.removeEventListener('resize', sync); vv.removeEventListener('scroll', sync) }
   }, [])
-
-  // Sondeo corto tras abrir o cerrar el teclado: no depende de que iOS avise en el momento justo
-  const poll = (ms: number) => {
-    if (pollRef.current) clearInterval(pollRef.current)
-    const end = Date.now() + ms
-    pollRef.current = setInterval(() => {
-      const done = Date.now() >= end
-      readRef.current(done)
-      if (done && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
-    }, 80)
-  }
 
   // La página nunca se desplaza: iOS mueve el viewport visual y el contenedor lo sigue, sin forzar el scroll
   useEffect(() => {
@@ -302,17 +289,18 @@ export function EventSlides(p: SlidesProps) {
     <div ref={root} className={`es-root fixed left-0 top-0 h-dvh w-full overflow-hidden bg-[#070907] text-white ${zone ? `cur-${zone}` : ''}`} onWheel={onWheel}
       style={vvh ? { height: vvh, top: vvTop, ['--vh' as string]: `${vvh / 100}px` } : { ['--vh' as string]: '1dvh' }}
       onBlurCapture={() => {
-        // Al soltar el foco el layout vuelve; si el foco pasa a otro campo no se toca nada
-        setTimeout(() => { readRef.current(); poll(1200) }, 100)
+        // Al soltar el foco el layout vuelve de inmediato (sin esperar al teclado)
+        setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0); setVvTop(0); setKbInset(0) } }, 120)
       }}
       onFocusCapture={e => {
         const el = e.target as HTMLElement
         // En cuanto se toca un campo en celular el layout se compacta, sin esperar a que el teclado termine de subir
         if (el.matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) {
-          // Estimación inmediata mientras sale el teclado; después manda la medida real. Si el teclado nunca sale (físico), el sondeo lo revierte
+          // Siempre se recalcula al abrir (también la segunda vez); si el teclado ya estaba abierto se respeta la medida real
           if (!kb) { setVvh(Math.round(window.innerHeight * 0.58)); setVvTop(0) }
           setKb(true)
-          poll(2200)
+          let n = 0
+          const t = setInterval(() => { syncRef.current(); if (++n > 16) clearInterval(t) }, 100)
           const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
           setKbInset(ios ? 8 : 0)
         }
@@ -333,7 +321,6 @@ export function EventSlides(p: SlidesProps) {
         touch.current = null
       }}>
       <style>{CSS()}</style>
-      {p.debug && <div ref={debugRef} className="pointer-events-none absolute left-1 top-1 z-50 max-w-[96%] rounded bg-black/80 px-2 py-1 font-mono text-[10px] leading-tight text-lime-300" />}
 
       {panels.map((name, i) => {
         const on = i === idx

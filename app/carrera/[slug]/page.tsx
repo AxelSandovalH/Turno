@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { EventSlides } from './event-slides'
 
 interface Pkg { name: string; price: number; includes?: string[]; kind?: 'race' | 'donation' }
-interface Props { params: Promise<{ slug: string }>; searchParams: Promise<{ cancelado?: string; debug?: string }> }
+interface Props { params: Promise<{ slug: string }>; searchParams: Promise<{ cancelado?: string }> }
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EventPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const { cancelado, debug } = await searchParams
+  const { cancelado } = await searchParams
   const found = await getEvent(slug)
   if (!found) notFound()
   const { ev, spotsLeft } = found
@@ -60,7 +60,7 @@ export default async function EventPage({ params, searchParams }: Props) {
       slug={ev.slug} title={ev.title} subtitle={ev.subtitle} organizer={ev.organizer} description={ev.description}
       when={when} time={time} location={ev.location} fromLabel={fmt(from)}
       flyer={ev.image_url} gallery={gallery} packages={options.map(o => ({ ...o, label: fmt(o.price) }))}
-      closed={closed} raceFull={raceFull} currency={ev.currency} spotsLeft={spotsLeft} cancelado={!!cancelado} debug={!!debug}
+      closed={closed} raceFull={raceFull} currency={ev.currency} spotsLeft={spotsLeft} cancelado={!!cancelado}
     />
   )
 }
