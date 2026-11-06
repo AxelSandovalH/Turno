@@ -3,7 +3,7 @@
 -- Cambia su giro a 'events', activa la cuenta sin cobro y crea el evento. Se puede correr más de una vez.
 do $$
 declare
-  v_email text := 'CAMBIA_POR_EL_CORREO_DE_NACHO@correo.com';
+  v_email text := 'nachorunning@gmail.com';
   v_org uuid;
   v_user uuid;
 begin
