@@ -321,7 +321,7 @@ export function EventSlides(p: SlidesProps) {
 
             {name === 'hero' && (
               <div className="relative h-full">
-                <div style={{ ['--hb' as string]: `${kb ? 150 + kbInset : 300}px` }} className="absolute inset-x-0 bottom-[var(--hb)] top-0 overflow-hidden transition-[bottom] duration-300 ease-out md:inset-0">
+                <div className="absolute inset-x-0 top-0 h-[calc(100dvh-300px)] overflow-hidden md:inset-0 md:h-auto">
                   {p.gallery.map((g, k) => (
                     <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -329,8 +329,10 @@ export function EventSlides(p: SlidesProps) {
                     </div>
                   ))}
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.3),rgba(7,9,7,.8)_75%)] max-md:hidden" />
-                  <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-[#070907] via-[#070907]/70 to-transparent md:h-1/2 md:via-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-[#070907] via-[#070907]/70 to-transparent md:hidden" />
                 </div>
+                {/* El degradado va anclado al área visible (no a la foto), así siempre hay contraste detrás del texto y la tarjeta */}
+                <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t from-[#070907]/95 via-[#070907]/60 to-transparent transition-opacity duration-300 md:h-1/2 md:via-transparent md:opacity-100 ${kb ? 'opacity-100' : 'opacity-0'}`} />
                 <div style={{ ['--hb' as string]: `${kb ? 150 + kbInset : 300}px` }} className="absolute inset-x-0 bottom-[var(--hb)] px-6 text-center transition-[bottom] duration-300 ease-out md:inset-0 md:flex md:items-center md:justify-center md:pb-44">
                   <div className="relative mx-auto max-w-4xl pb-3 md:pb-0">
                     {p.organizer && !kb && <p data-a style={{ ['--i' as string]: 0 }} className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a] md:text-[13px]">{p.organizer}</p>}
