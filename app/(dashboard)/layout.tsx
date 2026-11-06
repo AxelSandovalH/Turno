@@ -41,7 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {/* Ancho por defecto 1024px; una página que necesite más lo pide con
               data-wide en su raíz (ej. Citas) y sube a 1600px */}
           <div className="p-4 sm:p-6 max-w-5xl has-[[data-wide]]:max-w-[1600px]">
-            {setup && nextStep && status === 'active' && <SetupNudge done={setup.done} total={setup.total} next={nextStep.label} />}
+            {setup && nextStep && status === 'active' && organization?.business_type !== 'events' && <SetupNudge done={setup.done} total={setup.total} next={nextStep.label} />}
             {children}
           </div>
         </main>
