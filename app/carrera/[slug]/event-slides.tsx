@@ -57,6 +57,7 @@ export function EventSlides(p: SlidesProps) {
 
   const [idx, setIdx] = useState(p.cancelado ? last : 0)
   const [bg, setBg] = useState(0)
+  const [tick, setTick] = useState(0)
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const lock = useRef(false)
@@ -104,6 +105,12 @@ export function EventSlides(p: SlidesProps) {
     const t = setInterval(() => setBg(b => (b + 1) % p.gallery.length), 4500)
     return () => clearInterval(t)
   }, [p.gallery.length])
+
+  // Celular: en vez del mosaico, un bloque grande que va alternando las fotos
+  useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 3200)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -239,7 +246,18 @@ export function EventSlides(p: SlidesProps) {
                     <p className={eyebrow}>{p.title}</p>
                     <h2 className={`${h2} mt-1.5 !text-[1.9rem] md:!text-[2.8rem]`}>{captions[k]}</h2>
                   </div>
-                  <div className="mx-auto grid min-h-0 w-full max-w-6xl flex-1 grid-cols-2 grid-rows-3 gap-3 md:grid-cols-4 md:grid-rows-2 md:gap-4">
+                  <div style={{ ['--i' as string]: 0 }} className="es-tile relative mx-auto min-h-0 w-full max-w-6xl flex-1 overflow-hidden rounded-[28px] bg-white/5 md:hidden">
+                    {photoPanels[k].map((g, j) => (
+                      <div key={g.src} className={`absolute inset-0 transition-opacity duration-1000 ${j === tick % photoPanels[k].length ? 'opacity-100' : 'opacity-0'}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={g.src} alt={g.alt ?? ''} className={`h-full w-full object-cover ${j === tick % photoPanels[k].length ? 'es-kb' : ''}`} />
+                      </div>
+                    ))}
+                    <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+                      {photoPanels[k].map((g, j) => <span key={g.src} className={`h-[5px] rounded-full bg-white transition-all duration-500 ${j === tick % photoPanels[k].length ? 'w-5 opacity-100' : 'w-[5px] opacity-50'}`} />)}
+                    </div>
+                  </div>
+                  <div className="mx-auto hidden min-h-0 w-full max-w-6xl flex-1 gap-4 md:grid md:grid-cols-4 md:grid-rows-2">
                     {photoPanels[k].map((g, j) => (
                       <div key={g.src} style={{ ['--i' as string]: j }} className={`${card} ${tileCls[j] ?? ''}`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
