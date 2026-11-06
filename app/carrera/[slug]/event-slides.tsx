@@ -70,6 +70,13 @@ export function EventSlides(p: SlidesProps) {
     setIdx(target)
   }
 
+  // Desde la portada: si los datos de contacto están bien, el registro sigue en el siguiente paso pendiente
+  function startFromHero() {
+    if (!valid('datos')) { setShowErr(true); return }
+    setShowErr(false)
+    setIdx(panels.indexOf('corredor'))
+  }
+
   async function pay() {
     if (!valid('datos')) { setShowErr(true); setIdx(panels.indexOf('datos')); return }
     setBusy(true); setPayErr('')
@@ -139,25 +146,51 @@ export function EventSlides(p: SlidesProps) {
             style={{ transform: `translateX(${(i - idx) * 100}%)`, opacity: Math.abs(i - idx) > 1 ? 0 : 1 }}>
 
             {name === 'hero' && (
-              <div className="relative flex h-full items-center justify-center px-6 text-center">
-                {p.gallery.map((g, k) => (
-                  <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={g.src} alt="" className="h-full w-full object-cover" />
+              <div className="grid h-full grid-rows-[34dvh_1fr] md:grid-cols-[1.15fr_minmax(0,540px)] md:grid-rows-1 lg:grid-cols-[1.3fr_minmax(0,580px)]">
+                <div className="relative overflow-hidden">
+                  {p.gallery.map((g, k) => (
+                    <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={g.src} alt="" className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                  <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-[#070907]/90 via-[#070907]/40 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 px-6 pb-5 md:px-12 md:pb-20">
+                    {p.organizer && <p data-a style={{ ['--i' as string]: 0 }} className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a] md:text-[13px]">{p.organizer}</p>}
+                    <h1 data-a style={{ ['--i' as string]: 1 }} className="mt-1 text-[clamp(2.8rem,8.5vw,7.5rem)] font-semibold leading-[.92] tracking-[-0.05em]">{p.title}</h1>
+                    <p data-a style={{ ['--i' as string]: 2 }} className="mt-2 text-[15px] text-white/80 md:mt-3 md:text-xl">{dateLine}{p.location ? ` · ${p.location}` : ''}</p>
                   </div>
-                ))}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.35),rgba(7,9,7,.82)_75%)]" />
-                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#070907] to-transparent" />
-                <div className="relative max-w-4xl">
-                  {p.organizer && <p data-a style={{ ['--i' as string]: 0 }} className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a]">{p.organizer}</p>}
-                  <h1 data-a style={{ ['--i' as string]: 1 }} className="mt-4 text-[clamp(4rem,14vw,9.5rem)] font-semibold leading-[.92] tracking-[-0.05em]">{p.title}</h1>
-                  {p.subtitle && <p data-a style={{ ['--i' as string]: 2 }} className="mx-auto mt-5 max-w-xl text-xl text-white/80 md:text-2xl">{p.subtitle}</p>}
-                  <p data-a style={{ ['--i' as string]: 3 }} className="mt-3 text-[17px] text-white/65">{dateLine}{p.location ? ` · ${p.location}` : ''}</p>
-                  <div data-a style={{ ['--i' as string]: 4 }} className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                    {!p.closed && <button onClick={() => go(firstStep)} className={`h-14 rounded-full px-9 text-[17px] font-semibold transition hover:brightness-105 active:scale-[.985] ${ACCENT}`}>Inscribirme · desde {p.fromLabel}</button>}
-                    <button onClick={() => go(1)} className="text-[17px] font-medium text-white/85 transition hover:text-white">Conocer más <span aria-hidden>›</span></button>
+                </div>
+
+                <div className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-24 pt-6 md:px-14 md:pt-8">
+                  <div data-a style={{ ['--i' as string]: 2 }} className="mx-auto w-full max-w-[420px]">
+                    {p.closed ? (
+                      <p className="py-6 text-center text-[17px] font-medium">Las inscripciones están cerradas.</p>
+                    ) : (
+                      <form onSubmit={e => { e.preventDefault(); startFromHero() }} className="space-y-3">
+                        <div>
+                          <p className={eyebrow}>Inscripción · {p.packages.length > 1 ? `desde ${p.fromLabel}` : p.fromLabel}</p>
+                          <h2 className="mt-1 text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] md:text-[2.8rem]">Reserva tu lugar.</h2>
+                          <p className="mb-3 mt-2 text-[17px] leading-snug text-white/60">Empieza con tus datos. Tu lugar se aparta al pagar.</p>
+                        </div>
+                        {p.packages.length > 1 && (
+                          <div className="flex flex-wrap gap-2 pb-1">
+                            {p.packages.map(o => (
+                              <button type="button" key={o.name} onClick={() => setPkg(o.name)} className={`rounded-full px-3.5 py-1.5 text-[14px] font-medium ring-1 ring-inset transition ${pkg === o.name ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/80 ring-white/25 hover:ring-white/50'}`}>{o.name} · {o.label}</button>
+                            ))}
+                          </div>
+                        )}
+                        <div><input value={form.full_name} onChange={set('full_name')} placeholder="Nombre completo" autoComplete="name" className={FIELD} />{showErr && errs.full_name && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs.full_name}</p>}</div>
+                        <div><input value={form.phone} onChange={set('phone')} type="tel" inputMode="tel" placeholder="Teléfono (WhatsApp)" autoComplete="tel" className={FIELD} />{showErr && errs.phone && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs.phone}</p>}</div>
+                        <div><input value={form.email} onChange={set('email')} type="email" placeholder="Correo electrónico" autoComplete="email" className={FIELD} />{showErr && errs.email && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs.email}</p>}</div>
+                        <button type="submit" className={primary}>Continuar</button>
+                        <div className="flex items-center justify-between px-1 pt-1 text-[15px]">
+                          <button type="button" onClick={() => go(1)} className="text-white/60 transition hover:text-white">Conocer más <span aria-hidden>›</span></button>
+                          {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && <span className="text-[13px] text-[#ffd60a]">Quedan {p.spotsLeft} lugares</span>}
+                        </div>
+                      </form>
+                    )}
                   </div>
-                  {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && <p data-a style={{ ['--i' as string]: 5 }} className="mt-5 text-sm text-[#ffd60a]">Quedan {p.spotsLeft} lugares</p>}
                 </div>
               </div>
             )}
