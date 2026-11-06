@@ -290,7 +290,7 @@ export function EventSlides(p: SlidesProps) {
         if (el.matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) {
           setKb(true); setVvh(v => v || Math.round(window.innerHeight * 0.58))
           const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-          setKbInset(ios ? 112 : 0)
+          setKbInset(ios ? 8 : 0)
         }
         const sc = el.matches('input,select,textarea') ? el.closest<HTMLElement>('.es-scroll') : null
         // Solo se desplaza el formulario interno; la pantalla principal nunca se mueve
