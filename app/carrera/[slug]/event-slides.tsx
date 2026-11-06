@@ -148,13 +148,16 @@ export function EventSlides(p: SlidesProps) {
     if (!vv) return
     baseH.current = Math.max(window.innerHeight, vv.height)
     const sync = () => {
-      baseH.current = Math.max(baseH.current, vv.height)
       const focused = !!document.activeElement?.matches('input,select,textarea')
-      const open = baseH.current - vv.height > 120
-      // Con un campo enfocado y el teclado aún sin salir se conserva la estimación; sin foco se toma la altura real
-      if (open || !focused) { setVvh(vv.height); setVvTop(vv.offsetTop) }
-      if (open) setKb(true)
-      else if (!focused) setKb(false)
+      if (!focused) {
+        // Sin campo enfocado el layout vuelve siempre al estado limpio (altura dinámica), idéntico en cada apertura
+        baseH.current = Math.max(window.innerHeight, vv.height)
+        setVvh(0); setVvTop(0); setKb(false); setKbInset(0)
+        return
+      }
+      baseH.current = Math.max(baseH.current, vv.height)
+      // Con un campo enfocado y el teclado aún sin salir se conserva la estimación
+      if (baseH.current - vv.height > 120) { setVvh(vv.height); setVvTop(vv.offsetTop); setKb(true) }
     }
     syncRef.current = sync
     vv.addEventListener('resize', sync)
