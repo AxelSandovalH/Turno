@@ -73,6 +73,7 @@ export function EventSlides(p: SlidesProps) {
   const [vvTop, setVvTop] = useState(0)
   const [kb, setKb] = useState(false)
   const [kbInset, setKbInset] = useState(0)
+  const [logoFailed, setLogoFailed] = useState(false)
   const baseH = useRef(0)
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -206,6 +207,8 @@ export function EventSlides(p: SlidesProps) {
   const primary = `h-14 max-md:h-12 w-full rounded-full ${ACCENT} text-[17px] font-semibold transition hover:brightness-105 active:scale-[.985] disabled:opacity-60`
   const eyebrow = 'text-[12px] font-semibold uppercase tracking-[0.18em] text-white/55'
   const h2 = 'text-[2.4rem] font-semibold leading-[1.04] tracking-[-0.035em] md:text-[3.4rem]'
+  const logo = p.flyer ? p.flyer.replace(/\.\w+$/, '-logo.png') : null
+  const shortPlace = (p.location ?? '').split(',').slice(0, 2).join(',')
   const dayLine = p.when.replace(/^\w+,\s*/, '').replace(/ de \d{4}$/, '')
   const dateLine = `${p.when.replace(/^\w+,\s*/, '')}${p.time ? ' · ' + p.time : ''}`
   const tileCls = ['col-span-2 md:row-span-2', '', '', '', '']
@@ -379,17 +382,33 @@ export function EventSlides(p: SlidesProps) {
                   <img src={p.gallery[2].src} alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-[.22] blur-2xl" />
                 )}
                 <div style={{ ['--pb' as string]: `${kb ? 150 + kbInset : 244}px` }} className="relative flex h-full items-center gap-4 px-5 pb-[var(--pb)] pt-14 transition-[padding] duration-300 ease-out md:hidden">
-                  <div data-a style={{ ['--i' as string]: 0 }} className="flex h-full min-h-0 w-[65%] shrink-0 items-center">
-                    {p.flyer && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.flyer} alt={`Cartel de ${p.title}`} className="max-h-full max-w-full rounded-[20px] object-contain object-left shadow-2xl shadow-black/70" />
-                    )}
-                  </div>
-                  <div data-a style={{ ['--i' as string]: 1 }} className="flex min-w-0 flex-1 flex-col justify-center gap-4">
-                    <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Fecha</p><p className="text-[17px] font-semibold leading-tight">{dayLine}</p></div>
-                    <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Salida</p><p className="text-[17px] font-semibold leading-tight">{p.time}</p></div>
-                    {p.location && <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Lugar</p><p className="text-[15px] font-semibold leading-tight">{p.location}</p></div>}
-                  </div>
+                  {kb ? (
+                    <>
+                      <div className="flex h-full min-h-0 w-[36%] shrink-0 items-center justify-center">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={logo && !logoFailed ? logo : p.flyer ?? ''} onError={() => setLogoFailed(true)} alt={`Logo de ${p.title}`} className="max-h-full max-w-full object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,.55)]" />
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 text-[17px] font-semibold leading-tight">
+                        <p>{dayLine}</p>
+                        <p>{p.time}</p>
+                        {shortPlace && <p className="text-white/80">{shortPlace}</p>}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div data-a style={{ ['--i' as string]: 0 }} className="flex h-full min-h-0 w-[65%] shrink-0 items-center">
+                        {p.flyer && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.flyer} alt={`Cartel de ${p.title}`} className="max-h-full max-w-full rounded-[20px] object-contain object-left shadow-2xl shadow-black/70" />
+                        )}
+                      </div>
+                      <div data-a style={{ ['--i' as string]: 1 }} className="flex min-w-0 flex-1 flex-col justify-center gap-4">
+                        <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Fecha</p><p className="text-[17px] font-semibold leading-tight">{dayLine}</p></div>
+                        <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Salida</p><p className="text-[17px] font-semibold leading-tight">{p.time}</p></div>
+                        {p.location && <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Lugar</p><p className="text-[15px] font-semibold leading-tight">{p.location}</p></div>}
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="es-scroll relative flex h-full items-center overflow-y-auto px-6 pb-[270px] pt-16 max-md:hidden md:px-12 md:pb-[256px]">
                   <div className="mx-auto grid w-full max-w-6xl items-center gap-8 md:grid-cols-[minmax(0,320px)_1fr] md:gap-14">
