@@ -29,7 +29,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
   // Negocios de pedidos y delivery no usan agenda: su pantalla principal es Pedidos
   const { data: orgType } = await createServiceClient().from('organizations').select('business_type').eq('id', user.user_metadata?.organization_id).single()
   if (orgType && !hasCapability(orgType.business_type, 'appointments')) {
-    redirect(hasCapability(orgType.business_type, 'lab-orders') ? '/lab/orders' : '/orders')
+    redirect(hasCapability(orgType.business_type, 'events') ? '/inscritos' : hasCapability(orgType.business_type, 'lab-orders') ? '/lab/orders' : '/orders')
   }
 
   const service = createServiceClient()

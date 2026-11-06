@@ -36,6 +36,24 @@ export async function POST(req: Request) {
         break
       }
 
+      // Inscripción a un evento (carrera): el corredor queda pagado y se le manda su confirmación
+      if (session.metadata?.type === 'event_registration') {
+        const regId = session.metadata.registration_id
+        if (regId && session.payment_status === 'paid') {
+          const { data: reg } = await db.from('event_registrations').update({ status: 'paid', paid_at: new Date().toISOString(), amount: (session.amount_total ?? 0) / 100 })
+            .eq('id', regId).neq('status', 'paid').select('full_name, email, events(title, event_date, location)').maybeSingle()
+          const ev = (Array.isArray(reg?.events) ? reg?.events[0] : reg?.events) as { title: string; event_date: string; location: string | null } | undefined
+          if (reg?.email && ev) {
+            const when = new Date(ev.event_date).toLocaleString('es-MX', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Mexico_City' })
+            await resend.emails.send({
+              from: FROM, to: reg.email, subject: `Inscripción confirmada — ${ev.title}`,
+              html: `<p>¡Hola ${reg.full_name}!</p><p>Tu inscripción a <b>${ev.title}</b> está confirmada y pagada.</p><p><b>Fecha:</b> ${when}<br/>${ev.location ? `<b>Lugar:</b> ${ev.location}` : ''}</p><p>Presenta tu nombre el día del evento para recoger tu paquete. ¡Nos vemos!</p>`,
+            }).catch(err => console.error('[events] correo de confirmación falló', err))
+          }
+        }
+        break
+      }
+
       // Prepago OXXO / SPEI: con OXXO el pago llega después (async_payment_succeeded);
       // si el dinero ya estaba disponible llega aquí como 'paid'
       if (session.metadata?.type === 'prepaid') {

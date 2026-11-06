@@ -11,6 +11,7 @@ import { consulting } from './consulting'
 import { tours } from './tours'
 import { restaurant } from './restaurant'
 import { pharmacy } from './pharmacy'
+import { events } from './events'
 import { other } from './other'
 
 const REGISTRY: Record<BusinessType, BusinessProfile> = {
@@ -26,6 +27,7 @@ const REGISTRY: Record<BusinessType, BusinessProfile> = {
   tours,
   restaurant,
   pharmacy,
+  events,
   other,
 }
 

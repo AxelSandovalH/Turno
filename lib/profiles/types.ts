@@ -13,6 +13,7 @@ export type BusinessType =
   | 'tours'
   | 'restaurant'
   | 'pharmacy'
+  | 'events'
   | 'other'
 
 /**
@@ -41,6 +42,8 @@ export type Capability =
   | 'service-photos'
   /** Pedidos y delivery: menú, carrito público, tablero de pedidos y bot que toma pedidos */
   | 'orders'
+  /** Eventos con inscripción pública y pago en línea (carreras): lista de inscritos */
+  | 'events'
 
 /** Entrada del sidebar. El orden del array define el orden en pantalla. */
 export interface ProfileModule {
