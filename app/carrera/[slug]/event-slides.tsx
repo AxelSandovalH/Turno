@@ -75,6 +75,7 @@ export function EventSlides(p: SlidesProps) {
   const [kbInset, setKbInset] = useState(0)
   const [logoFailed, setLogoFailed] = useState(false)
   const baseH = useRef(0)
+  const syncRef = useRef<() => void>(() => {})
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const lock = useRef(false)
@@ -86,7 +87,7 @@ export function EventSlides(p: SlidesProps) {
   const [busy, setBusy] = useState(false)
   const [payErr, setPayErr] = useState('')
   const [emergencyOpen, setEmergencyOpen] = useState(false)
-  const [extraOpen, setExtraOpen] = useState(false)
+  const [extraOpen, setExtraOpen] = useState(true)
   const [birthText, setBirthText] = useState('')
   // Fecha de nacimiento con máscara dd/mm/aaaa (el selector nativo se ve roto en iPhone)
   const onBirth = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,10 +148,14 @@ export function EventSlides(p: SlidesProps) {
     baseH.current = Math.max(window.innerHeight, vv.height)
     const sync = () => {
       baseH.current = Math.max(baseH.current, vv.height)
-      setVvh(vv.height)
-      setVvTop(vv.offsetTop)
-      setKb(baseH.current - vv.height > 120)
+      const focused = !!document.activeElement?.matches('input,select,textarea')
+      const open = baseH.current - vv.height > 120
+      // Con un campo enfocado y el teclado aún sin salir se conserva la estimación; sin foco se toma la altura real
+      if (open || !focused) { setVvh(vv.height); setVvTop(vv.offsetTop) }
+      if (open) setKb(true)
+      else if (!focused) setKb(false)
     }
+    syncRef.current = sync
     vv.addEventListener('resize', sync)
     vv.addEventListener('scroll', sync)
     return () => { vv.removeEventListener('resize', sync); vv.removeEventListener('scroll', sync) }
@@ -291,7 +296,11 @@ export function EventSlides(p: SlidesProps) {
         const el = e.target as HTMLElement
         // En cuanto se toca un campo en celular el layout se compacta, sin esperar a que el teclado termine de subir
         if (el.matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) {
-          setKb(true); setVvh(v => v || Math.round(window.innerHeight * 0.58))
+          // Siempre se recalcula al abrir (también la segunda vez); si el teclado ya estaba abierto se respeta la medida real
+          if (!kb) { setVvh(Math.round(window.innerHeight * 0.58)); setVvTop(0) }
+          setKb(true)
+          let n = 0
+          const t = setInterval(() => { syncRef.current(); if (++n > 16) clearInterval(t) }, 100)
           const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
           setKbInset(ios ? 8 : 0)
         }
@@ -470,6 +479,27 @@ export function EventSlides(p: SlidesProps) {
                           {extraTasks.filter(t => t !== 'talla').map(t => <div key={t}><p className="mb-1.5 px-1 text-[13px] text-white/50">{cfg[t].q}</p>{cfg[t].input}{showErr && errs[t] && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}</div>)}
                           {mode === 'run' && extraTasks.includes('talla') && <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizes}</div>}
                           {mode === 'run' && (<>
+                            {donPkgs.length > 0 && (
+                              <div>
+                                <button type="button" onClick={() => setExtraOpen(o => !o)} aria-expanded={extraOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] max-md:py-3 ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
+                                  <span>{extraAmount > 0 ? <>Donación extra <b className="font-semibold text-[#ffd60a]">{money(extraAmount)}</b></> : <>Suma una donación <span className="text-white/45">· opcional</span></>}</span>
+                                  <span aria-hidden className={`text-lg text-white/60 transition-transform duration-300 ${extraOpen ? 'rotate-45' : ''}`}>+</span>
+                                </button>
+                                <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${extraOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                  <div className="overflow-hidden">
+                                    <div className="space-y-2 pt-2" {...(!extraOpen ? { inert: true } : {})}>
+                                      <div className="es-scroll flex gap-2 overflow-x-auto md:flex-wrap">
+                                        <button type="button" onClick={() => setExtraSel(0)} className={chip(extraSel === 0)}>Sin extra</button>
+                                        {donPkgs.map(o => <button type="button" key={o.name} onClick={() => setExtraSel(o.price)} className={chip(extraSel === o.price)}>+{o.label}</button>)}
+                                        <button type="button" onClick={() => setExtraSel(-1)} className={chip(extraSel === -1)}>Otro monto</button>
+                                      </div>
+                                      {extraSel === -1 && <input value={extraCustom} onChange={e => setExtraCustom(e.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" placeholder="Monto en pesos" className={FIELD} />}
+                                      {extraErr && <p className="text-[13px] text-[#ff9f0a]">{extraErr}</p>}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50 max-md:mb-1">Fecha de nacimiento</span><input value={birthText} onChange={onBirth} inputMode="numeric" placeholder="dd/mm/aaaa" autoComplete="bday" className={`${FIELD} max-md:h-12`} /></label>
                             <div>
                               <button type="button" onClick={() => setEmergencyOpen(o => !o)} aria-expanded={emergencyOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] max-md:py-3 ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
@@ -485,27 +515,6 @@ export function EventSlides(p: SlidesProps) {
                                 </div>
                               </div>
                             </div>
-                            {donPkgs.length > 0 && (
-                              <div>
-                                <button type="button" onClick={() => setExtraOpen(o => !o)} aria-expanded={extraOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] max-md:py-3 ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
-                                  <span>{extraAmount > 0 ? <>Donación extra <b className="font-semibold text-[#ffd60a]">{money(extraAmount)}</b></> : <>Suma una donación <span className="text-white/45">· opcional</span></>}</span>
-                                  <span aria-hidden className={`text-lg text-white/60 transition-transform duration-300 ${extraOpen ? 'rotate-45' : ''}`}>+</span>
-                                </button>
-                                <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${extraOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                                  <div className="overflow-hidden">
-                                    <div className="space-y-2 pt-2" {...(!extraOpen ? { inert: true } : {})}>
-                                      <div className="flex flex-wrap gap-2">
-                                        <button type="button" onClick={() => setExtraSel(0)} className={chip(extraSel === 0)}>Sin extra</button>
-                                        {donPkgs.map(o => <button type="button" key={o.name} onClick={() => setExtraSel(o.price)} className={chip(extraSel === o.price)}>+{o.label}</button>)}
-                                        <button type="button" onClick={() => setExtraSel(-1)} className={chip(extraSel === -1)}>Otro monto</button>
-                                      </div>
-                                      {extraSel === -1 && <input value={extraCustom} onChange={e => setExtraCustom(e.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" placeholder="Monto en pesos" className={FIELD} />}
-                                      {extraErr && <p className="text-[13px] text-[#ff9f0a]">{extraErr}</p>}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </>)}
                           <div className="divide-y divide-white/10 rounded-2xl bg-white/[0.05] px-4 text-[15px] max-md:text-[14px] ring-1 ring-inset ring-white/10">
                             <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">{mode === 'donate' ? 'Donante' : 'Corredor'}</span><b className="font-medium">{form.full_name || '—'}</b></div>
