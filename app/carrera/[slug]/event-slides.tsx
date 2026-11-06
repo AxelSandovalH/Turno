@@ -83,6 +83,16 @@ export function EventSlides(p: SlidesProps) {
   const [busy, setBusy] = useState(false)
   const [payErr, setPayErr] = useState('')
   const [emergencyOpen, setEmergencyOpen] = useState(false)
+  const [extraOpen, setExtraOpen] = useState(false)
+  const [birthText, setBirthText] = useState('')
+  // Fecha de nacimiento con máscara dd/mm/aaaa (el selector nativo se ve roto en iPhone)
+  const onBirth = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const d = e.target.value.replace(/\D/g, '').slice(0, 8)
+    setBirthText([d.slice(0, 2), d.slice(2, 4), d.slice(4, 8)].filter(Boolean).join('/'))
+    const dd = +d.slice(0, 2), mm = +d.slice(2, 4), yy = +d.slice(4, 8)
+    const ok = d.length === 8 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31 && yy >= 1920 && yy <= new Date().getFullYear()
+    setForm(f => ({ ...f, birth_date: ok ? `${d.slice(4, 8)}-${d.slice(2, 4)}-${d.slice(0, 2)}` : '' }))
+  }
   const chosen = racePkgs.find(x => x.name === pkg) ?? racePkgs[0]
   const donPkg = donPkgs.find(o => o.name === donSel)
   const donAmount = mode === 'donate' ? (donPkg ? donPkg.price : donSel === 'otro' ? Math.round(Number(donCustom) || 0) : 0) : 0
@@ -186,17 +196,19 @@ export function EventSlides(p: SlidesProps) {
   const primary = `h-14 max-md:h-12 w-full rounded-full ${ACCENT} text-[17px] font-semibold transition hover:brightness-105 active:scale-[.985] disabled:opacity-60`
   const eyebrow = 'text-[12px] font-semibold uppercase tracking-[0.18em] text-white/55'
   const h2 = 'text-[2.4rem] font-semibold leading-[1.04] tracking-[-0.035em] md:text-[3.4rem]'
+  const dayLine = p.when.replace(/^\w+,\s*/, '').replace(/ de \d{4}$/, '')
   const dateLine = `${p.when.replace(/^\w+,\s*/, '')}${p.time ? ' · ' + p.time : ''}`
   const tileCls = ['col-span-2 md:row-span-2', '', '', '', '']
   const card = 'overflow-hidden rounded-[26px] es-tile bg-white/5'
   const bars = (k: number) => <div className="flex flex-1 gap-1.5">{panels.map((_, n) => <span key={n} className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ${n <= k ? 'bg-[#ffd60a]' : 'bg-white/20'}`} />)}</div>
 
   // El dato que se pide en cada panel de la historia
-  const sizes = (
-    <div className="flex flex-wrap gap-2">
-      {SIZES.map(z => <button type="button" key={z} onClick={() => setForm(f => ({ ...f, shirt_size: f.shirt_size === z ? '' : z }))} className={`h-11 min-w-12 rounded-full px-4 text-[15px] font-semibold ring-1 ring-inset transition ${form.shirt_size === z ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/85 ring-white/25 hover:ring-white/55'}`}>{z}</button>)}
+  const sizesRow = (onPick?: () => void) => (
+    <div className="grid grid-cols-6 gap-1.5 md:flex md:flex-wrap md:gap-2">
+      {SIZES.map(z => <button type="button" key={z} onClick={() => { const on = form.shirt_size === z; setForm(f => ({ ...f, shirt_size: on ? '' : z })); if (!on) onPick?.() }} className={`h-11 rounded-full text-[14px] font-semibold ring-1 ring-inset transition md:min-w-12 md:px-4 md:text-[15px] ${form.shirt_size === z ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/85 ring-white/25 hover:ring-white/55'}`}>{z}</button>)}
     </div>
   )
+  const sizes = sizesRow()
   const chip = (on: boolean) => `shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[14px] font-medium ring-1 ring-inset transition ${on ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/80 ring-white/25 hover:ring-white/50'}`
   const donChips = (
     <div className="space-y-2">
@@ -220,12 +232,15 @@ export function EventSlides(p: SlidesProps) {
     const k = panels.indexOf(name)
     const c = cfg[t]
     return (
-      <div data-nonav className={`absolute inset-x-0 z-10 flex justify-center px-4 transition-[bottom] duration-300 ${kb ? 'bottom-3' : 'bottom-[84px]'}`}>
+      <div data-nonav className={`absolute inset-x-0 z-10 flex justify-center px-4 ${kb ? 'bottom-3' : 'bottom-[84px]'}`}>
         <form data-a style={{ ['--i' as string]: 6 }} onSubmit={e => { e.preventDefault(); go(k + 1) }} className="w-full max-w-xl space-y-3 rounded-[28px] bg-black/55 p-4 ring-1 ring-white/15 backdrop-blur-2xl md:p-5">
           {!kb && <div className="flex items-center gap-3">{bars(k)}<span className="text-[12px] font-medium tabular-nums text-white/55">{k + 1}/{panels.length}</span></div>}
-          <div>
-            <p className="text-[19px] font-semibold tracking-[-0.02em]">{c.q}</p>
-            <p className="text-[14px] text-white/55 max-md:hidden">{c.sub}</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[19px] font-semibold tracking-[-0.02em]">{c.q}</p>
+              <p className="text-[14px] text-white/55 max-md:hidden">{c.sub}</p>
+            </div>
+            {t === 'talla' && <button type="submit" className={`shrink-0 rounded-full px-4 py-1.5 text-[14px] font-semibold transition ${form.shirt_size ? ACCENT : 'text-white/85 ring-1 ring-inset ring-white/30 hover:bg-white/10'}`}>{form.shirt_size ? 'Continuar' : 'Omitir'}</button>}
           </div>
           {name === 'hero' && !kb && racePkgs.length > 0 && donPkgs.length > 0 && (
             <div className="grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1 text-[14px] font-semibold">
@@ -238,12 +253,14 @@ export function EventSlides(p: SlidesProps) {
               {racePkgs.map(o => <button type="button" key={o.name} onClick={() => setPkg(o.name)} className={chip(pkg === o.name)}>{o.name} · {o.label}</button>)}
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1">{t === 'talla' ? sizes : c.input}</div>
-            {t === 'talla' && !form.shirt_size
-              ? <button type="submit" className="h-12 shrink-0 rounded-full px-5 text-[15px] font-semibold text-white/85 ring-1 ring-inset ring-white/30 transition hover:bg-white/10 hover:ring-white/60">Omitir</button>
-              : <button type="submit" aria-label="Continuar" className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-xl font-semibold transition hover:brightness-105 active:scale-95 ${ACCENT}`}>→</button>}
-          </div>
+          {t === 'talla'
+            ? sizesRow(() => setTimeout(() => go(k + 1), 260))
+            : (
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">{c.input}</div>
+                <button type="submit" aria-label="Continuar" className={`grid h-12 w-12 shrink-0 place-items-center rounded-full text-xl font-semibold transition hover:brightness-105 active:scale-95 ${ACCENT}`}>→</button>
+              </div>
+            )}
           {showErr && errs[t] && <p className="px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}
         </form>
       </div>
@@ -253,8 +270,14 @@ export function EventSlides(p: SlidesProps) {
   return (
     <div ref={root} className={`es-root relative h-dvh w-full overflow-hidden bg-[#070907] text-white ${zone ? `cur-${zone}` : ''}`} onWheel={onWheel}
       style={vvh ? { height: vvh, ['--vh' as string]: `${vvh / 100}px` } : { ['--vh' as string]: '1dvh' }}
+      onBlurCapture={() => {
+        // Al soltar el foco el layout vuelve de inmediato (sin esperar al teclado)
+        setTimeout(() => { if (!document.activeElement?.matches('input,select,textarea')) { setKb(false); setVvh(0) } }, 120)
+      }}
       onFocusCapture={e => {
         const el = e.target as HTMLElement
+        // En cuanto se toca un campo en celular el layout se compacta, sin esperar a que el teclado termine de subir
+        if (el.matches('input,select,textarea') && window.matchMedia('(pointer: coarse)').matches) { setKb(true); setVvh(v => v || Math.round(window.innerHeight * 0.58)) }
         const sc = el.matches('input,select,textarea') ? el.closest<HTMLElement>('.es-scroll') : null
         // Solo se desplaza el formulario interno; la pantalla principal nunca se mueve
         if (sc) setTimeout(() => { const r = el.getBoundingClientRect(), c = sc.getBoundingClientRect(); sc.scrollTo({ top: sc.scrollTop + (r.top - c.top) - c.height / 3, behavior: 'smooth' }) }, 320)
@@ -280,30 +303,34 @@ export function EventSlides(p: SlidesProps) {
             style={{ transform: `translateX(${(i - idx) * 100}%)`, opacity: Math.abs(i - idx) > 1 ? 0 : 1 }}>
 
             {name === 'hero' && (
-              <div className={`relative flex h-full items-center justify-center px-6 text-center transition-[padding] duration-300 md:pb-44 ${kb ? 'pb-36' : 'pb-52'}`}>
-                {p.gallery.map((g, k) => (
-                  <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={g.src} alt="" className="h-full w-full object-cover" />
-                  </div>
-                ))}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.3),rgba(7,9,7,.8)_75%)]" />
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#070907] to-transparent" />
-                <div className="relative max-w-4xl">
-                  {p.organizer && !kb && <p data-a style={{ ['--i' as string]: 0 }} className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a]">{p.organizer}</p>}
-                  <h1 data-a style={{ ['--i' as string]: 1 }} className={`font-semibold leading-[.92] tracking-[-0.05em] transition-all duration-300 ${kb ? 'text-[2.6rem]' : 'mt-3 text-[clamp(3.6rem,13vw,9.5rem)] md:mt-4'}`}>{p.title}</h1>
-                  {p.subtitle && !kb && <p data-a style={{ ['--i' as string]: 2 }} className="mx-auto mt-4 max-w-xl text-xl text-white/80 max-md:hidden md:text-2xl">{p.subtitle}</p>}
-                  {!kb && <p data-a style={{ ['--i' as string]: 3 }} className="mt-3 text-[16px] text-white/70 md:text-[17px]">{dateLine}<span className="max-md:hidden">{p.location ? ` · ${p.location}` : ''}</span></p>}
-                  {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && !kb && <p data-a style={{ ['--i' as string]: 4 }} className="mt-3 text-sm text-[#ffd60a]">Quedan {p.spotsLeft} lugares</p>}
+              <div className="relative h-full">
+                <div className={`absolute inset-x-0 top-0 overflow-hidden md:inset-0 ${kb ? 'bottom-[150px]' : 'bottom-[300px]'}`}>
+                  {p.gallery.map((g, k) => (
+                    <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={g.src} alt="" className="h-full w-full object-cover max-md:object-[center_20%]" />
+                    </div>
+                  ))}
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.3),rgba(7,9,7,.8)_75%)] max-md:hidden" />
+                  <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-[#070907] via-[#070907]/70 to-transparent md:h-1/2 md:via-transparent" />
                 </div>
-                {p.closed && <p className="absolute bottom-28 rounded-full bg-white/10 px-5 py-2 text-[15px] font-medium backdrop-blur-xl">Las inscripciones están cerradas</p>}
+                <div className={`absolute inset-x-0 px-6 text-center md:inset-0 md:flex md:items-center md:justify-center md:pb-44 ${kb ? 'bottom-[150px]' : 'bottom-[300px]'}`}>
+                  <div className="relative mx-auto max-w-4xl pb-3 md:pb-0">
+                    {p.organizer && !kb && <p data-a style={{ ['--i' as string]: 0 }} className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a] md:text-[13px]">{p.organizer}</p>}
+                    <h1 data-a style={{ ['--i' as string]: 1 }} className={`font-semibold leading-[.95] tracking-[-0.05em] ${kb ? 'text-[2.6rem]' : 'mt-1 text-[3.6rem] md:mt-4 md:text-[clamp(3.6rem,13vw,9.5rem)]'}`}>{p.title}</h1>
+                    {p.subtitle && !kb && <p data-a style={{ ['--i' as string]: 2 }} className="mx-auto mt-4 max-w-xl text-xl text-white/80 max-md:hidden md:text-2xl">{p.subtitle}</p>}
+                    {!kb && <p data-a style={{ ['--i' as string]: 3 }} className="mt-2 text-[16px] text-white/75 md:mt-3 md:text-[17px]">{dateLine}<span className="max-md:hidden">{p.location ? ` · ${p.location}` : ''}</span></p>}
+                    {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && !kb && <p data-a style={{ ['--i' as string]: 4 }} className="mt-2 text-sm text-[#ffd60a]">Quedan {p.spotsLeft} lugares</p>}
+                  </div>
+                </div>
+                {p.closed && <p className="absolute bottom-28 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-5 py-2 text-[15px] font-medium backdrop-blur-xl">Las inscripciones están cerradas</p>}
               </div>
             )}
 
             {(name === 'fotos0' || name === 'fotos1') && (() => {
               const k = name === 'fotos0' ? 0 : 1
               return (
-                <div className={`flex h-full flex-col px-4 pt-16 transition-[padding] duration-300 md:px-12 md:pb-[256px] md:pt-20 ${kb ? 'pb-[130px]' : 'pb-[262px]'}`}>
+                <div className={`flex h-full flex-col px-4 pt-16 md:px-12 md:pb-[256px] md:pt-20 ${kb ? 'pb-[160px]' : 'pb-[262px]'}`}>
                   <div data-a style={{ ['--i' as string]: 0 }} className={`mx-auto mb-4 w-full max-w-6xl ${kb ? 'hidden' : ''}`}>
                     <p className={eyebrow}>{p.title}</p>
                     <h2 className={`${h2} mt-1.5 !text-[1.9rem] md:!text-[2.8rem]`}>{captions[k]}</h2>
@@ -337,14 +364,18 @@ export function EventSlides(p: SlidesProps) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={p.gallery[2].src} alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-[.22] blur-2xl" />
                 )}
-                <div className={`relative flex h-full flex-col items-center px-5 pt-14 transition-[padding] duration-300 md:hidden ${kb ? 'pb-[120px]' : 'pb-[244px]'}`}>
-                  <div data-a style={{ ['--i' as string]: 0 }} className="flex min-h-0 w-full flex-1 items-center justify-center">
+                <div className={`relative flex h-full items-center gap-4 px-5 pt-14 md:hidden ${kb ? 'pb-[150px]' : 'pb-[244px]'}`}>
+                  <div data-a style={{ ['--i' as string]: 0 }} className="flex h-full min-h-0 w-[65%] shrink-0 items-center">
                     {p.flyer && (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.flyer} alt={`Cartel de ${p.title}`} className="max-h-full max-w-full rounded-[22px] object-contain shadow-2xl shadow-black/70" />
+                      <img src={p.flyer} alt={`Cartel de ${p.title}`} className="max-h-full max-w-full rounded-[20px] object-contain object-left shadow-2xl shadow-black/70" />
                     )}
                   </div>
-                  {!kb && <p data-a style={{ ['--i' as string]: 2 }} className="mt-3 text-center text-[14px] text-white/60">{dateLine}</p>}
+                  <div data-a style={{ ['--i' as string]: 1 }} className="flex min-w-0 flex-1 flex-col justify-center gap-4">
+                    <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Fecha</p><p className="text-[17px] font-semibold leading-tight">{dayLine}</p></div>
+                    <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Salida</p><p className="text-[17px] font-semibold leading-tight">{p.time}</p></div>
+                    {p.location && <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Lugar</p><p className="text-[15px] font-semibold leading-tight">{p.location}</p></div>}
+                  </div>
                 </div>
                 <div className="es-scroll relative flex h-full items-center overflow-y-auto px-6 pb-[270px] pt-16 max-md:hidden md:px-12 md:pb-[256px]">
                   <div className="mx-auto grid w-full max-w-6xl items-center gap-8 md:grid-cols-[minmax(0,320px)_1fr] md:gap-14">
@@ -381,20 +412,21 @@ export function EventSlides(p: SlidesProps) {
             {name === 'cierre' && (() => {
               const photo = p.gallery.length ? p.gallery[(panels.length * 2 + 1) % p.gallery.length] : null
               return (
-                <div className={`grid h-full transition-[grid-template-rows] duration-300 md:grid-cols-[1fr_minmax(0,560px)] md:grid-rows-1 lg:grid-cols-[1.15fr_minmax(0,620px)] ${kb ? 'grid-rows-[0px_1fr]' : 'grid-rows-[calc(var(--vh)*16)_1fr]'}`}>
+                <div className={`grid h-full md:grid-cols-[1fr_minmax(0,560px)] md:grid-rows-1 lg:grid-cols-[1.15fr_minmax(0,620px)] ${kb ? 'grid-rows-[0px_1fr]' : 'grid-rows-[calc(var(--vh)*24)_1fr]'}`}>
                   <div className="relative overflow-hidden">
                     {photo && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={photo.src} alt={photo.alt ?? ''} className="es-kb absolute inset-0 h-full w-full object-cover max-md:object-[center_22%]" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#070907] via-transparent to-transparent md:bg-gradient-to-l md:from-[#070907] md:via-transparent md:to-transparent" />
+                    <h2 className="absolute bottom-2 left-6 text-[1.9rem] font-semibold leading-[1.2] tracking-[-0.035em] md:hidden">{mode === 'donate' ? 'Gracias por ayudar.' : 'Último paso.'}</h2>
                   </div>
-                  <div data-nonav className="es-scroll flex min-h-0 items-center overflow-y-auto px-6 pb-4 pt-2 md:px-14 md:pb-24 md:pt-8">
-                    <div className="mx-auto w-full max-w-[420px] space-y-5 max-md:space-y-2.5">
+                  <div data-nonav className="es-scroll flex min-h-0 overflow-y-auto px-6 pb-3 pt-2 md:px-14 md:pb-24 md:pt-8">
+                    <div className="m-auto w-full max-w-[420px] space-y-5 max-md:space-y-2">
                       <div data-a style={{ ['--i' as string]: 0 }} className="space-y-4">
                         <div className="flex items-center gap-3 max-md:hidden">{bars(last)}<span className="text-[12px] font-medium tabular-nums text-white/50">{panels.length}/{panels.length}</span></div>
                         <div>
-                          <h2 className="text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] max-md:text-[1.7rem] md:text-[2.8rem]">{mode === 'donate' ? 'Gracias por ayudar.' : 'Último paso.'}</h2>
+                          <h2 className="text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] max-md:hidden md:text-[2.8rem]">{mode === 'donate' ? 'Gracias por ayudar.' : 'Último paso.'}</h2>
                           <p className="mt-2 text-[17px] leading-snug text-white/60 max-md:hidden">{mode === 'donate' ? 'Revisa tu aporte y completa el pago.' : 'Un par de datos más y apartas tu lugar al pagar.'}</p>
                         </div>
                       </div>
@@ -403,7 +435,7 @@ export function EventSlides(p: SlidesProps) {
                           {extraTasks.filter(t => t !== 'talla').map(t => <div key={t}><p className="mb-1.5 px-1 text-[13px] text-white/50">{cfg[t].q}</p>{cfg[t].input}{showErr && errs[t] && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}</div>)}
                           {mode === 'run' && extraTasks.includes('talla') && <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizes}</div>}
                           {mode === 'run' && (<>
-                            <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50">Fecha de nacimiento</span><input value={form.birth_date} onChange={set('birth_date')} type="date" className={`${FIELD} max-md:h-12 [color-scheme:dark]`} /></label>
+                            <label className="block"><span className="mb-1.5 block px-1 text-[13px] text-white/50 max-md:mb-1">Fecha de nacimiento</span><input value={birthText} onChange={onBirth} inputMode="numeric" placeholder="dd/mm/aaaa" autoComplete="bday" className={`${FIELD} max-md:h-12`} /></label>
                             <div>
                               <button type="button" onClick={() => setEmergencyOpen(o => !o)} aria-expanded={emergencyOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] max-md:py-3 ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
                                 <span>Contacto de emergencia <span className="text-white/45">· opcional</span></span>
@@ -419,30 +451,39 @@ export function EventSlides(p: SlidesProps) {
                               </div>
                             </div>
                             {donPkgs.length > 0 && (
-                              <div className="space-y-2 rounded-2xl bg-white/[0.05] p-4 max-md:p-3 ring-1 ring-inset ring-white/10">
-                                <p className="text-[15px]">Suma una donación <span className="text-white/45">· opcional</span></p>
-                                <div className="es-scroll flex gap-2 overflow-x-auto md:flex-wrap">
-                                  <button type="button" onClick={() => setExtraSel(0)} className={chip(extraSel === 0)}>Sin extra</button>
-                                  {donPkgs.map(o => <button type="button" key={o.name} onClick={() => setExtraSel(o.price)} className={chip(extraSel === o.price)}>+{o.label}</button>)}
-                                  <button type="button" onClick={() => setExtraSel(-1)} className={chip(extraSel === -1)}>Otro monto</button>
+                              <div>
+                                <button type="button" onClick={() => setExtraOpen(o => !o)} aria-expanded={extraOpen} className="flex w-full items-center justify-between rounded-2xl bg-white/[0.05] px-4 py-3.5 text-left text-[15px] max-md:py-3 ring-1 ring-inset ring-white/10 transition hover:bg-white/[0.08]">
+                                  <span>{extraAmount > 0 ? <>Donación extra <b className="font-semibold text-[#ffd60a]">{money(extraAmount)}</b></> : <>Suma una donación <span className="text-white/45">· opcional</span></>}</span>
+                                  <span aria-hidden className={`text-lg text-white/60 transition-transform duration-300 ${extraOpen ? 'rotate-45' : ''}`}>+</span>
+                                </button>
+                                <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${extraOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                                  <div className="overflow-hidden">
+                                    <div className="space-y-2 pt-2" {...(!extraOpen ? { inert: true } : {})}>
+                                      <div className="flex flex-wrap gap-2">
+                                        <button type="button" onClick={() => setExtraSel(0)} className={chip(extraSel === 0)}>Sin extra</button>
+                                        {donPkgs.map(o => <button type="button" key={o.name} onClick={() => setExtraSel(o.price)} className={chip(extraSel === o.price)}>+{o.label}</button>)}
+                                        <button type="button" onClick={() => setExtraSel(-1)} className={chip(extraSel === -1)}>Otro monto</button>
+                                      </div>
+                                      {extraSel === -1 && <input value={extraCustom} onChange={e => setExtraCustom(e.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" placeholder="Monto en pesos" className={FIELD} />}
+                                      {extraErr && <p className="text-[13px] text-[#ff9f0a]">{extraErr}</p>}
+                                    </div>
+                                  </div>
                                 </div>
-                                {extraSel === -1 && <input value={extraCustom} onChange={e => setExtraCustom(e.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" placeholder="Monto en pesos" className={FIELD} />}
-                                {extraErr && <p className="text-[13px] text-[#ff9f0a]">{extraErr}</p>}
                               </div>
                             )}
                           </>)}
                           <div className="divide-y divide-white/10 rounded-2xl bg-white/[0.05] px-4 text-[15px] max-md:text-[14px] ring-1 ring-inset ring-white/10">
-                            <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">{mode === 'donate' ? 'Donante' : 'Corredor'}</span><b className="font-medium">{form.full_name || '—'}</b></div>
-                            <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">WhatsApp</span><span>{form.phone || '—'}</span></div>
-                            <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Correo</span><span className="truncate">{form.email || '—'}</span></div>
-                            {mode === 'run' && form.shirt_size && <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
-                            {mode === 'run' && form.birth_date && <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
-                            {mode === 'run' && form.emergency_name && <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
+                            <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">{mode === 'donate' ? 'Donante' : 'Corredor'}</span><b className="font-medium">{form.full_name || '—'}</b></div>
+                            <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">WhatsApp</span><span>{form.phone || '—'}</span></div>
+                            <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Correo</span><span className="truncate">{form.email || '—'}</span></div>
+                            {mode === 'run' && form.shirt_size && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
+                            {mode === 'run' && form.birth_date && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
+                            {mode === 'run' && form.emergency_name && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
                             {mode === 'run'
-                              ? <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Inscripción {chosen?.name}</span><span>{chosen ? money(chosen.price) : '—'}</span></div>
-                              : <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Aporte {donPkg ? donPkg.name : ''}</span><span>{donAmount ? money(donAmount) : '—'}</span></div>}
-                            {mode === 'run' && extraAmount > 0 && <div className="flex justify-between gap-4 py-3 max-md:py-1.5"><span className="text-white/55">Donación extra</span><span>{money(extraAmount)}</span></div>}
-                            <div className="flex items-baseline justify-between gap-4 py-4 text-xl max-md:py-2.5"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{money(total)}</b></div>
+                              ? <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Inscripción {chosen?.name}</span><span>{chosen ? money(chosen.price) : '—'}</span></div>
+                              : <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Aporte {donPkg ? donPkg.name : ''}</span><span>{donAmount ? money(donAmount) : '—'}</span></div>}
+                            {mode === 'run' && extraAmount > 0 && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Donación extra</span><span>{money(extraAmount)}</span></div>}
+                            <div className="flex items-baseline justify-between gap-4 py-4 text-xl max-md:py-2"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{money(total)}</b></div>
                           </div>
                           {payErr && <p className="px-1 text-[13px] text-[#ff9f0a]">{payErr}</p>}
                           <button type="button" disabled={busy} onClick={pay} className={primary}>{busy ? 'Abriendo pago…' : `${mode === 'donate' ? 'Donar' : 'Pagar'} ${money(total)}`}</button>
