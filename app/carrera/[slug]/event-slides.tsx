@@ -77,6 +77,7 @@ export function EventSlides(p: SlidesProps) {
   const [logoFailed, setLogoFailed] = useState(false)
   const baseH = useRef(0)
   const syncRef = useRef<() => void>(() => {})
+  const openSeen = useRef(false)
   const debugRef = useRef<HTMLDivElement>(null)
   const [zone, setZone] = useState<'next' | 'prev' | null>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -153,12 +154,18 @@ export function EventSlides(p: SlidesProps) {
       if (!focused) {
         // Sin campo enfocado el layout vuelve siempre al estado limpio (altura dinámica), idéntico en cada apertura
         baseH.current = Math.max(window.innerHeight, vv.height)
+        openSeen.current = false
         setVvh(0); setVvTop(0); setKb(false); setKbInset(0)
         return
       }
       baseH.current = Math.max(baseH.current, vv.height)
       // Con un campo enfocado y el teclado aún sin salir se conserva la estimación
-      if (baseH.current - vv.height > 120) { setVvh(vv.height); setVvTop(vv.offsetTop); setKb(true) }
+      if (baseH.current - vv.height > 120) { openSeen.current = true; setVvh(vv.height); setVvTop(vv.offsetTop); setKb(true) }
+      else if (openSeen.current) {
+        // El teclado se cerró sin perder el foco (p. ej. el autorrelleno de Chrome): el layout vuelve completo
+        openSeen.current = false
+        setVvh(0); setVvTop(0); setKb(false); setKbInset(0)
+      }
     }
     syncRef.current = sync
     vv.addEventListener('resize', sync)
@@ -263,13 +270,21 @@ export function EventSlides(p: SlidesProps) {
   }
   const dock = (name: string) => {
     const t = taskOf[name]
-    if (!t || p.closed) return null
+    if (p.closed) return null
+    if (!t) {
+      // Paneles de solo fotos: un botón claro para avanzar
+      if (name === 'cierre') return null
+      return (
+        <div data-nonav style={{ bottom: kb ? 12 + kbInset : 84 }} className="absolute inset-x-0 z-10 flex justify-center px-4">
+          <button type="button" onClick={() => go(panels.indexOf(name) + 1)} className={`h-12 w-full max-w-xl rounded-full text-[17px] font-semibold shadow-lg transition hover:brightness-105 active:scale-[.985] ${ACCENT}`}>Continuar →</button>
+        </div>
+      )
+    }
     const k = panels.indexOf(name)
     const c = cfg[t]
     return (
       <div data-nonav style={{ bottom: kb ? 12 + kbInset : 84 }} className="absolute inset-x-0 z-10 flex justify-center px-4 transition-[bottom] duration-300 ease-out">
         <form data-a style={{ ['--i' as string]: 6 }} onSubmit={e => { e.preventDefault(); go(k + 1) }} className="w-full max-w-xl space-y-3 rounded-[28px] bg-black/55 p-4 ring-1 ring-white/15 backdrop-blur-2xl md:p-5">
-          {!kb && <div className="flex items-center gap-3">{bars(k)}<span className="text-[12px] font-medium tabular-nums text-white/55">{k + 1}/{panels.length}</span></div>}
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[19px] font-semibold tracking-[-0.02em]">{c.q}</p>
@@ -562,7 +577,11 @@ export function EventSlides(p: SlidesProps) {
         )
       })}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 md:px-8">
+      {/* Progreso del recorrido: visible siempre, con o sin teclado, en todos los paneles */}
+      <div className="pointer-events-none absolute inset-x-5 top-2.5 z-20 flex items-center gap-3 md:inset-x-8" role="progressbar" aria-valuemin={1} aria-valuemax={panels.length} aria-valuenow={idx + 1}>
+        {bars(idx)}<span className="text-[12px] font-medium tabular-nums text-white/70">{idx + 1}/{panels.length}</span>
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pb-4 pt-7 md:px-8">
         <span className="rounded-full bg-black/30 px-3 py-1.5 text-[13px] font-semibold tracking-tight text-white/90 ring-1 ring-white/10 backdrop-blur-xl">{p.title}</span>
       </div>
       {/* Marcas a los lados de la barra inferior, con acceso directo: QuickTurno a la izquierda y AxelDev a la derecha */}
