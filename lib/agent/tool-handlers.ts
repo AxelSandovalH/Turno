@@ -33,6 +33,25 @@ interface Context {
   cardFeePct?: number
 }
 
+/** Citas vigentes (confirmadas, futuras) de un cliente por teléfono: se usan para no duplicar reservas ni decirle que "ya no hay lugar" en su propio horario. */
+async function upcomingFor(db: ReturnType<typeof createServiceClient>, organizationId: string, phone: string | undefined, timezone: string) {
+  const last10 = String(phone ?? '').replace(/\D/g, '').slice(-10)
+  if (last10.length < 10) return []
+  const { data: custs } = await db.from('customers').select('id').eq('organization_id', organizationId).like('phone', `%${last10}`)
+  const ids = (custs ?? []).map(c => c.id)
+  if (!ids.length) return []
+  const { data } = await db.from('appointments')
+    .select('id, starts_at, ends_at, service_id, deposit_status, service:services(name), staff:staff(name)')
+    .eq('organization_id', organizationId).in('customer_id', ids).eq('status', 'confirmed')
+    .gte('ends_at', new Date().toISOString()).order('starts_at')
+  return (data ?? []).map(a => ({
+    ...a,
+    paid: a.deposit_status === 'paid',
+    awaiting_payment: a.deposit_status === 'pending',
+    label: format(toZonedTime(parseISO(a.starts_at), timezone), "EEEE d 'de' MMMM, h:mm a", { timeZone: timezone, locale: es }),
+  }))
+}
+
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
   const db = createServiceClient()
 
@@ -327,10 +346,15 @@ export async function handleTool(toolName: string, input: Record<string, string>
         ? slots
         : slots.filter((s, i) => i === 0 || s.starts_at !== slots[i - 1].starts_at)
 
+      const mine = await upcomingFor(db, ctx.organizationId, ctx.customerPhone, ctx.timezone)
       return JSON.stringify({
         slots: deduped.slice(0, 10),
         date,
         duration_minutes: duration,
+        ...(mine.length ? {
+          customer_existing_appointments: mine.map(a => ({ appointment_id: a.id, label: a.label, paid: a.paid, awaiting_payment: a.awaiting_payment })),
+          customer_note: 'ESTE cliente YA tiene cita(s) vigente(s) (lista arriba). Si el horario que pide coincide con la suya, NO digas que "ya no está disponible": confírmale que ya la tiene (y si está pagada, que está confirmada). No agendes otra cita igual; si quiere cambiarla usa reschedule_appointment.',
+        } : {}),
         timezone_note: 'Los campos "label" ya están en la hora local del negocio. Muéstralos tal cual.',
       })
     }
@@ -352,6 +376,18 @@ export async function handleTool(toolName: string, input: Record<string, string>
         .single()
 
       if (!customer) return JSON.stringify({ error: 'Error al registrar cliente' })
+
+      // Un cliente no debe tener dos citas del mismo servicio el mismo día: si ya tiene una vigente, no se agenda otra
+      const mineNow = await upcomingFor(db, ctx.organizationId, customer_phone, ctx.timezone)
+      const day = (iso: string) => format(toZonedTime(parseISO(iso), ctx.timezone), 'yyyy-MM-dd', { timeZone: ctx.timezone })
+      const dup = mineNow.find(a => a.service_id === service_id && day(a.starts_at) === day(starts_at))
+      if (dup) {
+        return JSON.stringify({
+          success: true, already_booked: true, appointment_id: dup.id, starts_at: dup.starts_at, ends_at: dup.ends_at,
+          paid: dup.paid, awaiting_payment: dup.awaiting_payment, label: dup.label,
+          note: 'Este cliente YA tiene esta cita (no se creó otra). ' + (dup.paid ? 'Ya está PAGADA y confirmada: díselo así, sin pedirle pagar de nuevo.' : 'Está apartada y pendiente de pago.') + ' Si quiere cambiar la hora usa reschedule_appointment; si es para otra persona, pásalo con handoff_to_owner.',
+        })
+      }
 
       // Double-check slot is still free
       const { data: conflict } = await db

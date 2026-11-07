@@ -55,7 +55,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (org) {
       const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
-      if (customer?.phone) {
+      // Si el cliente ya tiene otra cita pagada y vigente, el aviso de "liberamos tu horario" solo lo confundiría
+      const last10 = String(customer?.phone ?? '').replace(/\D/g, '').slice(-10)
+      let hasPaid = false
+      if (last10.length === 10) {
+        const { data: cs } = await service.from('customers').select('id').eq('organization_id', appt.organization_id).like('phone', `%${last10}`)
+        const ids = (cs ?? []).map(c => c.id)
+        if (ids.length) {
+          const { count } = await service.from('appointments').select('id', { count: 'exact', head: true }).in('customer_id', ids).eq('status', 'confirmed').eq('deposit_status', 'paid').gte('ends_at', new Date().toISOString())
+          hasPaid = (count ?? 0) > 0
+        }
+      }
+      if (customer?.phone && !hasPaid) {
         const en = (await conversationLanguage(service, appt.organization_id, customer.phone)) === 'en'
         sendMessage(
           customer.phone,
