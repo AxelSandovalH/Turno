@@ -57,8 +57,9 @@ export function EventSlides(p: SlidesProps) {
   const [extraCustom, setExtraCustom] = useState('')
   // La historia es también el registro: cada panel le pide al corredor una sola cosa y el último cierra y cobra
   const story = ['hero', ...(photoPanels[0] ? ['fotos0'] : []), 'info', ...(photoPanels[1] ? ['fotos1'] : [])]
-  const TASKS = ['nombre', 'telefono', 'correo', mode === 'donate' ? 'monto' : 'talla'] as const
   type Task = 'nombre' | 'telefono' | 'correo' | 'talla' | 'monto'
+  // Sin playera del evento: el corredor solo da nombre, teléfono y correo
+  const TASKS = (mode === 'donate' ? ['nombre', 'telefono', 'correo', 'monto'] : ['nombre', 'telefono', 'correo']) as readonly Task[]
   const taskOf: Record<string, Task> = {}
   story.forEach((n, i) => { if (TASKS[i]) taskOf[n] = TASKS[i] })
   const extraTasks = TASKS.filter(t => !Object.values(taskOf).includes(t))
@@ -495,7 +496,6 @@ export function EventSlides(p: SlidesProps) {
                       {p.closed ? <p className="rounded-2xl bg-white/10 p-4 text-center font-medium">Las inscripciones están cerradas.</p> : (
                         <div data-a style={{ ['--i' as string]: 1 }} className="space-y-3 max-md:space-y-2">
                           {extraTasks.filter(t => t !== 'talla').map(t => <div key={t}><p className="mb-1.5 px-1 text-[13px] text-white/50">{cfg[t].q}</p>{cfg[t].input}{showErr && errs[t] && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}</div>)}
-                          {mode === 'run' && extraTasks.includes('talla') && <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizes}</div>}
                           {mode === 'run' && (<>
                             {donPkgs.length > 0 && (
                               <div>
@@ -538,7 +538,6 @@ export function EventSlides(p: SlidesProps) {
                             <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">{mode === 'donate' ? 'Donante' : 'Corredor'}</span><b className="font-medium">{form.full_name || '—'}</b></div>
                             <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">WhatsApp</span><span>{form.phone || '—'}</span></div>
                             <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Correo</span><span className="truncate">{form.email || '—'}</span></div>
-                            {mode === 'run' && form.shirt_size && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Playera</span><span>{form.shirt_size}</span></div>}
                             {mode === 'run' && form.birth_date && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
                             {mode === 'run' && form.emergency_name && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
                             {mode === 'run'

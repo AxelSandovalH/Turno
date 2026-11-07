@@ -3,7 +3,7 @@
 update public.events set
   organizer = 'Un Día Para Donar · UDEC',
   packages = '[
-    {"name": "Corredor", "price": 150, "includes": ["Participación en los 5K", "Medalla de finalista", "Puntos de hidratación", "Ambientación musical"]}
+    {"name": "Corredor", "price": 150, "includes": ["Participación en los 5K", "Medalla de finalista", "Puntos de hidratación", "Ambientación musical", "Detalles en especie"]}
   ]'::jsonb,
   gallery = '[
     {"src": "/events/dona5k/IMG_0114.jpg", "alt": "Voluntarios en el arco de globos"},
