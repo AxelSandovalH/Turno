@@ -11,6 +11,7 @@ export const events: BusinessProfile = {
   capabilities: new Set(['events']),
   modules: [
     { id: 'inscritos', href: '/inscritos', title: 'Inscritos' },
+    { id: 'evento',    href: '/evento',    title: 'Mi evento' },
     { id: 'settings',  href: '/settings',  title: 'Configuración' },
   ],
 }
