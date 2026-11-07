@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
 import { resend, FROM } from '@/lib/resend'
+import { conversationLanguage } from '@/lib/language'
 import { reminderEmailHtml, reminderEmailText } from '@/lib/emails/reminder'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -47,17 +48,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!customer?.phone) continue
 
-    const time = new Date(appt.starts_at).toLocaleTimeString('es-MX', {
+    const lang = await conversationLanguage(service, org?.id ?? '', customer.phone)
+    const en = lang === 'en'
+    const time = new Date(appt.starts_at).toLocaleTimeString(en ? 'en-US' : 'es-MX', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
       timeZone: 'America/Mexico_City',
     })
 
-    const dateLabel = `hoy a las ${time}`
+    const dateLabel = en ? `today at ${time}` : `hoy a las ${time}`
 
-    // ── WhatsApp: recordatorio + solicitud de confirmación ─────────────────────
-    const whatsappMessage = [
+    // ── WhatsApp: recordatorio + solicitud de confirmación (en el idioma de la conversación) ──
+    const whatsappMessage = (en ? [
+      `🔔 *Appointment reminder*`,
+      ``,
+      `Hi ${customer.name ?? 'there'}, you have an appointment at *${org?.name}* ${dateLabel}.`,
+      ``,
+      `📋 Service: ${svc?.name ?? 'N/A'}`,
+      `👤 With: ${stf?.name ?? 'N/A'}`,
+      ``,
+      `Can you confirm you'll be there?`,
+      `Reply *YES* to confirm or *NO* if you can't make it.`,
+    ] : [
       `🔔 *Recordatorio de cita*`,
       ``,
       `Hola ${customer.name ?? 'estimado paciente'}, tienes cita en *${org?.name}* ${dateLabel}.`,
@@ -67,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ``,
       `¿Confirmas tu asistencia?`,
       `Responde *SI* para confirmar o *NO* si no podrás asistir.`,
-    ].join('\n')
+    ]).join('\n')
 
     try {
       const r = await sendMessage(customer.phone, whatsappMessage, creds)
@@ -89,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await resend.emails.send({
           from: FROM,
           to: customer.email,
-          subject: `Recordatorio: tu cita en ${org?.name} ${dateLabel}`,
+          subject: en ? `Reminder: your appointment at ${org?.name} ${dateLabel}` : `Recordatorio: tu cita en ${org?.name} ${dateLabel}`,
           html: reminderEmailHtml({
             customerName: customer.name ?? 'Paciente',
             businessName: org?.name ?? 'el consultorio',

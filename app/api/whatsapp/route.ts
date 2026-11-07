@@ -8,6 +8,7 @@ import { handleOwnerContract } from '@/lib/rancho-contract-flow'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/lib/agent/agent'
 import { sendMessage } from '@/lib/ultramsg'
+import { conversationLanguage } from '@/lib/language'
 import { handleSalesInbound, handleDemoLineInbound, isDemoOrg } from '@/lib/sales/inbound'
 
 export const maxDuration = 60
@@ -255,12 +256,14 @@ export async function POST(req: Request) {
             hour: '2-digit', minute: '2-digit',
           })
 
+          // La respuesta sale en el idioma en que escribió el cliente (la palabra YES/NO o su conversación)
+          const en = /^(yes|cancel|confirm)$/i.test(normalized) || (await conversationLanguage(db, organization.id, phone)) === 'en'
           let reply: string
           if (isYes) {
             await db.from('appointments')
               .update({ confirmation_status: 'confirmed' })
               .eq('id', pendingAppt.id)
-            reply = `✅ ¡Perfecto! Tu asistencia quedó confirmada. Te esperamos.`
+            reply = en ? `✅ Perfect! Your attendance is confirmed. See you soon.` : `✅ ¡Perfecto! Tu asistencia quedó confirmada. Te esperamos.`
           } else {
             // Cancel for real — frees the slot so someone else can book it
             await db.from('appointments')
@@ -288,7 +291,9 @@ export async function POST(req: Request) {
               creds
             ).catch(() => {})
 
-            reply = `Entendido, cancelamos tu cita de ${svcName} del ${localTime}. 😊\n\n¿Te gustaría reagendar? Dime qué día te acomoda y te paso los horarios disponibles.`
+            reply = en
+              ? `Understood, we've cancelled your ${svcName} appointment on ${localTime}. 😊\n\nWould you like to reschedule? Tell me what day works for you and I'll send you the available times.`
+              : `Entendido, cancelamos tu cita de ${svcName} del ${localTime}. 😊\n\n¿Te gustaría reagendar? Dime qué día te acomoda y te paso los horarios disponibles.`
           }
 
           await sendMessage(from, reply, creds)

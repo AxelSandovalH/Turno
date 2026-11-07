@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendMessage } from '@/lib/ultramsg'
+import { conversationLanguage } from '@/lib/language'
 
 // Corre cada 5 min — cancela citas cuyo anticipo no se pagó a tiempo,
 // liberando el horario para otro cliente.
@@ -55,9 +56,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (org) {
       const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
       if (customer?.phone) {
+        const en = (await conversationLanguage(service, appt.organization_id, customer.phone)) === 'en'
         sendMessage(
           customer.phone,
-          `Tu horario para *${svc?.name ?? 'tu cita'}* fue liberado porque no recibimos el pago del anticipo a tiempo. Si aún quieres agendar, escríbenos de nuevo. 😊`,
+          en
+            ? `Your slot for *${svc?.name ?? 'your appointment'}* was released because we didn't receive the deposit in time. If you still want to book, just message us again. 😊`
+            : `Tu horario para *${svc?.name ?? 'tu cita'}* fue liberado porque no recibimos el pago del anticipo a tiempo. Si aún quieres agendar, escríbenos de nuevo. 😊`,
           creds
         ).catch(() => {})
       }
