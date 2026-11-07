@@ -244,7 +244,6 @@ export function EventSlides(p: SlidesProps) {
       {SIZES.map(z => <button type="button" key={z} onClick={() => { const on = form.shirt_size === z; setForm(f => ({ ...f, shirt_size: on ? '' : z })); if (!on) onPick?.() }} className={`h-11 rounded-full text-[14px] font-semibold ring-1 ring-inset transition md:min-w-12 md:px-4 md:text-[15px] ${form.shirt_size === z ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/85 ring-white/25 hover:ring-white/55'}`}>{z}</button>)}
     </div>
   )
-  const sizes = sizesRow()
   const chip = (on: boolean) => `shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[14px] font-medium ring-1 ring-inset transition ${on ? 'bg-[#ffd60a] text-black ring-[#ffd60a]' : 'text-white/80 ring-white/25 hover:ring-white/50'}`
   const donChips = (
     <div className="space-y-2">
