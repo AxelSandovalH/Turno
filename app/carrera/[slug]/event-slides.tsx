@@ -179,9 +179,11 @@ export function EventSlides(p: SlidesProps) {
   // La página nunca se desplaza: iOS mueve el viewport visual y el contenedor lo sigue, sin forzar el scroll
   useEffect(() => {
     const h = document.documentElement, b = document.body
-    const prev = [h.style.overflow, b.style.overflow, h.style.overscrollBehavior]
+    const prev = [h.style.overflow, b.style.overflow, h.style.overscrollBehavior, b.style.cssText]
     h.style.overflow = 'hidden'; b.style.overflow = 'hidden'; h.style.overscrollBehavior = 'none'
-    return () => { h.style.overflow = prev[0]; b.style.overflow = prev[1]; h.style.overscrollBehavior = prev[2] }
+    // El documento no puede desplazarse: así iOS no mueve la página al abrir el teclado (scrollY queda en 0)
+    b.style.position = 'fixed'; b.style.inset = '0'; b.style.width = '100%'; b.style.height = '100%'
+    return () => { h.style.overflow = prev[0]; h.style.overscrollBehavior = prev[2]; b.style.cssText = prev[3] }
   }, [])
 
   // Celular: en vez del mosaico, un bloque grande que va alternando las fotos
