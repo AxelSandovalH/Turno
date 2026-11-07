@@ -2,11 +2,26 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 
 interface Pkg { name: string; price: number | string; kind?: 'race' | 'donation'; includes?: string[] }
 interface Ev {
   id: string; slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
   location: string | null; event_date: string; capacity: number | null; is_open: boolean; packages: unknown
+  image_url: string | null; gallery: unknown
+}
+interface Photo { src: string; alt?: string }
+
+// Reduce las fotos del celular (hasta 1800 px, JPEG) antes de subirlas para que carguen rápido
+async function shrink(file: File): Promise<Blob> {
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file
+  try {
+    const bmp = await createImageBitmap(file)
+    const k = Math.min(1, 1800 / Math.max(bmp.width, bmp.height))
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k)
+    c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
+    return await new Promise<Blob>(res => c.toBlob(b => res(b ?? file), 'image/jpeg', 0.85))
+  } catch { return file }
 }
 
 // Fecha y hora en la zona de México para el selector (datetime-local)
@@ -19,7 +34,7 @@ const fromLocalInput = (v: string) => new Date(`${v}:00-06:00`).toISOString()
 const field = 'w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-500/40'
 const label = 'mb-1 block text-xs font-medium text-muted-foreground'
 
-function Editor({ ev, baseUrl }: { ev: Ev; baseUrl: string }) {
+function Editor({ ev, baseUrl, orgId }: { ev: Ev; baseUrl: string; orgId: string }) {
   const initial = (Array.isArray(ev.packages) ? ev.packages : []) as Pkg[]
   const [f, setF] = useState({
     title: ev.title, subtitle: ev.subtitle ?? '', organizer: ev.organizer ?? '', description: ev.description ?? '',
@@ -27,6 +42,28 @@ function Editor({ ev, baseUrl }: { ev: Ev; baseUrl: string }) {
   })
   const [pk, setPk] = useState<Pkg[]>(initial.map(p => ({ ...p, kind: p.kind === 'donation' ? 'donation' : 'race', includes: p.includes ?? [] })))
   const [saving, setSaving] = useState(false)
+  const [flyer, setFlyer] = useState(ev.image_url ?? '')
+  const [photos, setPhotos] = useState<Photo[]>((Array.isArray(ev.gallery) ? ev.gallery : []) as Photo[])
+  const [uploading, setUploading] = useState(false)
+
+  async function upload(files: FileList | null): Promise<string[]> {
+    if (!files?.length) return []
+    setUploading(true)
+    const supabase = createClient()
+    const urls: string[] = []
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) { toast.error(`${file.name} no es una imagen`); continue }
+      const blob = await shrink(file)
+      const ext = blob.type === 'image/jpeg' ? 'jpg' : (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const path = `events/${orgId}/${crypto.randomUUID()}.${ext}`
+      const { error } = await supabase.storage.from('org-assets').upload(path, blob, { contentType: blob.type || undefined })
+      if (error) { toast.error(`No se pudo subir ${file.name}: ${error.message}`); continue }
+      urls.push(supabase.storage.from('org-assets').getPublicUrl(path).data.publicUrl)
+    }
+    setUploading(false)
+    return urls
+  }
+  const movePhoto = (i: number, d: number) => setPhotos(a => { const b = [...a], j = i + d; if (j < 0 || j >= b.length) return a; [b[i], b[j]] = [b[j], b[i]]; return b })
 
   const upd = (i: number, patch: Partial<Pkg>) => setPk(a => a.map((p, k) => (k === i ? { ...p, ...patch } : p)))
   const move = (i: number, d: number) => setPk(a => { const b = [...a], j = i + d; if (j < 0 || j >= b.length) return a; [b[i], b[j]] = [b[j], b[i]]; return b })
@@ -35,7 +72,7 @@ function Editor({ ev, baseUrl }: { ev: Ev; baseUrl: string }) {
     setSaving(true)
     const res = await fetch('/api/events/manage', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id: ev.id, ...f, event_date: fromLocalInput(f.when), packages: pk }),
+      body: JSON.stringify({ id: ev.id, ...f, event_date: fromLocalInput(f.when), packages: pk, image_url: flyer, gallery: photos }),
     })
     const data = await res.json().catch(() => ({}))
     setSaving(false)
@@ -61,6 +98,36 @@ function Editor({ ev, baseUrl }: { ev: Ev; baseUrl: string }) {
         </div>
         <div><label className={label}>Lugar</label><input className={field} value={f.location} onChange={e => setF({ ...f, location: e.target.value })} /></div>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.is_open} onChange={e => setF({ ...f, is_open: e.target.checked })} />Inscripciones y donaciones abiertas</label>
+      </section>
+
+      <section className="space-y-4 rounded-xl border p-5">
+        <div>
+          <h2 className="text-sm font-semibold">Fotos</h2>
+          <p className="text-xs text-muted-foreground">El cartel es la imagen principal (aparece al compartir el link). La galería rota en la página, en el orden que aquí la dejes. Las fotos se reducen solas para que carguen rápido.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {flyer ? <img src={flyer} alt="Cartel" className="h-28 w-20 rounded-lg border object-cover" /> : <div className="grid h-28 w-20 place-items-center rounded-lg border text-xs text-muted-foreground">Sin cartel</div>}
+          <label className="cursor-pointer rounded-lg border px-4 py-2 text-sm">
+            {uploading ? 'Subiendo…' : 'Cambiar cartel'}
+            <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={async e => { const u = await upload(e.target.files); e.target.value = ''; if (u[0]) { setFlyer(u[0]); toast.success('Cartel listo. Recuerda guardar') } }} />
+          </label>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {photos.map((ph, i) => (
+            <div key={ph.src + i} className="overflow-hidden rounded-lg border">
+              <img src={ph.src} alt={ph.alt ?? ''} className="aspect-[4/3] w-full object-cover" />
+              <div className="flex gap-1 p-1.5 text-xs">
+                <button type="button" onClick={() => movePhoto(i, -1)} className="rounded border px-2 py-1">←</button>
+                <button type="button" onClick={() => movePhoto(i, 1)} className="rounded border px-2 py-1">→</button>
+                <button type="button" onClick={() => setPhotos(a => a.filter((_, k) => k !== i))} className="ml-auto rounded border px-2 py-1 text-red-500">Quitar</button>
+              </div>
+            </div>
+          ))}
+          <label className="grid aspect-[4/3] cursor-pointer place-items-center rounded-lg border border-dashed text-center text-sm text-muted-foreground">
+            {uploading ? 'Subiendo…' : '+ Agregar fotos'}
+            <input type="file" accept="image/*" multiple className="hidden" disabled={uploading} onChange={async e => { const u = await upload(e.target.files); e.target.value = ''; if (u.length) { setPhotos(a => [...a, ...u.map(src => ({ src }))]); toast.success('Fotos listas. Recuerda guardar') } }} />
+          </label>
+        </div>
       </section>
 
       <section className="space-y-4 rounded-xl border p-5">
@@ -98,7 +165,7 @@ function Editor({ ev, baseUrl }: { ev: Ev; baseUrl: string }) {
   )
 }
 
-export function EventoClient({ events, baseUrl }: { events: Ev[]; baseUrl: string }) {
+export function EventoClient({ events, baseUrl, orgId }: { events: Ev[]; baseUrl: string; orgId: string }) {
   if (!events.length) return <p className="text-sm text-muted-foreground">Aún no hay un evento creado.</p>
-  return <>{events.map(e => <Editor key={e.id} ev={e} baseUrl={baseUrl} />)}</>
+  return <>{events.map(e => <Editor key={e.id} ev={e} baseUrl={baseUrl} orgId={orgId} />)}</>
 }

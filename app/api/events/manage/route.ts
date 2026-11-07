@@ -25,6 +25,12 @@ export async function POST(req: Request) {
   const racePrices = packages.filter((p: { kind: string }) => p.kind === 'race').map((p: { price: number }) => p.price)
   if (!racePrices.length) return NextResponse.json({ error: 'Agrega al menos un paquete de carrera con precio' }, { status: 400 })
 
+  // Fotos: solo URLs https (las que sube el panel a Storage o las ya existentes de la página)
+  const okUrl = (u: unknown) => typeof u === 'string' && /^(https:\/\/|\/events\/)/.test(u) && u.length < 600
+  const gallery = (Array.isArray(b.gallery) ? b.gallery : []).filter((g: { src?: unknown }) => okUrl(g?.src)).slice(0, 30)
+    .map((g: { src: string; alt?: unknown }) => ({ src: g.src, alt: clean(g.alt, 120) || title }))
+  const image_url = okUrl(b.image_url) ? String(b.image_url) : null
+
   const capacity = Number(b.capacity)
   const db = createServiceClient()
   const { error, data } = await db.from('events').update({
@@ -38,6 +44,8 @@ export async function POST(req: Request) {
     is_open: !!b.is_open,
     price: Math.min(...racePrices),
     packages,
+    gallery,
+    ...(image_url ? { image_url } : {}),
   }).eq('id', clean(b.id, 64)).eq('organization_id', organization.id).select('slug').maybeSingle()
   if (error) return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Evento no encontrado' }, { status: 404 })
