@@ -9,6 +9,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/unanswered-chats",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/cron/deposit-timeout",
       "schedule": "*/5 * * * *"
     },

@@ -69,6 +69,19 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
 
   if (!conversation) return 'Error interno. Por favor intenta de nuevo.'
 
+  // Candado por conversación: si otro mensaje del mismo cliente se está procesando, espera su turno
+  // (así ve la respuesta anterior en el historial y no contesta en paralelo ni se contradice).
+  const orgNN = org
+  const locked = await acquireConversationLock(db, conversation.id)
+  try {
+    return await runLocked()
+  } finally {
+    if (locked) await db.from('conversations').update({ processing_until: null }).eq('id', conversation.id)
+  }
+
+  async function runLocked(): Promise<string> {
+  if (!conversation) return ''
+  const org = orgNN
   // Historial reciente (últimos 30 mensajes). Un pedido completo ocupa más de 10, y con
   // una ventana corta el bot olvidaba el platillo antes de confirmar.
   const { data: history } = await db
@@ -187,4 +200,22 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   await db.from('conversations').update({ last_message_at: new Date().toISOString() }).eq('id', conversation.id)
 
   return text
+  }
+}
+
+/** Toma el candado de la conversación (atómico). Espera hasta ~30 s a que se libere; si no se puede, sigue sin él. */
+async function acquireConversationLock(db: ReturnType<typeof createServiceClient>, conversationId: string): Promise<boolean> {
+  const deadline = Date.now() + 30_000
+  while (true) {
+    const now = new Date()
+    const { data, error } = await db.from('conversations')
+      .update({ processing_until: new Date(now.getTime() + 60_000).toISOString() })
+      .eq('id', conversationId)
+      .or(`processing_until.is.null,processing_until.lt.${now.toISOString()}`)
+      .select('id')
+    if (error) return false // columna aún no migrada: se sigue sin candado
+    if (data && data.length) return true
+    if (Date.now() > deadline) return false
+    await new Promise(r => setTimeout(r, 1000))
+  }
 }
