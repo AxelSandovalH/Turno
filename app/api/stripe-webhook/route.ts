@@ -41,8 +41,20 @@ export async function POST(req: Request) {
         const regId = session.metadata.registration_id
         if (regId && session.payment_status === 'paid') {
           const { data: reg } = await db.from('event_registrations').update({ status: 'paid', paid_at: new Date().toISOString(), amount: (session.amount_total ?? 0) / 100 })
-            .eq('id', regId).neq('status', 'paid').select('full_name, email, kind, donation_amount, events(title, event_date, location)').maybeSingle()
+            .eq('id', regId).neq('status', 'paid').select('full_name, email, phone, kind, donation_amount, organization_id, events(title, event_date, location)').maybeSingle()
           const ev = (Array.isArray(reg?.events) ? reg?.events[0] : reg?.events) as { title: string; event_date: string; location: string | null } | undefined
+          // Aviso al organizador por WhatsApp: cada pago nuevo le llega al instante
+          if (reg?.organization_id) {
+            const { data: org } = await db.from('organizations').select('whatsapp_number, ultramsg_instance, ultramsg_token').eq('id', reg.organization_id).maybeSingle()
+            if (org?.whatsapp_number) {
+              const total = (session.amount_total ?? 0) / 100
+              await sendMessage(
+                `${org.whatsapp_number}@c.us`,
+                `💰 *${reg.kind === 'donation' ? 'Nueva donación' : 'Nueva inscripción pagada'}*\n🏁 ${ev?.title ?? 'Evento'}\n👤 ${reg.full_name}${reg.phone ? `\n📞 ${reg.phone}` : ''}\n💵 $${total.toLocaleString('es-MX')} MXN`,
+                { instance: org.ultramsg_instance, token: org.ultramsg_token }
+              ).catch(err => console.error('[events] aviso al organizador falló', err))
+            }
+          }
           if (reg?.email && ev) {
             const when = new Date(ev.event_date).toLocaleString('es-MX', { dateStyle: 'full', timeStyle: 'short', timeZone: 'America/Mexico_City' })
             const isDonation = reg.kind === 'donation'
