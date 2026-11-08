@@ -262,3 +262,19 @@ export const handoffTools: Tool[] = [
     },
   },
 ]
+
+// Farmacia: reservas pagadas desde los sitios web del negocio (se registran vía /api/integrations/web-payment)
+export const webPaymentTools: Tool[] = [
+  {
+    name: 'find_website_payment',
+    description: 'Busca pagos de anticipo hechos por este cliente en el sitio web del negocio en los últimos 10 días. Úsala cuando el cliente diga que ya pagó un depósito o anticipo en el sitio web. Busca por el teléfono de la conversación y por el nombre o correo que le des.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        customer_name: { type: 'string', description: 'Nombre del cliente tal como lo dijo (opcional).' },
+        customer_email: { type: 'string', description: 'Correo con el que pagó (opcional).' },
+      },
+      required: [],
+    },
+  },
+]

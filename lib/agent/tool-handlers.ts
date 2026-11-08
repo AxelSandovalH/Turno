@@ -507,6 +507,26 @@ export async function handleTool(toolName: string, input: Record<string, string>
       return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, ...depositResult })
     }
 
+    case 'find_website_payment': {
+      const since = new Date(Date.now() - 10 * 86400000).toISOString()
+      const { data: rows } = await db.from('web_bookings')
+        .select('service_name, customer_name, customer_phone, customer_email, booking_date, booking_time, location, currency, paid_amount, total_amount, status, created_at')
+        .eq('organization_id', ctx.organizationId).in('status', ['pending', 'scheduled']).gte('created_at', since)
+        .order('created_at', { ascending: false }).limit(30)
+      const last10 = (v: string | null | undefined) => String(v ?? '').replace(/\D/g, '').slice(-10)
+      const me = last10(ctx.customerPhone)
+      const nm = String(input.customer_name ?? '').trim().toLowerCase()
+      const em = String(input.customer_email ?? '').trim().toLowerCase()
+      const words = nm.split(/\s+/).filter(w => w.length > 2)
+      const found = (rows ?? []).filter(r =>
+        (me.length >= 8 && last10(r.customer_phone) === me) ||
+        (em && String(r.customer_email ?? '').toLowerCase() === em) ||
+        (words.length >= 2 && words.every(w => String(r.customer_name ?? '').toLowerCase().includes(w)))
+      ).map(r => ({ servicio: r.service_name, anticipo_pagado: `${Number(r.paid_amount).toFixed(2)} ${String(r.currency).toUpperCase()}`, total_del_servicio: r.total_amount != null ? Number(r.total_amount) : null, fecha: r.booking_date, hora: r.booking_time, ubicacion: r.location, estado: r.status }))
+      if (!found.length) return JSON.stringify({ found: false, note: 'No hay un pago del sitio web con esos datos. No lo contradigas: dile que lo verificas con el equipo y usa handoff_to_owner.' })
+      return JSON.stringify({ found: true, payments: found, note: 'El anticipo ya está pagado: NO generes otro link ni lo cobres de nuevo. El saldo se paga después del servicio. Recopila lo que falte para agendarlo y pásaselo al equipo con handoff_to_owner.' })
+    }
+
     case 'get_customer_appointments': {
       const { customer_phone } = input
 
