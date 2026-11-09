@@ -2,6 +2,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 export interface SalesConfig {
   enabled: boolean
+  /** Contestar a quien escribe por su cuenta (independiente de 'enabled', que es el envío automático). Si la columna aún no existe se asume true. */
+  inbound_enabled?: boolean
   run_until: string | null
   last_run_at: string | null
   last_run_result: string | null

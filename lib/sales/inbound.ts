@@ -19,7 +19,8 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   if (!creds) return false
   // El dueño consulta el estado aunque el agente esté apagado
   if (isOwnerPhone(args.phone, cfg)) return handleOwnerInbound({ text: args.text, phone: args.phone, cfg, creds })
-  if (!cfg.enabled) return false
+  // 'enabled' es solo el envío automático a prospectos: contestar a quien escribe depende de inbound_enabled
+  if (cfg.inbound_enabled === false) return false
 
   const db = createServiceClient()
   let { data: prospect } = await db.from('prospects').select('id, status, phone').eq('phone_key', phoneKey(args.phone)).maybeSingle()
