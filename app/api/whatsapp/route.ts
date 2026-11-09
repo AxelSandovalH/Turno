@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { handleManualMessage } from '@/lib/manual-takeover'
 import { fetchImage } from '@/lib/media'
+import { transcribeAudio } from '@/lib/transcribe'
 import { isOwnerPhone, handleOwnerDecision, handleOwnerLinkCommand, waId } from '@/lib/payment-links'
 import { handleOwnerAnswer, getOpenConcierge } from '@/lib/owner-consults'
 import { trialBlocksBot } from '@/lib/trial'
@@ -83,6 +84,13 @@ export async function POST(req: Request) {
         console.log('[whatsapp] duplicate msgId, skipping:', msgId)
         return NextResponse.json({ ok: true })
       }
+    }
+
+    // Notas de voz: se transcriben con Whisper y el texto sigue el flujo normal (si falla, queda el aviso de que no se pudo escuchar)
+    if (['audio', 'ptt', 'voice'].includes(msg.type)) {
+      const audioUrl = isUrl(msg.media) ? msg.media : isUrl(rawBody) ? rawBody : ''
+      const heard = audioUrl ? await transcribeAudio(audioUrl) : null
+      if (heard) text = `[Mensaje de voz del cliente, transcrito] ${heard}`
     }
 
     // Agente de ventas: si quien escribe es un prospecto cargado en la línea de ventas, lo atiende ventas
