@@ -22,8 +22,17 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   if (!cfg.enabled) return false
 
   const db = createServiceClient()
-  const { data: prospect } = await db.from('prospects').select('id, status, phone').eq('phone_key', phoneKey(args.phone)).maybeSingle()
-  if (!prospect) return false
+  let { data: prospect } = await db.from('prospects').select('id, status, phone').eq('phone_key', phoneKey(args.phone)).maybeSingle()
+  if (!prospect) {
+    // Alguien nuevo escribe a la línea de ventas por su cuenta (p. ej. desde un anuncio): se registra como prospecto y lo atiende ventas
+    if (isAutoReply(args.text)) return true
+    const { data: created } = await db.from('prospects').insert({
+      name: 'Interesado en QuickTurno', phone: args.phone, phone_key: phoneKey(args.phone), segment: 'other', source: 'whatsapp-entrante', status: 'new',
+      notes: 'Escribió por su cuenta a la línea de ventas',
+    }).select('id, status, phone').single()
+    if (!created) return false
+    prospect = created
+  }
   // Ya es cliente: lo atiende su negocio, no ventas
   if (prospect.status === 'won') return false
   // Pidió que no le escribamos: se respeta en silencio
