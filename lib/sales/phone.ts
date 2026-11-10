@@ -19,6 +19,9 @@ const OPT_OUT = [
   /\b(quít|quit|elimin|bórr|borr)\w*\s+(me|mi\s+n[uú]mero|mi\s+contacto|de\s+(su|la)\s+lista)/i,
   /\b(spam|acoso|denunci|profeco|bloque)\w*/i,
   /\bno\s+gracias\b/i,
+  /\b(don'?t|do\s+not|please\s+don'?t|never)\s+(message|text|contact|write|call)\b/i,
+  /\b(unsubscribe|remove\s+me|leave\s+me\s+alone|stop\s+(messaging|texting|contacting|writing))\b/i,
+  /\bnot\s+interested\b/i,
 ]
 export function isOptOut(text: string): boolean {
   const t = text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()

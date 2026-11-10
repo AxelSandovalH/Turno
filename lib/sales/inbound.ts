@@ -63,7 +63,7 @@ export async function handleSalesInbound(args: { instanceId: string; phone: stri
   // Pedir que no le escriban se atiende sin IA y de inmediato
   if (isOptOut(args.text)) {
     await db.from('prospects').update({ status: 'opted_out' }).eq('id', prospect.id)
-    const bye = 'Entendido, no te volveremos a escribir. Disculpa la molestia y que tengas excelente día.'
+    const bye = optOutReply(args.text)
     await db.from('prospect_messages').insert({ prospect_id: prospect.id, role: 'assistant', kind: 'chat', content: bye })
     await sendMessage(prospect.phone, bye, creds)
     return true
@@ -119,7 +119,7 @@ export async function handleDemoLineInbound(args: { orgId: string; phone: string
 
   if (isOptOut(args.text)) {
     await db.from('prospects').update({ status: 'opted_out' }).eq('id', prospect.id)
-    const bye = 'Entendido, no te volveremos a escribir. Disculpa la molestia y que tengas excelente día.'
+    const bye = optOutReply(args.text)
     await db.from('prospect_messages').insert({ prospect_id: prospect.id, role: 'assistant', kind: 'chat', content: bye })
     await sendMessage(prospect.phone, bye, args.creds)
     return true
@@ -129,4 +129,12 @@ export async function handleDemoLineInbound(args: { orgId: string; phone: string
   const reply = await runSalesAgent(prospect.id, cfg)
   if (reply) await sendMessage(prospect.phone, reply, args.creds)
   return true
+}
+
+/** Despedida al darse de baja, en el idioma de quien escribió (inglés si se nota, español por defecto). */
+function optOutReply(text: string): string {
+  const en = /\b(stop|don'?t|do not|unsubscribe|leave me|not interested|remove me|please|the|and|you)\b/i.test(text) && !/[áéíóúñ¿¡]/i.test(text)
+  return en
+    ? "Understood, we won't message you again. Sorry for the bother, and have a great day."
+    : 'Entendido, no te volveremos a escribir. Disculpa la molestia y que tengas excelente día.'
 }
