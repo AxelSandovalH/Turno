@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getOrgClip, createClipCheckout } from '@/lib/clip'
 
 const PENDING_HOLD_MIN = 30
 const MIN_DONATION = 20
@@ -71,6 +72,20 @@ export async function POST(req: Request) {
       ...(racePrice > 0 ? [{ quantity: 1, price_data: { currency, unit_amount: Math.round(racePrice * 100), product_data: { name: `Inscripción${packageName ? ` ${packageName}` : ''} — ${ev.title}`, description: full_name } } }] : []),
       ...(donation > 0 ? [{ quantity: 1, price_data: { currency, unit_amount: Math.round(donation * 100), product_data: { name: `Donación — ${ev.title}`, description: isRun ? full_name : `${packageName} · ${full_name}` } } }] : []),
     ]
+    // Si el organizador conectó su cuenta de Clip, la inscripción se cobra por Clip (directo a su cuenta)
+    const clip = await getOrgClip(ev.organization_id)
+    if (clip) {
+      const link = await createClipCheckout(clip.token, {
+        amount: racePrice + donation, currency,
+        description: `${isRun ? `Inscripción${packageName ? ` ${packageName}` : ''}` : 'Donación'} — ${ev.title} — ${full_name}`,
+        webhookUrl: `${base}/api/clip-webhook`,
+        successUrl: `${base}/carrera/${ev.slug}/gracias${isRun ? '' : '?donacion=1'}`,
+        errorUrl: `${base}/carrera/${ev.slug}?cancelado=1`,
+        defaultUrl: `${base}/carrera/${ev.slug}`,
+      })
+      await db.from('event_registrations').update({ clip_payment_id: link.id }).eq('id', reg.id)
+      return NextResponse.json({ url: link.url })
+    }
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],

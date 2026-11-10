@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale'
 import { AccessButton } from './access-button'
 import { ReleaseLineButton } from './release-line-button'
 import { OrgStripeButton } from './org-stripe-button'
+import { OrgClipButton } from './org-clip-button'
 
 const STATUS_LABEL: Record<string, string> = {
   trialing: 'Trial',
@@ -24,20 +25,22 @@ const STATUS_COLOR: Record<string, string> = {
 async function getStats() {
   const db = createServiceClient()
 
-  const [{ data: orgs }, { count: totalAppointments }, { count: totalCustomers }, { data: stripeRows }] = await Promise.all([
+  const [{ data: orgs }, { count: totalAppointments }, { count: totalCustomers }, { data: stripeRows }, { data: clipRows }] = await Promise.all([
     db.from('organizations').select('id, name, slug, whatsapp_number, email, subscription_status, trial_ends_at, created_at, stripe_subscription_id, paid_until, ultramsg_instance').order('created_at', { ascending: false }),
     db.from('appointments').select('id', { count: 'exact', head: true }),
     db.from('customers').select('id', { count: 'exact', head: true }),
     // Solo se lee si hay cuenta propia y si es real; las llaves nunca salen del servidor
     db.from('org_stripe_accounts').select('organization_id, livemode'),
+    db.from('org_clip_accounts').select('organization_id, livemode'),
   ])
   const stripeAccts = new Map<string, boolean>((stripeRows ?? []).map(r => [r.organization_id as string, !!r.livemode]))
+  const clipAccts = new Map<string, boolean>((clipRows ?? []).map(r => [r.organization_id as string, !!r.livemode]))
 
-  return { orgs: orgs ?? [], totalAppointments: totalAppointments ?? 0, totalCustomers: totalCustomers ?? 0, stripeAccts }
+  return { orgs: orgs ?? [], totalAppointments: totalAppointments ?? 0, totalCustomers: totalCustomers ?? 0, stripeAccts, clipAccts }
 }
 
 export default async function AdminPage() {
-  const { orgs, totalAppointments, totalCustomers, stripeAccts } = await getStats()
+  const { orgs, totalAppointments, totalCustomers, stripeAccts, clipAccts } = await getStats()
 
   const byStatus = orgs.reduce<Record<string, number>>((acc, o) => {
     acc[o.subscription_status] = (acc[o.subscription_status] ?? 0) + 1
@@ -85,6 +88,7 @@ export default async function AdminPage() {
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Acceso</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Línea WhatsApp</th>
                 <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Stripe propio</th>
+                <th className="text-left px-4 py-2.5 text-xs text-muted-foreground font-medium">Clip (eventos)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -115,12 +119,15 @@ export default async function AdminPage() {
                   </td>
                   <td className="px-4 py-3">
                     <OrgStripeButton id={org.id} name={org.name} connected={stripeAccts.has(org.id)} live={stripeAccts.get(org.id) ?? false} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <OrgClipButton id={org.id} name={org.name} connected={clipAccts.has(org.id)} live={clipAccts.get(org.id) ?? false} />
                   </td>
                 </tr>
               ))}
               {orgs.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground text-sm">
+                  <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground text-sm">
                     No hay organizaciones registradas.
                   </td>
                 </tr>
