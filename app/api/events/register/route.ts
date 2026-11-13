@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getOrgClip, createClipCheckout } from '@/lib/clip'
+import { markEventRegistrationPaid } from '@/lib/events-paid'
 
 const PENDING_HOLD_MIN = 30
 const MIN_DONATION = 20
@@ -68,6 +69,11 @@ export async function POST(req: Request) {
   try {
     const base = process.env.NEXT_PUBLIC_APP_URL
     const currency = ev.currency === 'usd' ? 'usd' : 'mxn'
+    // Inscripción gratuita (paquete de corredor en $0 y sin donación): no hay cobro, queda confirmada de inmediato
+    if (amount === 0) {
+      await markEventRegistrationPaid(db, reg.id, 0)
+      return NextResponse.json({ url: `${base}/carrera/${ev.slug}/gracias` })
+    }
     const items = [
       ...(racePrice > 0 ? [{ quantity: 1, price_data: { currency, unit_amount: Math.round(racePrice * 100), product_data: { name: `Inscripción${packageName ? ` ${packageName}` : ''} — ${ev.title}`, description: full_name } } }] : []),
       ...(donation > 0 ? [{ quantity: 1, price_data: { currency, unit_amount: Math.round(donation * 100), product_data: { name: `Donación — ${ev.title}`, description: isRun ? full_name : `${packageName} · ${full_name}` } } }] : []),

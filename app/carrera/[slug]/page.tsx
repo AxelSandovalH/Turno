@@ -43,7 +43,7 @@ export default async function EventPage({ params, searchParams }: Props) {
   const when = date.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' })
   const time = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' })
   const fmt = (n: number) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: ev.currency === 'usd' ? 'USD' : 'MXN', maximumFractionDigits: 0 })
-  const packages = ((Array.isArray(ev.packages) ? ev.packages : []) as Pkg[]).filter(p => p?.name && p.price > 0)
+  const packages = ((Array.isArray(ev.packages) ? ev.packages : []) as Pkg[]).filter(p => p?.name && (p.price > 0 || p.kind === 'race'))
   const hasRace = packages.some(p => p.kind !== 'donation')
   const options: Pkg[] = hasRace || packages.length ? packages : [{ name: 'Inscripción', price: Number(ev.price), includes: [] }]
   if (!packages.length) options[0].kind = 'race'
@@ -59,7 +59,7 @@ export default async function EventPage({ params, searchParams }: Props) {
     <EventSlides
       slug={ev.slug} title={ev.title} subtitle={ev.subtitle} organizer={ev.organizer} description={ev.description}
       when={when} time={time} location={ev.location} fromLabel={fmt(from)}
-      flyer={ev.image_url} gallery={gallery} packages={options.map(o => ({ ...o, label: fmt(o.price) }))}
+      flyer={ev.image_url} gallery={gallery} packages={options.map(o => ({ ...o, label: o.price > 0 ? fmt(o.price) : 'Gratis' }))}
       closed={closed} raceFull={raceFull} currency={ev.currency} spotsLeft={spotsLeft} cancelado={!!cancelado} debug={!!debug}
     />
   )

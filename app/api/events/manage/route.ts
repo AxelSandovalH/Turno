@@ -16,14 +16,17 @@ export async function POST(req: Request) {
   if (isNaN(date.getTime())) return NextResponse.json({ error: 'La fecha no es válida' }, { status: 400 })
 
   const raw = Array.isArray(b.packages) ? b.packages : []
+  // El precio debe escribirse (0 vale para un paquete de carrera gratuito); las donaciones siempre llevan monto
   const packages = raw.slice(0, 20).map((p: Record<string, unknown>) => ({
     name: clean(p.name, 60),
     price: Math.round(Number(p.price) * 100) / 100,
     kind: p.kind === 'donation' ? 'donation' : 'race',
     includes: (Array.isArray(p.includes) ? p.includes : []).map((x: unknown) => clean(x, 90)).filter(Boolean).slice(0, 12),
-  })).filter((p: { name: string; price: number }) => p.name && p.price > 0)
+    typed: String(p.price ?? '').trim() !== '',
+  })).filter((p: { name: string; price: number; kind: string; typed: boolean }) => p.name && p.typed && (p.kind === 'race' ? p.price >= 0 : p.price > 0))
+    .map(({ typed: _typed, ...rest }: { typed: boolean }) => rest)
   const racePrices = packages.filter((p: { kind: string }) => p.kind === 'race').map((p: { price: number }) => p.price)
-  if (!racePrices.length) return NextResponse.json({ error: 'Agrega al menos un paquete de carrera con precio' }, { status: 400 })
+  if (!racePrices.length) return NextResponse.json({ error: 'Agrega al menos un paquete de carrera con precio (0 si es gratis)' }, { status: 400 })
 
   // Fotos: solo URLs https (las que sube el panel a Storage o las ya existentes de la página)
   const okUrl = (u: unknown) => typeof u === 'string' && /^(https:\/\/|\/events\/)/.test(u) && u.length < 600
@@ -42,7 +45,8 @@ export async function POST(req: Request) {
     event_date: date.toISOString(),
     capacity: Number.isFinite(capacity) && capacity > 0 ? Math.floor(capacity) : null,
     is_open: !!b.is_open,
-    price: Math.min(...racePrices),
+    // La columna exige precio > 0; con carrera gratuita guarda 1 (el precio real sale del paquete)
+    price: Math.min(...racePrices) || 1,
     packages,
     gallery,
     ...(image_url ? { image_url } : {}),

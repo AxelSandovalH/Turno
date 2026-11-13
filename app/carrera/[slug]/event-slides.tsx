@@ -504,7 +504,7 @@ export function EventSlides(p: SlidesProps) {
                         <div className="flex items-center gap-3 max-md:hidden">{bars(last)}<span className="text-[12px] font-medium tabular-nums text-white/50">{panels.length}/{panels.length}</span></div>
                         <div>
                           <h2 className="text-[2.2rem] font-semibold leading-[1.05] tracking-[-0.035em] max-md:hidden md:text-[2.8rem]">{mode === 'donate' ? 'Gracias por ayudar.' : 'Último paso.'}</h2>
-                          <p className="mt-2 text-[17px] leading-snug text-white/60 max-md:hidden">{mode === 'donate' ? 'Revisa tu aporte y completa el pago.' : 'Un par de datos más y apartas tu lugar al pagar.'}</p>
+                          <p className="mt-2 text-[17px] leading-snug text-white/60 max-md:hidden">{mode === 'donate' ? 'Revisa tu aporte y completa el pago.' : total > 0 ? 'Un par de datos más y apartas tu lugar al pagar.' : 'Un par de datos más y apartas tu lugar.'}</p>
                         </div>
                       </div>
                       {p.closed ? <p className="rounded-2xl bg-white/10 p-4 text-center font-medium">Las inscripciones están cerradas.</p> : (
@@ -555,13 +555,13 @@ export function EventSlides(p: SlidesProps) {
                             {mode === 'run' && form.birth_date && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Nacimiento</span><span>{form.birth_date.split('-').reverse().join('/')}</span></div>}
                             {mode === 'run' && form.emergency_name && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Emergencia</span><span className="truncate">{form.emergency_name}{form.emergency_phone ? ` · ${form.emergency_phone}` : ''}</span></div>}
                             {mode === 'run'
-                              ? <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Inscripción {chosen?.name}</span><span>{chosen ? money(chosen.price) : '—'}</span></div>
+                              ? <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Inscripción {chosen?.name}</span><span>{chosen ? (chosen.price > 0 ? money(chosen.price) : 'Gratis') : '—'}</span></div>
                               : <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Aporte {donPkg ? donPkg.name : ''}</span><span>{donAmount ? money(donAmount) : '—'}</span></div>}
                             {mode === 'run' && extraAmount > 0 && <div className="flex justify-between gap-4 py-3 max-md:py-1"><span className="text-white/55">Donación extra</span><span>{money(extraAmount)}</span></div>}
-                            <div className="flex items-baseline justify-between gap-4 py-4 text-xl max-md:py-2"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{money(total)}</b></div>
+                            <div className="flex items-baseline justify-between gap-4 py-4 text-xl max-md:py-2"><span className="font-semibold">Total</span><b className="font-semibold text-[#ffd60a]">{total > 0 ? money(total) : 'Gratis'}</b></div>
                           </div>
                           {payErr && <p className="px-1 text-[13px] text-[#ff9f0a]">{payErr}</p>}
-                          <button type="button" disabled={busy} onClick={pay} className={primary}>{busy ? 'Abriendo pago…' : `${mode === 'donate' ? 'Donar' : 'Pagar'} ${money(total)}`}</button>
+                          <button type="button" disabled={busy} onClick={pay} className={primary}>{busy ? (total > 0 ? 'Abriendo pago…' : 'Inscribiendo…') : total > 0 ? `${mode === 'donate' ? 'Donar' : 'Pagar'} ${money(total)}` : 'Inscribirme'}</button>
                           {p.cancelado && <p className="px-1 text-center text-[13px] text-white/50">El pago anterior no se completó. Puedes intentarlo de nuevo.</p>}
                           <button type="button" onClick={() => go(idx - 1)} className="mx-auto block pt-1 text-[15px] text-white/55 transition hover:text-white">‹ Atrás</button>
                         </div>
