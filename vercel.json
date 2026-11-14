@@ -28,5 +28,8 @@
       "path": "/api/cron/sales-outreach",
       "schedule": "*/15 * * * *"
     }
+  ],
+  "regions": [
+    "sfo1"
   ]
 }
