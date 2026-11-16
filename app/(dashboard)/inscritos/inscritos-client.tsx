@@ -15,7 +15,8 @@ export function InscritosClient({ events, regs, baseUrl }: { events: Ev[]; regs:
   const all = regs.filter(r => r.event_id === eventId)
   const paid = all.filter(r => r.status === 'paid')
   const runners = paid.filter(r => r.kind !== 'donation')
-  const donors = paid.filter(r => r.kind === 'donation')
+  // Quien donó: los que solo donaron y también los corredores que sumaron un donativo extra
+  const donors = paid.filter(r => Number(r.donation_amount ?? 0) > 0)
   const donated = paid.reduce((s, r) => s + Number(r.donation_amount ?? 0), 0)
   const rows = onlyPaid ? paid : all
   const total = paid.reduce((s, r) => s + Number(r.amount ?? 0), 0)
@@ -51,8 +52,8 @@ export function InscritosClient({ events, regs, baseUrl }: { events: Ev[]; regs:
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-xl border p-4"><p className="text-xs text-zinc-500">Corredores pagados</p><p className="text-2xl font-bold">{runners.length}{ev?.capacity ? <span className="text-sm font-normal text-zinc-500"> / {ev.capacity}</span> : null}</p></div>
-        <div className="rounded-xl border p-4"><p className="text-xs text-zinc-500">Recaudado</p><p className="text-2xl font-bold">{money(total)}</p></div>
-        <div className="rounded-xl border p-4"><p className="text-xs text-zinc-500">Donaciones</p><p className="text-2xl font-bold">{money(donated)}</p><p className="text-xs text-zinc-500">{donors.length} donantes</p></div>
+        <div className="rounded-xl border p-4"><p className="text-xs text-zinc-500">Total recaudado</p><p className="text-2xl font-bold">{money(total)}</p><p className="text-xs text-zinc-500">incluye donaciones</p></div>
+        <div className="rounded-xl border p-4"><p className="text-xs text-zinc-500">Donaciones</p><p className="text-2xl font-bold">{money(donated)}</p><p className="text-xs text-zinc-500">{donors.length} {donors.length === 1 ? 'persona' : 'personas'} · ya incluidas en el total</p></div>
         <div className="rounded-xl border p-4"><p className="text-xs text-zinc-500">Pendientes de pago</p><p className="text-2xl font-bold">{all.filter(r => r.status === 'pending').length}</p></div>
       </div>
 
