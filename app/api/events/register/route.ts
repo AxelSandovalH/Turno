@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
   const db = createServiceClient()
   const { data: ev } = await db.from('events').select('id, organization_id, slug, title, price, currency, capacity, is_open, event_date, packages').eq('slug', clean(b.slug, 80)).maybeSingle()
-  if (!ev || !ev.is_open || new Date(ev.event_date) < new Date()) return NextResponse.json({ error: 'Las inscripciones de este evento están cerradas' }, { status: 400 })
+  if (!ev || !ev.is_open) return NextResponse.json({ error: 'Las inscripciones de este evento están cerradas' }, { status: 400 })
 
   // Los precios salen siempre del servidor: del paquete elegido; la donación libre solo se valida en rango
   type Pk = { name: string; price: number; kind?: string }
@@ -31,6 +31,8 @@ export async function POST(req: Request) {
   const racePkgs = all.filter(x => x.kind !== 'donation')
   const donPkgs = all.filter(x => x.kind === 'donation')
   const mode = b.mode === 'donate' ? 'donate' : 'run'
+  // Pasada la fecha ya no se inscribe nadie a correr; las donaciones siguen abiertas si el evento tiene paquetes de donación
+  if (new Date(ev.event_date) < new Date() && (mode === 'run' || !donPkgs.length)) return NextResponse.json({ error: 'Las inscripciones a la carrera ya cerraron' }, { status: 400 })
   const typed = Math.round(Number(b.donation_amount) || 0)
   if (typed < 0 || typed > MAX_DONATION) return NextResponse.json({ error: `La donación debe ser de ${MIN_DONATION} a ${MAX_DONATION} pesos` }, { status: 400 })
 

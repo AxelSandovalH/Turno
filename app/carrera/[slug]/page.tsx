@@ -51,8 +51,10 @@ export default async function EventPage({ params, searchParams }: Props) {
   const from = racePrices.length ? Math.min(...racePrices) : Math.min(...options.map(o => o.price))
   const hasDonations = options.some(o => o.kind === 'donation')
   // Lugares agotados cierra solo la carrera: las donaciones siguen abiertas
-  const raceFull = spotsLeft === 0
-  const closed = !ev.is_open || date < new Date() || (raceFull && !hasDonations)
+  // Pasada la fecha del evento la carrera cierra, pero las donaciones siguen abiertas mientras el organizador las deje activas
+  const racePast = date < new Date()
+  const raceFull = spotsLeft === 0 || racePast
+  const closed = !ev.is_open || (raceFull && !hasDonations)
   const gallery = (Array.isArray(ev.gallery) ? ev.gallery : []) as { src: string; alt?: string }[]
 
   return (
@@ -60,7 +62,7 @@ export default async function EventPage({ params, searchParams }: Props) {
       slug={ev.slug} title={ev.title} subtitle={ev.subtitle} organizer={ev.organizer} description={ev.description}
       when={when} time={time} location={ev.location} fromLabel={fmt(from)}
       flyer={ev.image_url} gallery={gallery} packages={options.map(o => ({ ...o, label: o.price > 0 ? fmt(o.price) : 'Gratis' }))}
-      closed={closed} raceFull={raceFull} currency={ev.currency} spotsLeft={spotsLeft} cancelado={!!cancelado} debug={!!debug}
+      closed={closed} raceFull={raceFull} racePast={racePast} currency={ev.currency} spotsLeft={spotsLeft} cancelado={!!cancelado} debug={!!debug}
     />
   )
 }

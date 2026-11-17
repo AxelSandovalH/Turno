@@ -17,7 +17,7 @@ export interface SlidesProps {
   slug: string; title: string; subtitle: string | null; organizer: string | null; description: string | null
   when: string; time: string; location: string | null; fromLabel: string
   flyer: string | null; gallery: Photo[]; packages: PkgOption[]
-  closed: boolean; raceFull: boolean; currency: string; spotsLeft: number | null; cancelado: boolean; debug?: boolean
+  closed: boolean; raceFull: boolean; racePast?: boolean; currency: string; spotsLeft: number | null; cancelado: boolean; debug?: boolean
 }
 
 const CSS = () => `
@@ -294,7 +294,7 @@ export function EventSlides(p: SlidesProps) {
           </div>
           {name === 'hero' && !kb && racePkgs.length > 0 && donPkgs.length > 0 && (
             <div className="grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1 text-[14px] font-semibold">
-              <button type="button" disabled={p.raceFull} onClick={() => setMode('run')} className={`rounded-full py-2 transition disabled:opacity-40 ${mode === 'run' ? 'bg-white text-black' : 'text-white/75'}`}>{p.raceFull ? 'Lugares agotados' : 'Voy a correr'}</button>
+              <button type="button" disabled={p.raceFull} onClick={() => setMode('run')} className={`rounded-full py-2 transition disabled:opacity-40 ${mode === 'run' ? 'bg-white text-black' : 'text-white/75'}`}>{p.racePast ? 'Carrera finalizada' : p.raceFull ? 'Lugares agotados' : 'Voy a correr'}</button>
               <button type="button" onClick={() => setMode('donate')} className={`rounded-full py-2 transition ${mode === 'donate' ? 'bg-white text-black' : 'text-white/75'}`}>Solo quiero donar</button>
             </div>
           )}
@@ -380,6 +380,7 @@ export function EventSlides(p: SlidesProps) {
                     {p.organizer && !kb && <p data-a style={{ ['--i' as string]: 0 }} className="text-[12px] font-semibold uppercase tracking-[0.22em] text-[#ffd60a] md:text-[13px]">{p.organizer}</p>}
                     <h1 data-a style={{ ['--i' as string]: 1 }} className={`font-semibold leading-[.95] tracking-[-0.05em] ${kb ? 'text-[2.6rem]' : 'mt-1 text-[3.6rem] md:mt-4 md:text-[clamp(3.6rem,13vw,9.5rem)]'}`}>{p.title}</h1>
                     {p.subtitle && !kb && <p data-a style={{ ['--i' as string]: 2 }} className="mx-auto mt-4 max-w-xl text-xl text-white/80 max-md:hidden md:text-2xl">{p.subtitle}</p>}
+                    {p.racePast && !p.closed && !kb && <p data-a style={{ ['--i' as string]: 3 }} className="mt-2 text-[15px] font-medium text-[#ffd60a]">La carrera ya se realizó. Aún puedes donar.</p>}
                     {!kb && <p data-a style={{ ['--i' as string]: 3 }} className="mt-2 text-[16px] text-white/75 md:mt-3 md:text-[17px]">{dateLine}<span className="max-md:hidden">{p.location ? ` · ${p.location}` : ''}</span></p>}
                     {p.spotsLeft !== null && p.spotsLeft > 0 && p.spotsLeft <= 50 && !kb && <p data-a style={{ ['--i' as string]: 4 }} className="mt-2 text-sm text-[#ffd60a]">Quedan {p.spotsLeft} lugares</p>}
                   </div>
