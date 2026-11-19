@@ -2,6 +2,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { wasSentBySystem } from '@/lib/outbound-log'
 import { sendMessage } from '@/lib/ultramsg'
 import { waId } from '@/lib/payment-links'
+import { handleSalesManualMessage, pauseSalesProspect } from '@/lib/sales/takeover'
+import { isDemoOrg } from '@/lib/sales/inbound'
 
 const RESUME = /^[/#]bot\b/i
 
@@ -17,10 +19,15 @@ export async function handleManualMessage(body: { instanceId?: string; instance_
   const phone = to.replace('@c.us', '').replace(/\D/g, '')
   if (!phone) return
 
+  // Línea de ventas: si escribes a mano a un prospecto, el agente de ventas se calla en ese chat
+  if (await handleSalesManualMessage(instanceId, msg)) return
+
   const db = createServiceClient()
   const candidates = instanceId.startsWith('instance') ? [instanceId, instanceId.replace(/^instance/, '')] : [instanceId, `instance${instanceId}`]
-  const { data: org } = await db.from('organizations').select('id, bot_pause_hours, whatsapp_number, ultramsg_instance, ultramsg_token').in('ultramsg_instance', candidates).maybeSingle()
+  const { data: org } = await db.from('organizations').select('id, slug, name, bot_pause_hours, whatsapp_number, ultramsg_instance, ultramsg_token').in('ultramsg_instance', candidates).maybeSingle()
   if (!org) { console.log('[manual-takeover] ignorado: la instancia', instanceId, 'no es la línea de ningún negocio'); return } // p. ej. la línea de ventas
+  // La línea de un negocio de demostración también atiende al agente de ventas: ahí también se calla
+  if (isDemoOrg(org)) await pauseSalesProspect(instanceId, msg).catch(err => console.error('[sales-takeover] falló', err))
   // Aviso al responsable (no al cliente): así se ve que el comando funcionó
   const ownerTo = org.whatsapp_number && org.whatsapp_number.replace(/\D/g, '').slice(-10) !== phone.slice(-10) ? `${waId(org.whatsapp_number)}@c.us` : null
   const notify = (text: string) => ownerTo ? sendMessage(ownerTo, text, { instance: org.ultramsg_instance, token: org.ultramsg_token }).catch(() => {}) : Promise.resolve()
