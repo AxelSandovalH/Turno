@@ -1,19 +1,20 @@
 -- DEMO para presentarle QuickTurno a Ultra Costa Trail: página /carrera/camino-al-mictlan-demo
 -- (Camino al Mictlán, 27 feb 2027, Playa Las Palmitas, Manzanillo). Datos tomados de su página pública y su Instagram.
--- 1) Regístrate en /register con el correo que quieras usar para la demo (cualquier giro).
--- 2) Cambia v_email por ese correo y corre este script. Se puede correr más de una vez.
+-- 1) Regístrate en /register con el correo ultracostatrail@quickturno.app, y como nombre del negocio "Ultra Costa Trail" (cualquier giro).
+--    Si ese correo no recibe mensajes y la cuenta pide confirmarlo, usa un alias tuyo de Gmail (tucorreo+ultracostatrail@gmail.com) y cámbialo en v_email.
+-- 2) Corre este script. Se puede correr más de una vez.
 -- OJO: sin Clip conectado, los pagos de la demo van al Stripe de la plataforma. Muéstrala tú y no la compartas abierta.
 -- Para cerrarla: desactiva las inscripciones en el panel de Evento o pon is_open = false.
 do $$
 declare
-  v_email text := 'CAMBIA-ESTE-CORREO@gmail.com';
+  v_email text := 'ultracostatrail@quickturno.app';
   v_org uuid;
   v_user uuid;
 begin
   select (u.raw_user_meta_data->>'organization_id')::uuid, u.id into v_org, v_user from auth.users u where lower(u.email) = lower(v_email);
   if v_org is null then raise exception 'Ese correo aún no se registra (%)', v_email; end if;
 
-  update public.organizations set business_type = 'events', subscription_status = 'active', whatsapp_bot_enabled = false where id = v_org;
+  update public.organizations set name = 'Ultra Costa Trail', business_type = 'events', subscription_status = 'active', whatsapp_bot_enabled = false where id = v_org;
   if not exists (select 1 from public.staff where organization_id = v_org and is_owner) then
     insert into public.staff (organization_id, user_id, name, role, is_owner, is_active)
     select v_org, v_user, o.name, 'Organizador', true, true from public.organizations o where o.id = v_org;
