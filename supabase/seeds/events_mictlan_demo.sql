@@ -33,8 +33,7 @@ begin
       {"name": "23 km", "price": 720, "includes": ["Desnivel positivo de 980 m", "Playera conmemorativa", "Número con chip de cronometraje", "Medalla de finalista", "Hidratación en ruta y meta", "Servicio médico"]}
     ]'::jsonb,
     gallery = '[
-      {"src": "/events/mictlan/corredores-playa.jpg", "alt": "Corredores de trail en la playa"},
-      {"src": "/events/mictlan/cartel.jpg", "alt": "Cartel de Camino al Mictlán"}
+      {"src": "/events/mictlan/corredores-playa.jpg", "alt": "Corredores de trail en la playa", "pos": "center 80%"}
     ]'::jsonb
   where slug = 'camino-al-mictlan-demo';
 end $$;

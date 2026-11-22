@@ -55,7 +55,7 @@ export default async function EventPage({ params, searchParams }: Props) {
   const racePast = date < new Date()
   const raceFull = spotsLeft === 0 || racePast
   const closed = !ev.is_open || (raceFull && !hasDonations)
-  const gallery = (Array.isArray(ev.gallery) ? ev.gallery : []) as { src: string; alt?: string }[]
+  const gallery = (Array.isArray(ev.gallery) ? ev.gallery : []) as { src: string; alt?: string; pos?: string }[]
 
   return (
     <EventSlides

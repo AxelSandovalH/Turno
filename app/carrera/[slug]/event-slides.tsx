@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-interface Photo { src: string; alt?: string }
+interface Photo { src: string; alt?: string; pos?: string }
 export interface PkgOption { name: string; price: number; label: string; includes?: string[]; kind?: 'race' | 'donation' }
 
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
@@ -367,8 +367,9 @@ export function EventSlides(p: SlidesProps) {
                 <div className="absolute inset-x-0 top-0 h-[calc(100dvh-300px)] overflow-hidden md:inset-0 md:h-auto">
                   {p.gallery.map((g, k) => (
                     <div key={g.src} className={`es-bg absolute inset-0 overflow-hidden ${k === bg ? 'show opacity-100' : 'opacity-0'}`}>
+                      {/* pos = encuadre de la foto en pantalla ancha (p. ej. "center 80%" para no cortar los pies) */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={g.src} alt="" className="h-full w-full object-cover max-md:object-[center_20%]" />
+                      <img src={g.src} alt="" style={g.pos ? { ['--pos' as string]: g.pos } : undefined} className={`h-full w-full object-cover max-md:object-[center_20%] ${g.pos ? 'md:[object-position:var(--pos)]' : ''}`} />
                     </div>
                   ))}
                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(7,9,7,.3),rgba(7,9,7,.8)_75%)] max-md:hidden" />
