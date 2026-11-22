@@ -58,8 +58,9 @@ export function EventSlides(p: SlidesProps) {
   // La historia es también el registro: cada panel le pide al corredor una sola cosa y el último cierra y cobra
   const story = ['hero', ...(photoPanels[0] ? ['fotos0'] : []), 'info', ...(photoPanels[1] ? ['fotos1'] : [])]
   type Task = 'nombre' | 'telefono' | 'correo' | 'talla' | 'monto'
-  // Sin playera del evento: el corredor solo da nombre, teléfono y correo
-  const TASKS = (mode === 'donate' ? ['nombre', 'telefono', 'correo', 'monto'] : ['nombre', 'telefono', 'correo']) as readonly Task[]
+  // Si el paquete incluye playera se pide la talla; si no, el corredor solo da nombre, teléfono y correo
+  const wantsShirt = racePkgs.some(o => o.includes?.some(i => /playera/i.test(i)))
+  const TASKS = (mode === 'donate' ? ['nombre', 'telefono', 'correo', 'monto'] : ['nombre', 'telefono', 'correo', ...(wantsShirt ? ['talla'] : [])]) as readonly Task[]
   const taskOf: Record<string, Task> = {}
   story.forEach((n, i) => { if (TASKS[i]) taskOf[n] = TASKS[i] })
   const extraTasks = TASKS.filter(t => !Object.values(taskOf).includes(t))
@@ -511,6 +512,9 @@ export function EventSlides(p: SlidesProps) {
                       {p.closed ? <p className="rounded-2xl bg-white/10 p-4 text-center font-medium">Las inscripciones están cerradas.</p> : (
                         <div data-a style={{ ['--i' as string]: 1 }} className="space-y-3 max-md:space-y-2">
                           {extraTasks.filter(t => t !== 'talla').map(t => <div key={t}><p className="mb-1.5 px-1 text-[13px] text-white/50">{cfg[t].q}</p>{cfg[t].input}{showErr && errs[t] && <p className="mt-1.5 px-1 text-[13px] text-[#ff9f0a]">{errs[t]}</p>}</div>)}
+                          {mode === 'run' && extraTasks.includes('talla') && (
+                            <div><p className="mb-1.5 px-1 text-[13px] text-white/50">Talla de playera</p>{sizesRow()}</div>
+                          )}
                           {mode === 'run' && (<>
                             {donPkgs.length > 0 && (
                               <div>
