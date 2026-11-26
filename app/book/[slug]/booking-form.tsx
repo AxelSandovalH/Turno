@@ -32,7 +32,9 @@ const DAYS_AHEAD = 14
 export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount, currency = 'mxn', staffServices = {}, propertyMode = false, host = null }: Props) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [serviceId, setServiceId] = useState('')
-  const [staffId, setStaffId] = useState('')
+  // En limpieza se empieza con "Cualquiera disponible"
+  const [staffId, setStaffId] = useState(propertyMode ? 'any' : '')
+  const [assigned, setAssigned] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedSlot, setSelectedSlot] = useState('')
   const [slots, setSlots] = useState<string[]>([])
@@ -49,7 +51,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
   const [submitError, setSubmitError] = useState('')
 
   const selectedService = services.find(s => s.id === serviceId)
-  const selectedStaff   = staff.find(s => s.id === staffId)
+  const selectedStaff   = staff.find(s => s.id === staffId) ?? (assigned ? { id: '', name: assigned } : undefined)
   // Solo los profesionales que hacen el servicio elegido (sin límites configurados = todos)
   const canDo = (staffId: string, svcId: string) => !staffServices[staffId] || staffServices[staffId].includes(svcId)
   const eligible = serviceId ? staff.filter(s => canDo(s.id, serviceId)) : staff
@@ -116,6 +118,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
         setSubmitting(false)
         return
       }
+      if (propertyMode && data.staffName) setAssigned(data.staffName)
       if (data.requiresPayment && data.checkoutUrl) {
         window.location.href = data.checkoutUrl
         return
@@ -197,7 +200,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               {services.map(s => (
                 <button
                   key={s.id}
-                  onClick={() => { setServiceId(s.id); if (staffId && !canDo(staffId, s.id)) setStaffId('') }}
+                  onClick={() => { setServiceId(s.id); if (staffId && staffId !== 'any' && !canDo(staffId, s.id)) setStaffId(propertyMode ? 'any' : '') }}
                   className={`w-full text-left rounded-xl border transition-colors overflow-hidden flex items-stretch ${
                     serviceId === s.id
                       ? 'border-opacity-100 text-white'
@@ -235,7 +238,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
             <div className="space-y-2">
               <p className="text-sm font-medium">{staffTitle}</p>
               <div className="flex flex-wrap gap-2">
-                {eligible.map(s => (
+                {[...(propertyMode ? [{ id: 'any', name: 'Cualquiera disponible' }] : []), ...eligible].map(s => (
                   <button
                     key={s.id}
                     onClick={() => setStaffId(s.id)}
@@ -258,7 +261,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
 
           <button
             disabled={!canGoNext1 || !hasProperty}
-            onClick={() => { if (eligible.length === 1) setStaffId(eligible[0].id); setStep(2) }}
+            onClick={() => { if (eligible.length === 1 && staffId !== 'any') setStaffId(eligible[0].id); setStep(2) }}
             className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-40 text-white"
             style={{ background: accent }}
           >
@@ -330,7 +333,11 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               {loadingSlots ? (
                 <p className="text-sm text-zinc-500">Buscando disponibilidad...</p>
               ) : slots.length === 0 ? (
-                <p className="text-sm text-zinc-500">Sin horarios disponibles para este día. Elige otra fecha.</p>
+                <p className="text-sm text-zinc-500">
+                  {propertyMode
+                    ? `Con entrega a las ${to12h(deadline)} no hay un horario en el que alcance${selectedService ? ` un servicio de ${selectedService.duration_minutes >= 60 ? `${+(selectedService.duration_minutes / 60).toFixed(1)} h` : `${selectedService.duration_minutes} min`}` : ''}. Prueba una hora límite más tarde${staffId !== 'any' ? ', elige "Cualquiera disponible"' : ''} u otro día.`
+                    : 'Sin horarios disponibles para este día. Elige otra fecha.'}
+                </p>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {slots.map(slot => (

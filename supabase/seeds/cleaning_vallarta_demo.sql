@@ -28,7 +28,8 @@ begin
     name = v_name, slug = v_slug, business_type = 'cleaning', timezone = tz,
     subscription_status = 'active', is_active = true, whatsapp_bot_enabled = false,
     whatsapp_number = '520000000099', ultramsg_instance = 'instance000000-demo', ultramsg_token = 'demo-sin-envio',
-    deposit_enabled = false, currency = 'mxn'
+    deposit_enabled = false, currency = 'mxn',
+    logo_url = 'https://www.quickturno.app/demo/limpieza-vallarta-logo.png'
   where id = v_org;
 
   delete from public.appointments where organization_id = v_org;
@@ -65,8 +66,8 @@ begin
 
   -- Anfitriones y propiedades (teléfonos imposibles a propósito)
   for r in select * from (values
-      ('Ana (anfitriona ejemplo)',    '5210000000001', 'Depa Olas Altas',     'Zona Romántica'),
-      ('Ana (anfitriona ejemplo)',    '5210000000001', 'Loft Púlpito',        'Zona Romántica'),
+      ('Omar',                         '5210000000001', 'Depa Olas Altas',     'Zona Romántica'),
+      ('Omar',                         '5210000000001', 'Loft Púlpito',        'Zona Romántica'),
       ('Bruno (anfitrión ejemplo)',   '5210000000002', 'Condo Marina 204',    'Marina Vallarta'),
       ('Bruno (anfitrión ejemplo)',   '5210000000002', 'Condo Marina 310',    'Marina Vallarta'),
       ('Carla (anfitriona ejemplo)',  '5210000000003', 'Casa Jacarandas',     'Versalles'),

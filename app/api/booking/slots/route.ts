@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server'
-import { staffCanDo, serviceWindow, clampToWindow } from '@/lib/staff-services'
+import { staffSlots } from '@/lib/booking-slots'
+import { hasCapability } from '@/lib/profiles/registry'
 import { createServiceClient } from '@/lib/supabase/service'
-import { addMinutes, parseISO } from 'date-fns'
-import { fromZonedTime, toZonedTime, format } from 'date-fns-tz'
 
 // Public endpoint for the booking page: returns available slot labels (HH:mm)
 // for a given org/staff/service/date. Server-side so RLS stays closed and
 // appointment data never reaches the browser.
-
-const SLOT_INTERVAL = 30
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -26,7 +23,7 @@ export async function GET(req: Request) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, timezone')
+    .select('id, timezone, business_type')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
@@ -39,69 +36,16 @@ export async function GET(req: Request) {
     .eq('organization_id', org.id)
     .single()
   if (!service) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
-  if (!(await staffCanDo(db, staffId, serviceId))) return NextResponse.json({ slots: [] })
 
-  const tz = org.timezone
-  const localStart = fromZonedTime(`${date}T00:00:00`, tz)
-  const localEnd = fromZonedTime(`${date}T23:59:59`, tz)
-  const dayOfWeek = toZonedTime(localStart, tz).getDay()
-
-  const [{ data: schedules }, { data: existing }, { data: blocks }] = await Promise.all([
-    db.from('staff_schedules')
-      .select('start_time, end_time')
-      .eq('staff_id', staffId)
-      .eq('day_of_week', dayOfWeek)
-      .eq('is_working', true),
-    db.from('appointments')
-      .select('starts_at, ends_at')
-      .eq('staff_id', staffId)
-      .eq('status', 'confirmed')
-      .gte('starts_at', localStart.toISOString())
-      .lte('starts_at', localEnd.toISOString()),
-    db.from('time_blocks')
-      .select('starts_at, ends_at')
-      .eq('organization_id', org.id)
-      .or(`staff_id.eq.${staffId},staff_id.is.null`)
-      .lte('starts_at', localEnd.toISOString())
-      .gte('ends_at', localStart.toISOString()),
-  ])
-
-  if (!schedules || schedules.length === 0) return NextResponse.json({ slots: [] })
-
-  const slots: string[] = []
-  const now = new Date()
-  const win = await serviceWindow(db, staffId, serviceId)
-
-  // Un staff puede tener varios bloques el mismo día (ej. horario partido:
-  // mañana y tarde) — cada fila de staff_schedules es un bloque independiente.
-  for (const schedule of schedules) {
-    // Postgres time comes as "09:00:00" — normalize to HH:mm
-    const clamped = clampToWindow(schedule.start_time.slice(0, 5), schedule.end_time.slice(0, 5), win)
-    if (!clamped) continue
-    const startTime = clamped.start
-    const endTime = clamped.end
-    const workStart = fromZonedTime(`${date}T${startTime}:00`, tz)
-    const workEnd = fromZonedTime(`${date}T${endTime}:00`, tz)
-
-    let cursor = workStart
-    while (cursor < workEnd) {
-      const slotEnd = addMinutes(cursor, service.duration_minutes)
-      if (slotEnd > workEnd) break
-
-      const isBooked = (existing ?? []).some(a =>
-        cursor < parseISO(a.ends_at) && slotEnd > parseISO(a.starts_at))
-      const isBlocked = (blocks ?? []).some(b =>
-        cursor < parseISO(b.ends_at) && slotEnd > parseISO(b.starts_at))
-
-      const afterDeadline = /^\d{2}:\d{2}$/.test(deadline) && slotEnd > fromZonedTime(`${date}T${deadline}:00`, tz)
-
-      if (!isBooked && !isBlocked && !afterDeadline && cursor > now) {
-        slots.push(format(toZonedTime(cursor, tz), 'HH:mm', { timeZone: tz }))
-      }
-      cursor = addMinutes(cursor, SLOT_INTERVAL)
-    }
+  // 'any' (solo limpieza): junta los horarios de todo el equipo
+  let staffIds = [staffId]
+  if (staffId === 'any') {
+    if (!hasCapability(org.business_type, 'properties')) return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
+    const { data: team } = await db.from('staff').select('id').eq('organization_id', org.id).eq('is_active', true)
+    staffIds = (team ?? []).map(s => s.id)
   }
 
-  slots.sort()
+  const perStaff = await Promise.all(staffIds.map(id => staffSlots(db, { organizationId: org.id, timezone: org.timezone, staffId: id, serviceId, duration: service.duration_minutes, date, deadline })))
+  const slots = [...new Set(perStaff.flat())].sort()
   return NextResponse.json({ slots })
 }

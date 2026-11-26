@@ -14,7 +14,7 @@ export default async function BotTestPage() {
         Chatea como si fueras un anfitrión con el botón <b>Probar el bot</b> (abajo a la derecha). No manda WhatsApp al cliente,
         pero las reservas que confirmes sí quedan en la agenda.
       </p>
-      <p className="max-w-xl text-sm text-muted-foreground">Chateas como el primer anfitrión registrado: el asistente ya conoce sus propiedades, pide la hora límite y asigna a quien esté libre.</p>
+      <p className="max-w-xl text-sm text-muted-foreground">Chateas como Omar, el primer anfitrión de la demo: el asistente ya conoce sus propiedades, pide la hora límite y asigna a quien esté libre.</p>
       <BotTester />
     </div>
   )

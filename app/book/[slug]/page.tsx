@@ -75,7 +75,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
 
   const accent = org.primary_color ?? '#7c3aed'
   const isMedical = isMedicalVertical(org.business_type)
-  const ctaLabel = isMedical ? 'Agendar sesión' : 'Reservar turno'
+  const ctaLabel = isMedical ? 'Agendar sesión' : propertyMode ? 'Reservar limpieza' : 'Reservar turno'
   const serviceLabel = isMedical ? 'sesión' : 'servicio'
   const staffTitle = staffLabel(org.business_type)
   const pricesFrom = hasCapability(org.business_type, 'variable-pricing')

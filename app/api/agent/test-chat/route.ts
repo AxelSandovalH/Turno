@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const db = createServiceClient()
   const { data: org } = await db.from('organizations').select('business_type').eq('id', organizationId).single()
   if (hasCapability(org?.business_type, 'properties')) {
-    const { data: host } = await db.from('customers').select('phone').eq('organization_id', organizationId).not('booking_token', 'is', null).order('name').limit(1).maybeSingle()
+    const { data: host } = await db.from('customers').select('phone').eq('organization_id', organizationId).not('booking_token', 'is', null).order('phone').limit(1).maybeSingle()
     if (host) testPhone = host.phone
   }
 

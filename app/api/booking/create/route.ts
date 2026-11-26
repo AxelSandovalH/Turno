@@ -3,6 +3,7 @@ import { stripeFor } from '@/lib/org-stripe'
 import { staffCanDo } from '@/lib/staff-services'
 import { hasCapability } from '@/lib/profiles/registry'
 import { resolveProperty } from '@/lib/properties'
+import { staffSlots } from '@/lib/booking-slots'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { sendMessage } from '@/lib/ultramsg'
@@ -18,7 +19,8 @@ const DEPOSIT_TIMEOUT_MINUTES = 20
 // cobra anticipo, genera el checkout de Stripe antes de confirmar.
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
-  const { slug, service_id, staff_id, date, slot, customer_name, customer_phone } = body ?? {}
+  const { slug, service_id, date, slot, customer_name, customer_phone } = body ?? {}
+  let staff_id: string = body?.staff_id
 
   if (!slug || !service_id || !staff_id || !date || !slot || !customer_name?.trim() || !customer_phone?.trim()) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
@@ -55,6 +57,19 @@ export async function POST(req: Request) {
     .eq('is_active', true)
     .single()
   if (!service) return NextResponse.json({ error: 'Servicio no encontrado' }, { status: 404 })
+
+  // 'any' (solo limpieza): se asigna a la primera persona que de verdad esté libre en ese horario
+  if (staff_id === 'any') {
+    if (!hasCapability(org.business_type, 'properties')) return NextResponse.json({ error: 'Faltan datos' }, { status: 400 })
+    const { data: team } = await db.from('staff').select('id').eq('organization_id', org.id).eq('is_active', true).order('name')
+    let free = ''
+    for (const person of team ?? []) {
+      const open = await staffSlots(db, { organizationId: org.id, timezone: org.timezone, staffId: person.id, serviceId: service_id, duration: service.duration_minutes, date, deadline: String(body?.deadline ?? '') })
+      if (open.includes(slot)) { free = person.id; break }
+    }
+    if (!free) return NextResponse.json({ error: 'Ese horario ya no está disponible. Elige otro.' }, { status: 409 })
+    staff_id = free
+  }
 
   const { data: staff } = await db
     .from('staff')
@@ -192,5 +207,5 @@ export async function POST(req: Request) {
     creds
   ).catch(() => {})
 
-  return NextResponse.json({ ok: true, requiresPayment: false, appointmentId: appointment.id })
+  return NextResponse.json({ ok: true, requiresPayment: false, appointmentId: appointment.id, staffName: staff.name })
 }
