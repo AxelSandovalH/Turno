@@ -4,6 +4,7 @@ import { tools, orderTools, paymentLinkTools, ranchoTools, surpriseTools, concie
 import { hasOrgStripe } from '@/lib/org-stripe'
 import { hasCapability } from '@/lib/profiles/registry'
 import { handleTool } from './tool-handlers'
+import { withPropertyTools, propertyPrompt } from './property-flow'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { MessageParam } from '@anthropic-ai/sdk/resources/messages'
 
@@ -127,6 +128,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     currency: org.currency ?? 'mxn',
     customerPhone,
     conversationId: conversation.id,
+    propertyMode: hasCapability(org.business_type, 'properties'),
     imageUrl: image?.url,
     prepay: !!org.appointment_prepay && paymentLinks,
     cardFeePct: Number(org.order_card_fee_pct) || 0,
@@ -138,7 +140,18 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
   // Con Stripe propio el bot puede pedir links de pago, siempre con aprobación previa del responsable
   // Farmacia (citas + pedidos): puede pasarle el caso al responsable cuando hay receta, controlados o urgencias
   const withLinks = paymentLinks ? [...baseTools, ...paymentLinkTools, ...(sellsProducts && booksAppointments ? [...ranchoTools, ...surpriseTools] : [])] : baseTools
-  const agentTools = sellsProducts && booksAppointments ? [...withLinks, ...handoffTools, ...conciergeTools, ...webPaymentTools] : withLinks
+  const allTools = sellsProducts && booksAppointments ? [...withLinks, ...handoffTools, ...conciergeTools, ...webPaymentTools] : withLinks
+  const propertyMode = hasCapability(org.business_type, 'properties')
+  const agentTools = propertyMode ? withPropertyTools(allTools) : allTools
+  let propertyCtx = ''
+  if (propertyMode) {
+    const { data: host } = await db.from('customers').select('id').eq('organization_id', organizationId).eq('phone', customerPhone).maybeSingle()
+    const { data: props } = host
+      ? await db.from('properties').select('id, name, zone').eq('customer_id', host.id).eq('is_active', true).order('name')
+      : { data: [] }
+    propertyCtx = propertyPrompt(props ?? [])
+  }
+  const system = () => buildSystemPrompt({ ...org, payment_links: paymentLinks }, customer ?? undefined, customerPhone, isFirstMessage) + propertyCtx
 
   // Agentic loop. Si algo falla (API caída, error inesperado) el cliente recibe una
   // respuesta en lugar de silencio, y el error queda en los logs.
@@ -147,7 +160,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
     let response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt({ ...org, payment_links: paymentLinks }, customer ?? undefined, customerPhone, isFirstMessage),
+      system: system(),
       tools: agentTools,
       messages,
     })
@@ -176,7 +189,7 @@ export async function runAgent({ organizationId, customerPhone, incomingMessage,
       response = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
-        system: buildSystemPrompt({ ...org, payment_links: paymentLinks }, customer ?? undefined, customerPhone, isFirstMessage),
+        system: system(),
         tools: agentTools,
         messages,
       })

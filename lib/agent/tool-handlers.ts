@@ -10,6 +10,7 @@ import { createDepositCheckoutSession } from '@/lib/stripe'
 import { addMinutes, parseISO, formatISO, startOfDay, endOfDay } from 'date-fns'
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz'
 import { es } from 'date-fns/locale'
+import { resolveProperty } from '@/lib/properties'
 import { createOrder, findByName, norm, money, type OrderLineInput } from '@/lib/orders'
 
 const DEPOSIT_TIMEOUT_MINUTES = 20
@@ -30,6 +31,8 @@ interface Context {
   imageUrl?: string
   /** Citas con pago por adelantado aprobado por el responsable (farmacia) */
   prepay?: boolean
+  /** Limpieza de propiedades: cada reserva lleva propiedad y hora límite de entrega */
+  propertyMode?: boolean
   cardFeePct?: number
 }
 
@@ -50,6 +53,15 @@ async function upcomingFor(db: ReturnType<typeof createServiceClient>, organizat
     awaiting_payment: a.deposit_status === 'pending',
     label: format(toZonedTime(parseISO(a.starts_at), timezone), "EEEE d 'de' MMMM, h:mm a", { timeZone: timezone, locale: es }),
   }))
+}
+
+const HHMM = /^([01]?\d|2[0-3]):[0-5]\d$/
+
+/** Hora límite (hora local) de ese día, en UTC. null si no viene o no es válida. */
+function deadlineOn(isoOrDate: string, hhmm: string | undefined, timezone: string): Date | null {
+  if (!hhmm || !HHMM.test(hhmm)) return null
+  const day = isoOrDate.length === 10 ? isoOrDate : format(toZonedTime(parseISO(isoOrDate), timezone), 'yyyy-MM-dd', { timeZone: timezone })
+  return fromZonedTime(`${day}T${hhmm.padStart(5, '0')}:00`, timezone)
 }
 
 export async function handleTool(toolName: string, input: Record<string, string>, ctx: Context): Promise<string> {
@@ -322,13 +334,21 @@ export async function handleTool(toolName: string, input: Record<string, string>
         }
       }
 
+      // Limpieza: solo horarios que terminan antes de la hora límite
+      if (ctx.propertyMode) {
+        const limit = deadlineOn(date, input.deadline, ctx.timezone)
+        if (!limit) return JSON.stringify({ error: 'Falta la hora límite de entrega (deadline en formato HH:MM). Pregúntala al anfitrión.' })
+        for (let i = slots.length - 1; i >= 0; i--) if (addMinutes(parseISO(slots[i].starts_at), duration) > limit) slots.splice(i, 1)
+      }
+
       // Mezcla los slots de todo el staff por hora (antes se llenaba el cupo
       // con el primer staff alfabético y nunca se ofrecía al resto)
       slots.sort((a, b) => a.starts_at.localeCompare(b.starts_at))
 
       // Solo horarios que SÍ se pueden hacer: se quitan los que chocan con una cita que este mismo cliente ya tiene
       // (no puede estar en dos consultas a la vez, y evita ofrecerle un horario que luego "ya no está disponible")
-      if (ctx.customerPhone) {
+      // (en limpieza no aplica: el mismo anfitrión puede tener dos propiedades a la vez)
+      if (ctx.customerPhone && !ctx.propertyMode) {
         const { data: cust } = await db.from('customers').select('id').eq('organization_id', ctx.organizationId).eq('phone', ctx.customerPhone).maybeSingle()
         if (cust) {
           const { data: mine } = await db.from('appointments').select('starts_at, ends_at').eq('customer_id', cust.id).eq('status', 'confirmed').gte('ends_at', localStart.toISOString())
@@ -351,7 +371,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
         slots: deduped.slice(0, 10),
         date,
         duration_minutes: duration,
-        ...(mine.length ? {
+        ...(mine.length && !ctx.propertyMode ? {
           customer_existing_appointments: mine.map(a => ({ appointment_id: a.id, label: a.label, paid: a.paid, awaiting_payment: a.awaiting_payment })),
           customer_note: 'ESTE cliente YA tiene cita(s) vigente(s) (lista arriba). Si el horario que pide coincide con la suya, NO digas que "ya no está disponible": confírmale que ya la tiene (y si está pagada, que está confirmada). No agendes otra cita igual; si quiere cambiarla usa reschedule_appointment.',
         } : {}),
@@ -360,7 +380,9 @@ export async function handleTool(toolName: string, input: Record<string, string>
     }
 
     case 'create_appointment': {
-      const { customer_name, customer_phone, service_id, staff_id, starts_at } = input
+      const { customer_name, service_id, staff_id, starts_at } = input
+      // En limpieza la reserva siempre queda a nombre del teléfono del chat: sus propiedades cuelgan de él
+      const customer_phone = ctx.propertyMode && ctx.customerPhone ? ctx.customerPhone : input.customer_phone
 
       const { data: service } = await db.from('services').select('duration_minutes, price').eq('id', service_id).single()
       if (!service) return JSON.stringify({ error: 'Servicio no encontrado' })
@@ -377,10 +399,26 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
       if (!customer) return JSON.stringify({ error: 'Error al registrar cliente' })
 
+      let property: { id: string; name: string; zone: string | null } | null = null
+      let deadlineAt: Date | null = null
+      if (ctx.propertyMode) {
+        deadlineAt = deadlineOn(starts_at, input.deadline, ctx.timezone)
+        if (!deadlineAt) return JSON.stringify({ error: 'Falta la hora límite de entrega. Pregúntala al anfitrión.' })
+        if (parseISO(endsAt) > deadlineAt) return JSON.stringify({ error: 'Con ese horario la limpieza no termina antes de la hora límite. Consulta horarios otra vez.' })
+        property = await resolveProperty(db, { organizationId: ctx.organizationId, customerId: customer.id, propertyId: input.property_id, name: input.property_name, zone: input.property_zone })
+        if (!property) return JSON.stringify({ error: 'Falta la propiedad o no pertenece a este anfitrión. Pregunta cuál es.' })
+      }
+
       // Un cliente no debe tener dos citas del mismo servicio el mismo día: si ya tiene una vigente, no se agenda otra
       const mineNow = await upcomingFor(db, ctx.organizationId, customer_phone, ctx.timezone)
       const day = (iso: string) => format(toZonedTime(parseISO(iso), ctx.timezone), 'yyyy-MM-dd', { timeZone: ctx.timezone })
-      const dup = mineNow.find(a => a.service_id === service_id && day(a.starts_at) === day(starts_at))
+      // En limpieza solo es duplicado si además es la misma propiedad
+      const sameProperty = new Set<string>()
+      if (property && mineNow.length) {
+        const { data } = await db.from('appointments').select('id').in('id', mineNow.map(a => a.id)).eq('property_id', property.id)
+        for (const a of data ?? []) sameProperty.add(a.id)
+      }
+      const dup = mineNow.find(a => a.service_id === service_id && day(a.starts_at) === day(starts_at) && (!property || sameProperty.has(a.id)))
       if (dup) {
         return JSON.stringify({
           success: true, already_booked: true, appointment_id: dup.id, starts_at: dup.starts_at, ends_at: dup.ends_at,
@@ -403,7 +441,9 @@ export async function handleTool(toolName: string, input: Record<string, string>
       if (conflict) {
         // Si el choque es con la cita que ESTE MISMO cliente ya tiene a esa hora (p. ej. confirmó dos veces), no es un error:
         // esa cita ya quedó agendada. Evita decirle "ya no está disponible" justo después de confirmarle.
-        const { data: mine } = await db.from('appointments').select('id, starts_at, ends_at, deposit_status').eq('id', conflict.id).eq('customer_id', customer.id).eq('service_id', service_id).maybeSingle()
+        let own = db.from('appointments').select('id, starts_at, ends_at, deposit_status').eq('id', conflict.id).eq('customer_id', customer.id).eq('service_id', service_id)
+        if (property) own = own.eq('property_id', property.id)
+        const { data: mine } = await own.maybeSingle()
         if (mine && new Date(mine.starts_at).getTime() === parseISO(starts_at).getTime()) {
           return JSON.stringify({ success: true, already_booked: true, appointment_id: mine.id, starts_at: mine.starts_at, ends_at: mine.ends_at, awaiting_payment: mine.deposit_status === 'pending', note: 'Esta cita YA estaba agendada para este cliente a esta hora. No es un error ni se vuelve a crear: confírmasela como ya registrada.' })
         }
@@ -421,6 +461,7 @@ export async function handleTool(toolName: string, input: Record<string, string>
           starts_at,
           ends_at: endsAt,
           status: 'confirmed',
+          ...(property && deadlineAt ? { property_id: property.id, deadline_at: deadlineAt.toISOString(), notes: `Propiedad: ${property.name}${property.zone ? ` · ${property.zone}` : ''} · Entregar antes de las ${input.deadline}` } : {}),
         })
         .select('id')
         .single()
@@ -500,11 +541,11 @@ export async function handleTool(toolName: string, input: Record<string, string>
       if (ctx.ownerWhatsapp) {
         const ownerTo = `${ctx.ownerWhatsapp}@c.us`
         const statusLine = depositResult ? '⏳ Esperando anticipo del cliente' : ''
-        const msg = `📅 *Nueva cita agendada*\n👤 ${customer_name} (${customer_phone})\n💆 ${svc?.name ?? 'Servicio'} con ${stf?.name ?? 'Staff'}\n🕐 ${localTime}${statusLine ? `\n${statusLine}` : ''}`
+        const msg = `📅 *Nueva cita agendada*\n👤 ${customer_name} (${customer_phone})\n💆 ${svc?.name ?? 'Servicio'} con ${stf?.name ?? 'Staff'}\n🕐 ${localTime}${property ? `\n🏠 ${property.name} · entregar antes de las ${input.deadline}` : ''}${statusLine ? `\n${statusLine}` : ''}`
         sendMessage(ownerTo, msg, ctx.ultramsg).catch(() => {})
       }
 
-      return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, ...depositResult })
+      return JSON.stringify({ success: true, appointment_id: appointment.id, starts_at, ends_at: endsAt, ...(property ? { property: property.name, zone: property.zone, deadline: input.deadline, staff_name: stf?.name } : {}), ...depositResult })
     }
 
     case 'find_website_payment': {
@@ -553,6 +594,17 @@ export async function handleTool(toolName: string, input: Record<string, string>
         ...a,
         label: format(toZonedTime(parseISO(a.starts_at), ctx.timezone), "EEEE d 'de' MMMM, h:mm a", { timeZone: ctx.timezone, locale: es }),
       }))
+
+      if (ctx.propertyMode && withLabels.length) {
+        const { data: extra } = await db.from('appointments').select('id, deadline_at, property:properties(name, zone)').in('id', withLabels.map(a => a.id))
+        const byId = new Map((extra ?? []).map(e => [e.id, e]))
+        return JSON.stringify({
+          appointments: withLabels.map(a => {
+            const e = byId.get(a.id)
+            return { ...a, property: e?.property ?? null, deadline_label: e?.deadline_at ? format(toZonedTime(parseISO(e.deadline_at), ctx.timezone), 'h:mm a', { timeZone: ctx.timezone }) : null }
+          }),
+        })
+      }
 
       return JSON.stringify({ appointments: withLabels })
     }
@@ -626,9 +678,20 @@ export async function handleTool(toolName: string, input: Record<string, string>
 
       if (conflict) return JSON.stringify({ error: 'El nuevo horario ya no está disponible.' })
 
+      let newDeadline: Date | null = null
+      let newNotes: string | null = null
+      if (ctx.propertyMode) {
+        const { data: cur } = await db.from('appointments').select('deadline_at, notes').eq('id', appointment_id).eq('organization_id', ctx.organizationId).maybeSingle()
+        const previous = cur?.deadline_at ? format(toZonedTime(parseISO(cur.deadline_at), ctx.timezone), 'HH:mm', { timeZone: ctx.timezone }) : undefined
+        newDeadline = deadlineOn(new_starts_at, input.deadline || previous, ctx.timezone)
+        // La nota de la cita muestra la hora límite: si cambia, se actualiza
+        if (newDeadline && cur?.notes) newNotes = cur.notes.replace(/Entregar antes de las \d{1,2}:\d{2}/, `Entregar antes de las ${format(toZonedTime(newDeadline, ctx.timezone), 'HH:mm', { timeZone: ctx.timezone })}`)
+        if (newDeadline && parseISO(newEndsAt) > newDeadline) return JSON.stringify({ error: 'En ese horario la limpieza no termina antes de la hora límite. Ofrece uno más temprano o pregunta la nueva hora límite.' })
+      }
+
       const { error } = await db
         .from('appointments')
-        .update({ starts_at: new_starts_at, ends_at: newEndsAt, staff_id: staffId })
+        .update({ starts_at: new_starts_at, ends_at: newEndsAt, staff_id: staffId, ...(newDeadline ? { deadline_at: newDeadline.toISOString() } : {}), ...(newNotes ? { notes: newNotes } : {}) })
         .eq('id', appointment_id)
 
       if (error) return JSON.stringify({ error: error.message })

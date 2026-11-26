@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { runAgent } from '@/lib/agent/agent'
+import { createServiceClient } from '@/lib/supabase/service'
+import { hasCapability } from '@/lib/profiles/registry'
+
+export const maxDuration = 60
 
 export async function POST(req: Request) {
   const supabase = await createClient()
@@ -18,7 +22,15 @@ export async function POST(req: Request) {
   // Synthetic phone per staff user — isolates each tester's conversation from
   // real WhatsApp threads (unique per organization_id+whatsapp_phone) and
   // keeps it identifiable if it ever shows up in /conversations or /patients.
-  const testPhone = `web-test-${user.id.slice(0, 8)}`
+  let testPhone = `web-test-${user.id.slice(0, 8)}`
+
+  // Limpieza de propiedades: se prueba como un anfitrión registrado, para que el bot ya conozca sus propiedades
+  const db = createServiceClient()
+  const { data: org } = await db.from('organizations').select('business_type').eq('id', organizationId).single()
+  if (hasCapability(org?.business_type, 'properties')) {
+    const { data: host } = await db.from('customers').select('phone').eq('organization_id', organizationId).not('booking_token', 'is', null).order('name').limit(1).maybeSingle()
+    if (host) testPhone = host.phone
+  }
 
   try {
     const reply = await runAgent({
