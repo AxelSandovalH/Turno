@@ -96,7 +96,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-semibold text-foreground tracking-tight">Citas</h1>
+          <h1 className="text-[22px] font-semibold text-foreground tracking-tight">{getProfile(org?.business_type).capabilities.has('properties') ? 'Reservas' : 'Citas'}</h1>
           <div className="flex flex-wrap items-center gap-2 mt-0.5">
             <p className="text-[13px] text-muted-foreground capitalize">
               {format(today, "EEEE d 'de' MMMM yyyy", { locale: es })}

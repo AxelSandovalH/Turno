@@ -333,11 +333,18 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               {loadingSlots ? (
                 <p className="text-sm text-zinc-500">Buscando disponibilidad...</p>
               ) : slots.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  {propertyMode
-                    ? `Con entrega a las ${to12h(deadline)} no hay un horario en el que alcance${selectedService ? ` un servicio de ${selectedService.duration_minutes >= 60 ? `${+(selectedService.duration_minutes / 60).toFixed(1)} h` : `${selectedService.duration_minutes} min`}` : ''}. Prueba una hora límite más tarde${staffId !== 'any' ? ', elige "Cualquiera disponible"' : ''} u otro día.`
-                    : 'Sin horarios disponibles para este día. Elige otra fecha.'}
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-zinc-500">
+                    {propertyMode
+                      ? `${staffId !== 'any' && selectedStaff ? `${selectedStaff.name} no tiene` : 'No hay'} un horario en el que alcance${selectedService ? ` un servicio de ${selectedService.duration_minutes >= 60 ? `${+(selectedService.duration_minutes / 60).toFixed(1)} h` : `${selectedService.duration_minutes} min`}` : ''} con entrega a las ${to12h(deadline)}. ${staffId !== 'any' ? 'Busca con todo el equipo, o prueba' : 'Prueba'} una hora límite más tarde u otro día.`
+                      : 'Sin horarios disponibles para este día. Elige otra fecha.'}
+                  </p>
+                  {propertyMode && staffId !== 'any' && (
+                    <button type="button" onClick={() => setStaffId('any')} className="w-full rounded-xl border py-2.5 text-sm font-medium text-white" style={{ borderColor: accent, background: `${accent}22` }}>
+                      Ver horarios con cualquiera disponible
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {slots.map(slot => (

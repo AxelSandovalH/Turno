@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -29,10 +29,9 @@ interface Props {
   onDayClick?: (date: Date) => void
 }
 
-// Altura mínima de cada celda del mes: crece con la pantalla
-const CELL_H = 'min-h-[110px] lg:min-h-[140px] 2xl:min-h-[160px]'
-// Citas visibles por día antes del "+N más" (más espacio = más citas)
-const MAX_VISIBLE = 4
+// El mes completo cabe en la pantalla: el alto de cada semana sale del espacio libre (entre estos límites)
+const MIN_ROW = 64
+const MAX_ROW = 180
 
 export function CalendarView({ appointments, onDayClick }: Props) {
   const router = useRouter()
@@ -44,6 +43,23 @@ export function CalendarView({ appointments, onDayClick }: Props) {
   // Pad to start on Monday (0=Sun → offset)
   const startPad = (getDay(monthStart) + 6) % 7 // Mon=0
   const cells = [...Array(startPad).fill(null), ...days]
+  const weeks = Math.ceil(cells.length / 7)
+
+  const gridRef = useRef<HTMLDivElement>(null)
+  const [rowH, setRowH] = useState(96)
+  useEffect(() => {
+    const fit = () => {
+      const el = gridRef.current
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY
+      setRowH(Math.min(MAX_ROW, Math.max(MIN_ROW, Math.floor((window.innerHeight - top - 28) / weeks))))
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [weeks])
+  // Renglones que caben bajo el número del día; si sobran citas, el último dice "+N más"
+  const room = Math.max(1, Math.floor((rowH - 40) / 22))
 
   // Group once by day key instead of filtering the full list per cell
   const aptsByDay = useMemo(() => {
@@ -58,7 +74,7 @@ export function CalendarView({ appointments, onDayClick }: Props) {
   }, [appointments])
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold capitalize text-foreground">
@@ -82,15 +98,15 @@ export function CalendarView({ appointments, onDayClick }: Props) {
         {/* Day names */}
         <div className="grid grid-cols-7 border-b border-border bg-muted/30">
           {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
-            <div key={d} className="py-2.5 text-center text-xs font-medium text-muted-foreground">{d}</div>
+            <div key={d} className="py-1.5 text-center text-xs font-medium text-muted-foreground">{d}</div>
           ))}
         </div>
 
         {/* Day cells */}
         <TooltipProvider>
-          <div className="grid grid-cols-7">
+          <div ref={gridRef} className="grid grid-cols-7" style={{ gridAutoRows: rowH }}>
             {cells.map((day, i) => {
-              if (!day) return <div key={`pad-${i}`} className={`${CELL_H} border-b border-r border-border last:border-r-0 bg-muted/10`} />
+              if (!day) return <div key={`pad-${i}`} className={`border-b border-r border-border last:border-r-0 bg-muted/10`} />
               const dayApts = aptsByDay.get(format(day, 'yyyy-MM-dd')) ?? []
               const today = isToday(day)
               const inMonth = isSameMonth(day, current)
@@ -102,15 +118,15 @@ export function CalendarView({ appointments, onDayClick }: Props) {
                     onDayClick?.(day)
                     router.push(`?view=list&date=${format(day, 'yyyy-MM-dd')}`)
                   }}
-                  className={`${CELL_H} p-2.5 border-b border-r border-border last:border-r-0 transition-colors cursor-pointer hover:bg-muted/20 ${!inMonth ? 'opacity-30' : ''}`}
+                  className={`overflow-hidden p-1.5 border-b border-r border-border last:border-r-0 transition-colors cursor-pointer hover:bg-muted/20 ${!inMonth ? 'opacity-30' : ''}`}
                 >
-                  <span className={`inline-flex items-center justify-center w-7 h-7 text-sm font-medium rounded-full mb-1.5 ${today ? 'bg-primary text-white' : 'text-foreground'}`}>
+                  <span className={`inline-flex items-center justify-center w-6 h-6 text-[13px] font-medium rounded-full mb-0.5 ${today ? 'bg-primary text-white' : 'text-foreground'}`}>
                     {format(day, 'd')}
                   </span>
 
                   {dayApts.length > 0 && (
                     <div className="space-y-1">
-                      {dayApts.slice(0, MAX_VISIBLE).map(a => (
+                      {dayApts.slice(0, dayApts.length > room ? room - 1 : room).map(a => (
                         <Tooltip key={a.id}>
                           <TooltipTrigger
                             render={
@@ -136,8 +152,8 @@ export function CalendarView({ appointments, onDayClick }: Props) {
                           </TooltipContent>
                         </Tooltip>
                       ))}
-                      {dayApts.length > MAX_VISIBLE && (
-                        <p className="text-xs text-muted-foreground">+{dayApts.length - MAX_VISIBLE} más</p>
+                      {dayApts.length > room && (
+                        <p className="text-xs text-muted-foreground">{room > 1 ? `+${dayApts.length - room + 1} más` : `${dayApts.length} reservas`}</p>
                       )}
                     </div>
                   )}
