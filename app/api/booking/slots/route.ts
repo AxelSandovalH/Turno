@@ -16,6 +16,7 @@ export async function GET(req: Request) {
   const staffId = url.searchParams.get('staff') ?? ''
   const serviceId = url.searchParams.get('service') ?? ''
   const date = url.searchParams.get('date') ?? '' // YYYY-MM-DD
+  const deadline = url.searchParams.get('deadline') ?? '' // HH:mm, opcional: el servicio debe terminar antes
 
   if (!slug || !staffId || !serviceId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
@@ -92,7 +93,9 @@ export async function GET(req: Request) {
       const isBlocked = (blocks ?? []).some(b =>
         cursor < parseISO(b.ends_at) && slotEnd > parseISO(b.starts_at))
 
-      if (!isBooked && !isBlocked && cursor > now) {
+      const afterDeadline = /^\d{2}:\d{2}$/.test(deadline) && slotEnd > fromZonedTime(`${date}T${deadline}:00`, tz)
+
+      if (!isBooked && !isBlocked && !afterDeadline && cursor > now) {
         slots.push(format(toZonedTime(cursor, tz), 'HH:mm', { timeZone: tz }))
       }
       cursor = addMinutes(cursor, SLOT_INTERVAL)

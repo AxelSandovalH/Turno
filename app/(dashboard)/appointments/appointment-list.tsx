@@ -28,9 +28,11 @@ function resolveStatus(status: string, conf: ConfStatus): {
 interface Props {
   list: Appointment[]
   staffLabel: string
+  /** Nombre del cliente según el giro */
+  customerLabel?: string
 }
 
-export function AppointmentsList({ list, staffLabel }: Props) {
+export function AppointmentsList({ list, staffLabel, customerLabel = 'Paciente' }: Props) {
   const [selected, setSelected] = useState<Appointment | null>(null)
 
   return (
@@ -45,7 +47,7 @@ export function AppointmentsList({ list, staffLabel }: Props) {
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-border bg-card">
-                {['Hora', 'Paciente', 'Servicio', staffLabel, 'Estado', ''].map((h, i) => (
+                {['Hora', customerLabel, 'Servicio', staffLabel, 'Estado', ''].map((h, i) => (
                   <th key={i} className="px-4 py-3 text-left text-[11px] font-medium text-muted-foreground/60 uppercase tracking-widest">
                     {h}
                   </th>
@@ -95,6 +97,7 @@ export function AppointmentsList({ list, staffLabel }: Props) {
         appointment={selected}
         onClose={() => setSelected(null)}
         staffLabel={staffLabel}
+        customerLabel={customerLabel}
       />
     </>
   )
@@ -104,10 +107,12 @@ function AppointmentDetailModal({
   appointment: apt,
   onClose,
   staffLabel,
+  customerLabel,
 }: {
   appointment: Appointment | null
   onClose: () => void
   staffLabel: string
+  customerLabel: string
 }) {
   if (!apt) return null
 
@@ -145,7 +150,7 @@ function AppointmentDetailModal({
         {/* Body */}
         <div className="p-5 space-y-4">
           {/* Patient */}
-          <Row icon={<User className="h-4 w-4" />} label="Paciente">
+          <Row icon={<User className="h-4 w-4" />} label={customerLabel}>
             <p className="font-medium text-foreground">{apt.customer?.name ?? '—'}</p>
             {apt.customer?.phone && (
               <a

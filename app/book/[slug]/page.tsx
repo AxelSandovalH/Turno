@@ -5,7 +5,7 @@ import { hasCapability } from '@/lib/profiles/registry'
 import type { Metadata } from 'next'
 import { BookingForm } from './booking-form'
 
-interface Props { params: Promise<{ slug: string }> }
+interface Props { params: Promise<{ slug: string }>; searchParams: Promise<{ h?: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -14,8 +14,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: org ? `Reservar cita — ${org.name}` : 'Reservar cita' }
 }
 
-export default async function BookingPage({ params }: Props) {
+export default async function BookingPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const { h } = await searchParams
   const db = createServiceClient()
 
   const { data: org } = await db
@@ -61,6 +62,17 @@ export default async function BookingPage({ params }: Props) {
     return 0
   })
 
+  // Limpieza de propiedades: con su link personal (?h=token) el anfitrión ve sus propiedades y no vuelve a escribir sus datos
+  const propertyMode = hasCapability(org.business_type, 'properties')
+  let host: { name: string; phone: string; properties: { id: string; name: string; zone: string | null }[] } | null = null
+  if (propertyMode && h) {
+    const { data: c } = await db.from('customers').select('id, name, phone').eq('organization_id', org.id).eq('booking_token', h).maybeSingle()
+    if (c) {
+      const { data: props } = await db.from('properties').select('id, name, zone').eq('customer_id', c.id).eq('is_active', true).order('name')
+      host = { name: c.name ?? '', phone: c.phone, properties: props ?? [] }
+    }
+  }
+
   const accent = org.primary_color ?? '#7c3aed'
   const isMedical = isMedicalVertical(org.business_type)
   const ctaLabel = isMedical ? 'Agendar sesión' : 'Reservar turno'
@@ -104,6 +116,8 @@ export default async function BookingPage({ params }: Props) {
         </div>
 
         <BookingForm
+          propertyMode={propertyMode}
+          host={host}
           org={{ id: org.id, name: org.name, whatsapp_number: org.whatsapp_number, slug: org.slug }}
           services={services}
           staff={staff ?? []}

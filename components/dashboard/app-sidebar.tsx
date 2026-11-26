@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   CalendarDays, Clock, Settings, Tag, FlaskConical, ClipboardList, Microscope, FileText,
-  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign, ShoppingBag, UtensilsCrossed, QrCode, Sparkles,
+  LogOut, FolderHeart, Search, ChevronRight, BarChart2, MessageCircle, DollarSign, ShoppingBag, UtensilsCrossed, QrCode, Sparkles, CalendarRange, Home, Bot,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -57,6 +57,9 @@ const MODULE_SUBTITLES: Record<string, string> = {
   finanzas:      'Ingresos, comisiones, cortes',
   analytics:     'Citas, ingresos, tendencias',
   settings:      'Negocio, WhatsApp, cuenta',
+  week:          'Agenda semanal de cada persona',
+  properties:    'Propiedades de cada anfitrión',
+  bot:           'Chatea con tu asistente sin WhatsApp',
   'lab-orders':  'Recepción y órdenes de laboratorio',
   'lab-tests':   'Catálogo de estudios y analitos',
   'lab-worklist': 'Órdenes pendientes de captura',
@@ -343,6 +346,9 @@ export function AppSidebar({ organization }: { organization: Organization }) {
                   staff:        staffIcon(organization.business_type),
                   services:     Tag,
                   schedule:     Clock,
+                  week:         CalendarRange,
+                  properties:   Home,
+                  bot:          Bot,
                   conversations: MessageCircle,
                   whatsapp:     QrCode,
                   finanzas:     DollarSign,

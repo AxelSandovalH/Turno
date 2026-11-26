@@ -22,11 +22,14 @@ interface Props {
   /** staff_id → servicios que sí hace (si no aparece, hace todos) */
   staffServices?: Record<string, string[]>
   currency?: string
+  /** Limpieza de propiedades: pide propiedad y hora límite de entrega */
+  propertyMode?: boolean
+  host?: { name: string; phone: string; properties: { id: string; name: string; zone: string | null }[] } | null
 }
 
 const DAYS_AHEAD = 14
 
-export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount, currency = 'mxn', staffServices = {} }: Props) {
+export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle, pricesFrom, depositAmount, currency = 'mxn', staffServices = {}, propertyMode = false, host = null }: Props) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   const [serviceId, setServiceId] = useState('')
   const [staffId, setStaffId] = useState('')
@@ -34,9 +37,13 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
   const [selectedSlot, setSelectedSlot] = useState('')
   const [slots, setSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [name, setName] = useState('')
+  const [name, setName] = useState(host?.name ?? '')
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY)
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(host ? host.phone.slice(-10) : '')
+  const [propertyId, setPropertyId] = useState(host?.properties[0]?.id ?? '')
+  const [propertyName, setPropertyName] = useState('')
+  const [propertyZone, setPropertyZone] = useState('')
+  const [deadline, setDeadline] = useState('15:00')
   const [weekOffset, setWeekOffset] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -64,7 +71,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
     setSelectedSlot('')
 
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
-    const params = new URLSearchParams({ slug: org.slug, staff: staffId, service: serviceId, date: dateStr })
+    const params = new URLSearchParams({ slug: org.slug, staff: staffId, service: serviceId, date: dateStr, ...(propertyMode && deadline ? { deadline } : {}) })
     let cancelled = false
 
     fetch(`/api/booking/slots?${params}`)
@@ -81,7 +88,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
       })
 
     return () => { cancelled = true }
-  }, [selectedDate, serviceId, staffId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedDate, serviceId, staffId, deadline]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConfirm() {
     if (!selectedDate || !selectedSlot || !serviceId || !staffId || !name.trim() || !fullPhone) return
@@ -100,6 +107,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
           slot: selectedSlot,
           customer_name: name.trim(),
           customer_phone: fullPhone,
+          ...(propertyMode ? { deadline, property_id: propertyId || undefined, property_name: propertyId ? undefined : propertyName.trim(), property_zone: propertyId ? undefined : propertyZone.trim() } : {}),
         }),
       })
       const data = await res.json().catch(() => null)
@@ -120,8 +128,9 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
   }
 
   const canGoNext1 = !!serviceId && !!staffId
-  const canGoNext2 = !!selectedDate && !!selectedSlot
-  const canSubmit  = !!name.trim() && !!fullPhone && !submitting
+  const hasProperty = !propertyMode || !!propertyId || !!propertyName.trim()
+  const canGoNext2 = !!selectedDate && !!selectedSlot && (!propertyMode || !!deadline)
+  const canSubmit  = !!name.trim() && !!fullPhone && hasProperty && !submitting
 
   return (
     <div className="space-y-6">
@@ -151,6 +160,28 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
       {/* Step 1 — Servicio y profesional */}
       {step === 1 && (
         <div className="space-y-4">
+          {propertyMode && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Propiedad</p>
+              {!!host?.properties.length && (
+                <div className="flex flex-wrap gap-2">
+                  {[...host.properties, { id: '', name: 'Otra', zone: null }].map(p => (
+                    <button key={p.id || 'new'} type="button" onClick={() => setPropertyId(p.id)}
+                      className={`px-3 py-1.5 rounded-full border text-sm ${propertyId === p.id ? 'text-white' : 'border-zinc-700 text-zinc-400'}`}
+                      style={propertyId === p.id ? { borderColor: accent, background: `${accent}22` } : {}}>
+                      {p.name}{p.zone ? ` · ${p.zone}` : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!propertyId && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input value={propertyName} onChange={e => setPropertyName(e.target.value)} maxLength={80} placeholder="Nombre de la propiedad" className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1" />
+                  <input value={propertyZone} onChange={e => setPropertyZone(e.target.value)} maxLength={60} placeholder="Zona (ej. Versalles)" className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:ring-1" />
+                </div>
+              )}
+            </div>
+          )}
           {depositAmount != null && (
             <div
               className="rounded-xl border px-4 py-3 text-xs text-zinc-300"
@@ -226,7 +257,7 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
           )}
 
           <button
-            disabled={!canGoNext1}
+            disabled={!canGoNext1 || !hasProperty}
             onClick={() => { if (eligible.length === 1) setStaffId(eligible[0].id); setStep(2) }}
             className="w-full py-3 rounded-xl font-semibold text-sm transition-opacity disabled:opacity-40 text-white"
             style={{ background: accent }}
@@ -283,6 +314,14 @@ export function BookingForm({ org, services, staff, accent, ctaLabel, staffTitle
               })}
             </div>
           </div>
+
+          {propertyMode && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium">¿A qué hora debe estar lista?</span>
+              <input type="time" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1" />
+              <span className="mt-1 block text-xs text-zinc-500">Solo te mostramos horarios que terminan antes de esa hora.</span>
+            </label>
+          )}
 
           {/* Time slots */}
           {selectedDate && (

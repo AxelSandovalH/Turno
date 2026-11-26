@@ -20,6 +20,8 @@ export function staffLabel(type: string | null | undefined, plural = false): str
 }
 
 export function customerLabel(type: string | null | undefined, plural = false): string {
+  const custom = getProfile(type).customerLabel
+  if (custom) return plural ? custom.plural : custom.singular
   const medical = isMedicalVertical(type)
   if (plural) return medical ? 'Pacientes' : 'Clientes'
   return medical ? 'Paciente' : 'Cliente'

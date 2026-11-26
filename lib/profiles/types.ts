@@ -14,6 +14,7 @@ export type BusinessType =
   | 'restaurant'
   | 'pharmacy'
   | 'events'
+  | 'cleaning'
   | 'other'
 
 /**
@@ -42,6 +43,8 @@ export type Capability =
   | 'service-photos'
   /** Pedidos y delivery: menú, carrito público, tablero de pedidos y bot que toma pedidos */
   | 'orders'
+  /** Propiedades por cliente y hora límite de entrega en cada reserva (limpieza de rentas) */
+  | 'properties'
   /** Eventos con inscripción pública y pago en línea (carreras): lista de inscritos */
   | 'events'
 
@@ -59,6 +62,8 @@ export interface BusinessProfile {
   displayName: string
   emoji: string
   staffLabel: { singular: string; plural: string }
+  /** Cómo se llama al cliente en este giro; sin definir = Paciente/Cliente según el expediente */
+  customerLabel?: { singular: string; plural: string }
   staffIcon: LucideIcon
   capabilities: ReadonlySet<Capability>
   /** Módulos visibles en el sidebar, en orden */

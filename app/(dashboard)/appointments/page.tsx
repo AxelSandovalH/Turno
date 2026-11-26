@@ -12,7 +12,7 @@ import { DayView } from './day-view'
 import { PaymentSuccessToast } from './payment-success-toast'
 import { GettingStartedServer } from '@/components/dashboard/getting-started-server'
 import { staffLabel as getStaffLabel } from '@/lib/business-type'
-import { hasCapability } from '@/lib/profiles/registry'
+import { hasCapability, getProfile } from '@/lib/profiles/registry'
 import type { Appointment } from '@/types/database'
 
 interface Props {
@@ -158,7 +158,7 @@ export default async function AppointmentsPage({ searchParams }: Props) {
             ))}
           </div>
 
-          <AppointmentsList list={list} staffLabel={staffLabel} />
+          <AppointmentsList list={list} staffLabel={staffLabel} customerLabel={getProfile(org?.business_type).customerLabel?.singular} />
         </>
       )}
 

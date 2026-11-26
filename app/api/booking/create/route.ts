@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { stripeFor } from '@/lib/org-stripe'
 import { staffCanDo } from '@/lib/staff-services'
+import { hasCapability } from '@/lib/profiles/registry'
+import { resolveProperty } from '@/lib/properties'
 import { createServiceClient } from '@/lib/supabase/service'
 import { createDepositCheckoutSession } from '@/lib/stripe'
 import { sendMessage } from '@/lib/ultramsg'
@@ -32,7 +34,7 @@ export async function POST(req: Request) {
 
   const { data: org } = await db
     .from('organizations')
-    .select('id, name, timezone, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency')
+    .select('id, name, timezone, whatsapp_number, ultramsg_instance, ultramsg_token, deposit_enabled, deposit_amount, currency, business_type')
     .eq('slug', slug)
     .eq('is_active', true)
     .single()
@@ -85,12 +87,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Ese horario ya no está disponible. Elige otro.' }, { status: 409 })
   }
 
+  // Limpieza de propiedades: cada reserva lleva propiedad y hora límite de entrega
+  const needsProperty = hasCapability(org.business_type, 'properties')
+  let deadlineAt: Date | null = null
+  if (needsProperty) {
+    const deadline = String(body?.deadline ?? '')
+    if (!/^\d{2}:\d{2}$/.test(deadline)) return NextResponse.json({ error: 'Indica la hora límite de entrega' }, { status: 400 })
+    deadlineAt = fromZonedTime(`${date}T${deadline}:00`, org.timezone)
+    if (endsAt > deadlineAt) return NextResponse.json({ error: 'Con ese horario el servicio no termina antes de la hora límite. Elige uno más temprano.' }, { status: 400 })
+    if (!body?.property_id && !String(body?.property_name ?? '').trim()) return NextResponse.json({ error: 'Indica la propiedad' }, { status: 400 })
+  }
+
   const { data: customer } = await db
     .from('customers')
     .upsert({ organization_id: org.id, phone, name: customer_name.trim() }, { onConflict: 'organization_id,phone' })
     .select('id')
     .single()
   if (!customer) return NextResponse.json({ error: 'Error al registrar tus datos' }, { status: 500 })
+
+  const property = needsProperty
+    ? await resolveProperty(db, { organizationId: org.id, customerId: customer.id, propertyId: body?.property_id, name: body?.property_name, zone: body?.property_zone })
+    : null
+  if (needsProperty && !property) return NextResponse.json({ error: 'No encontramos esa propiedad. Revisa que tu WhatsApp sea el registrado.' }, { status: 400 })
 
   const { data: appointment, error: apptError } = await db
     .from('appointments')
@@ -103,6 +121,7 @@ export async function POST(req: Request) {
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
       status: 'confirmed',
+      ...(property && deadlineAt ? { property_id: property.id, deadline_at: deadlineAt.toISOString(), notes: `Propiedad: ${property.name}${property.zone ? ` · ${property.zone}` : ''} · Entregar antes de las ${body.deadline}` } : {}),
     })
     .select('id')
     .single()
@@ -121,6 +140,7 @@ export async function POST(req: Request) {
 
   const localTime = format(toZonedTime(startsAt, org.timezone), "EEEE d 'de' MMMM 'a las' h:mm a", { timeZone: org.timezone, locale: es })
   const creds = { instance: org.ultramsg_instance, token: org.ultramsg_token }
+  const propertyLine = property ? `\n🏠 ${property.name}${property.zone ? ` (${property.zone})` : ''} · entregar antes de las ${body.deadline}` : ''
 
   // Anticipo requerido: la cita ya bloqueó el horario — se confirma al pagar
   if (org.deposit_enabled && Number(org.deposit_amount) > 0) {
@@ -146,7 +166,7 @@ export async function POST(req: Request) {
       if (org.whatsapp_number) {
         await sendMessage(
           `${org.whatsapp_number}@c.us`,
-          `📅 *Nueva cita desde la página de reservas*\n👤 ${customer_name} (${phone})\n💆 ${service.name} con ${staff.name}\n🕐 ${localTime}\n⏳ Esperando anticipo del cliente`,
+          `📅 *Nueva cita desde la página de reservas*\n👤 ${customer_name} (${phone})\n💆 ${service.name} con ${staff.name}\n🕐 ${localTime}${propertyLine}\n⏳ Esperando anticipo del cliente`,
           creds
         ).catch(() => {})
       }
@@ -162,7 +182,7 @@ export async function POST(req: Request) {
   if (org.whatsapp_number) {
     await sendMessage(
       `${org.whatsapp_number}@c.us`,
-      `📅 *Nueva cita desde la página de reservas*\n👤 ${customer_name} (${phone})\n💆 ${service.name} con ${staff.name}\n🕐 ${localTime}`,
+      `📅 *Nueva cita desde la página de reservas*\n👤 ${customer_name} (${phone})\n💆 ${service.name} con ${staff.name}\n🕐 ${localTime}${propertyLine}`,
       creds
     ).catch(() => {})
   }
